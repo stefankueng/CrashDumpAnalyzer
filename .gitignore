@@ -1,0 +1,6 @@
+/.vs
+/_ReSharper.Caches
+/CrashDumpAnalyzer/bin
+/CrashDumpAnalyzer/obj
+/FileUpload
+/*.dmp

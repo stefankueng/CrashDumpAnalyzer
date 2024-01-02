@@ -1,0 +1,108 @@
+﻿@model IEnumerable<CrashDumpAnalyzer.Models.DumpCallstack>
+@{
+	ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+	<h1 class="display-4">Welcome</h1>
+	<form action="/Ajax/UploadFiles" method="post" enctype="multipart/form-data" onsubmit="return submitFilesForm(this);">
+		<input type="file" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
+		<label for="files-field" id="files-label"
+			   ondragover="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
+			   ondragenter="stopDefault(event);dragOver(this, 'Drop the dujp files to upload them.');"
+			   ondragleave="stopDefault(event);dragLeave(this);"
+			   ondrop="stopDefault(event);dragLeave(this);addFilesAndSubmit(event);">Click to choose dump files or drag-n-drop them here</label>
+	</form>
+	<div style="text-align: left;"><div id="files-progress"></div></div>
+	<div class="modal-page" id="uploaded-files"></div>
+	<div>
+		<table class="table">
+			<thead>
+				<tr>
+					<th>@Html.DisplayNameFor(model => model.ApplicationName)</th>
+					<th>@Html.DisplayNameFor(model => model.ApplicationVersion)</th>
+					<th>@Html.DisplayNameFor(model => model.ExceptionType)</th>
+					<th>Dump Counts</th>
+				</tr>
+			</thead>
+			<tbody>
+				@foreach (var item in Model)
+				{
+					<tr>
+						<td>@Html.DisplayFor(modelItem => item.ApplicationName)</td>
+						<td>@Html.DisplayFor(modelItem => item.ApplicationVersion)</td>
+						<td>@Html.DisplayFor(modelItem => item.ExceptionType)</td>
+						<td>@Html.DisplayFor(modelItem => item.DumpInfos.Count)</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+</div>
+<script type="text/javascript">
+	function stopDefault(event) {
+		event.preventDefault();
+		event.stopPropagation();
+	}
+	function dragOver(label, text) {
+		label.style.animationName = "dropbox";
+		label.innerText = text;
+	}
+	function dragLeave(label) {
+		label.style.animationName = "";
+		label.innerText = "Click to choose dump files or drag-n-drop them here";
+	}
+	function addFilesAndSubmit(event) {
+		var files = event.target.files || event.dataTransfer.files;
+		var field = document.getElementById("files-field");
+		field.files = files;
+		submitFilesForm(field.form);
+	}
+	function submitFilesForm(form) {
+		var label = document.getElementById("files-label");
+		dragOver(label, "Uploading dump files..."); // set the drop zone text and styling
+		if (!FormData) {
+			alert("Function not supported by this browser.")
+			return false;
+		}
+		var fd = new FormData();
+		//fd.append(form.elements[0].name, form.elements[0].value); // must append the AntiForgeryToken to the form data
+		for (var i = 0; i < form.files.files.length; i++) {
+			var field = form.files;
+			fd.append(field.name, field.files[i], field.files[i].name);
+		}
+		var progress = document.getElementById("files-progress");
+		var x = new XMLHttpRequest();
+		if (x.upload) {
+			x.upload.addEventListener("progress", function (event) {
+				var percentage = Math.round(event.loaded / event.total * 100);
+				progress.innerText = progress.style.width = percentage + "%";
+			});
+		}
+		x.onreadystatechange = function () {
+			if (x.readyState == 4) {
+				progress.innerText = progress.style.width = "";
+				form.files.value = "";
+				dragLeave(label); // this will reset the text and styling of the drop zone
+				if (x.status == 201) {
+					var images = x.responseText.split('|');
+					for (var i = 0; i < images.length; i++) {
+						var img = document.createElement("p");
+						img.appendChild(images[i]);
+						document.getElementById("uploaded-files").appendChild(img);
+					}
+					location.href = "#uploaded-files";
+				}
+				else if (x.status == 500) {
+					alert(x.responseText); // do something with the server error
+				}
+				else {
+					alert(x.status + ": " + x.statusText + x.responseText + x);
+				}
+			}
+		};
+		x.open(form.method, form.action, true);
+		x.send(fd);
+		return false; // do not forget this
+	}
+</script>
