@@ -300,5 +300,31 @@ namespace CrashDumpAnalyzer.Controllers
 
             return Created(nameof(AjaxController), null);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> DeleteDumpCallstack(int id)
+        {
+            var dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstAsync(cs => cs.DumpCallstackId == id);
+            if (dumpCallstack == null)
+            {
+                return NotFound();
+            }
+
+            try
+            {
+                _dbContext.DumpCallstacks.Remove(dumpCallstack);
+                await _dbContext.SaveChangesAsync();
+                // now delete all dump files from this callstack
+                foreach (var dumpInfo in dumpCallstack.DumpInfos)
+                {
+                    System.IO.File.Delete(dumpInfo.FilePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting callstack from database");
+            }
+            return NoContent();
+        }
     }
 }
