@@ -180,6 +180,7 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     DumpFileInfoId = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     FilePath = table.Column<string>(type: "TEXT", nullable: false),
+                    FileSize = table.Column<long>(type: "INTEGER", nullable: false),
                     UploadDate = table.Column<DateTime>(type: "TEXT", nullable: false),
                     ApplicationName = table.Column<string>(type: "TEXT", nullable: false),
                     ApplicationVersion = table.Column<string>(type: "TEXT", nullable: false),

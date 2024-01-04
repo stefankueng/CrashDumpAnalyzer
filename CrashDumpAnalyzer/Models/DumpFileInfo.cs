@@ -6,6 +6,7 @@ namespace CrashDumpAnalyzer.Models
 	{
 		public int DumpFileInfoId { get; set; }
 		public string FilePath { get; set; } = string.Empty;
+		public long FileSize { get; set; } = 0;
 		public DateTime UploadDate { get; set; }
 		public string ApplicationName { get; set; } = string.Empty;
 		public string ApplicationVersion { get; set; } = string.Empty;

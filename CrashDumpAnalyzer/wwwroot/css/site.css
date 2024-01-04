@@ -94,3 +94,26 @@ body {
         visibility: visible;
         opacity: 1;
     }
+
+.grid-container {
+    display: grid;
+    grid-template-columns: auto auto auto auto auto auto;
+    padding: 2px;
+}
+
+.grid-item {
+    border: 1px solid rgba(0, 0, 0, 0.8);
+    padding: 2px;
+    white-space: pre;
+    text-align: left;
+}
+
+.collapsed {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+.collapsible {
+    cursor: pointer;
+}

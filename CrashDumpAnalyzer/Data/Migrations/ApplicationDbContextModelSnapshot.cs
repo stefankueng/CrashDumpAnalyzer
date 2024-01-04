@@ -77,6 +77,9 @@ namespace CrashDumpAnalyzer.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<long>("FileSize")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("UploadDate")
                         .HasColumnType("TEXT");
 

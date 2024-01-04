@@ -109,6 +109,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 DumpFileInfo entry = new DumpFileInfo
                                 {
                                     FilePath = Path.Combine(_dumpPath, trustedFileNameForFileStorage),
+                                    FileSize = targetStream.Length,
                                     UploadDate = DateTime.Now
                                 };
 
@@ -325,6 +326,16 @@ namespace CrashDumpAnalyzer.Controllers
                 _logger.LogError(ex, "Error deleting callstack from database");
             }
             return NoContent();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadFile(int id)
+        {
+            var entry = await _dbContext.DumpFileInfos.FirstOrDefaultAsync(x => x.DumpFileInfoId == id);
+            var fs = new FileStream(entry.FilePath, FileMode.Open);
+
+            // Return the file. A byte array can also be used instead of a stream
+            return File(fs, "application/octet-stream", "Dump.dmp");
         }
     }
 }

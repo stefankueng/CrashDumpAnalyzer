@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CrashDumpAnalyzer.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240102195247_InitialMigration")]
+    [Migration("20240104111940_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -79,6 +79,9 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.Property<string>("FilePath")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("UploadDate")
                         .HasColumnType("TEXT");
