@@ -4,20 +4,26 @@
     {
         private readonly int _major;
         private readonly int _minor;
+        private readonly int _micro;
         private readonly int _patch;
         private readonly string _version;
 
-        public SemanticVersion(int major, int minor, int patch)
+        public SemanticVersion(int major, int minor, int micro, int patch)
         {
             this._major = major;
             this._minor = minor;
+            this._micro = micro;
             this._patch = patch;
-            this._version = $"{major}.{minor}.{patch}";
+            this._version = $"{major}.{minor}.{micro}.{patch}";
         }
 
         public SemanticVersion(string version)
         {
             this._version = version.StartsWith('v') ? version.Substring(1) : version;
+            this._major = 0;
+            this._minor = 0;
+            this._micro = 0;
+            this._patch = 0;
             try
             {
                 string[] parts = this._version.Split('.');
@@ -25,15 +31,21 @@
                 {
                     this._major = int.Parse(parts[0]);
                     this._minor = int.Parse(parts[1]);
-                    this._patch = 0;
                 }
                 else if (parts.Length == 3)
                 {
                     this._major = int.Parse(parts[0]);
                     this._minor = int.Parse(parts[1]);
-                    this._patch = int.Parse(parts[2]);
+                    this._micro = int.Parse(parts[2]);
                 }
-                else
+                else if (parts.Length == 4)
+                {
+                    this._major = int.Parse(parts[0]);
+                    this._minor = int.Parse(parts[1]);
+                    this._micro = int.Parse(parts[2]);
+                    this._patch = int.Parse(parts[3]);
+                }
+                else if (version.Length > 0)
                 {
                     throw new ArgumentException("Invalid version string");
                 }
@@ -42,6 +54,7 @@
             {
                 this._major = 0;
                 this._minor = 0;
+                this._micro = 0;
                 this._patch = 0;
                 //this.version = "0.0.0";
             }
@@ -51,7 +64,7 @@
         {
             if (obj is SemanticVersion other)
             {
-                return this._major == other._major && this._minor == other._minor && this._patch == other._patch;
+                return this._major == other._major && this._minor == other._minor && this._micro == other._micro && this._patch == other._patch;
             }
             else
             {
@@ -61,7 +74,7 @@
 
         public override int GetHashCode()
         {
-            return this._major.GetHashCode() ^ this._minor.GetHashCode() ^ this._patch.GetHashCode();
+            return this._major.GetHashCode() ^ this._minor.GetHashCode() ^ this._micro.GetHashCode() ^this._patch.GetHashCode();
         }
 
         /// <summary>
@@ -92,87 +105,57 @@
         { return !v1.Equals(v2); }
 
         public static bool operator >=(SemanticVersion v1, SemanticVersion v2)
-        { return v1.GreaterEquals(v2); }
+        { return v1.Greater(v2, true); }
+        public static bool operator >(SemanticVersion v1, SemanticVersion v2)
+        { return v1.Greater(v2, false); }
 
         public static bool operator <=(SemanticVersion v1, SemanticVersion v2)
-        { return v1.LessEquals(v2); }
+        { return v1.Less(v2, true); }
+        public static bool operator <(SemanticVersion v1, SemanticVersion v2)
+        { return v1.Less(v2, false); }
 
         #region Private
 
-        private bool GreaterEquals(SemanticVersion other)
+        private bool Greater(SemanticVersion other, bool orEqual)
         {
             if (this._major < other._major)
-            {
                 return false;
-            }
-            else if (this._major > other._major)
-            {
+            if (this._major > other._major)
                 return true;
-            }
-            else
-            {
-                if (this._minor < other._minor)
-                {
-                    return false;
-                }
-                else if (this._minor > other._minor)
-                {
-                    return true;
-                }
-                else
-                {
-                    if (this._patch < other._patch)
-                    {
-                        return false;
-                    }
-                    else if (this._patch > other._patch)
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        return true;
-                    }
-                }
-            }
+            if (this._minor < other._minor)
+                return false;
+            if (this._minor > other._minor)
+                return true;
+            if (this._micro < other._micro)
+                return false;
+            if (this._micro > other._micro)
+                return true;
+            if (this._patch < other._patch)
+                return false;
+            if (this._patch > other._patch)
+                return true;
+            return orEqual;
         }
 
-        private bool LessEquals(SemanticVersion other)
+        private bool Less(SemanticVersion other, bool orEqual)
         {
             if (this._major < other._major)
-            {
                 return true;
-            }
-            else if (this._major > other._major)
-            {
+            if (this._major > other._major)
                 return false;
-            }
-            else
-            {
-                if (this._minor < other._minor)
-                {
-                    return true;
-                }
-                else if (this._minor > other._minor)
-                {
-                    return false;
-                }
-                else
-                {
-                    if (this._patch < other._patch)
-                    {
-                        return true;
-                    }
-                    else if (this._patch > other._patch)
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        return true;
-                    }
-                }
-            }
+            if (this._minor < other._minor)
+                return true;
+            if (this._minor > other._minor)
+                return false;
+            if (this._micro < other._micro)
+                return true;
+            if (this._micro > other._micro)
+                return false;
+            if (this._patch < other._patch)
+                return true;
+            if (this._patch > other._patch)
+                return false;
+            return orEqual;
         }
 
         #endregion Private
