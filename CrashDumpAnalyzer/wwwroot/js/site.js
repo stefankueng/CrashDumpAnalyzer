@@ -28,10 +28,13 @@ function saveFixedVersion(id) {
     let text = $('.modalTextInput').val();
     console.log(text + ' --> ' + id);
     $.ajax({
-        url: 'Ajax/SetFixedVersion?id='+id+'&version='+text,
+        url: 'Api/SetFixedVersion?id='+id+'&version='+text,
         processData: false,
         contentType: false,
-        type: 'POST'
+        type: 'POST',
+        complete: function (data) {
+            location.reload();
+        },
     });
 }
 

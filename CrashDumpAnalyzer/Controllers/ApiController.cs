@@ -13,19 +13,19 @@ using System;
 namespace CrashDumpAnalyzer.Controllers
 {
 
-    public class AjaxController : Controller
+    public class ApiController : Controller
     {
         private const long MaxFileSize = 10L * 1024L * 1024L * 1024L; // 10GB
         private readonly string[] _permittedExtensions = [".dmp", ".dump"];
         private readonly IConfiguration _configuration;
-        private readonly ILogger<AjaxController> _logger;
+        private readonly ILogger<ApiController> _logger;
         private readonly ApplicationDbContext _dbContext;
         private readonly IBackgroundTaskQueue _queue;
         private readonly IServiceProvider _provider;
         private readonly string _dumpPath;
         private readonly string _cdbExe;
 
-        public AjaxController(IConfiguration configuration, ILogger<AjaxController> logger,
+        public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
                             IServiceProvider provider,
                             ApplicationDbContext dbContext,
                             IBackgroundTaskQueue queue)
@@ -299,16 +299,16 @@ namespace CrashDumpAnalyzer.Controllers
                         }
                     }
                 }
-
+                GC.Collect();
                 // Drain any remaining section body that hasn't been consumed and
                 // read the headers for the next section.
                 section = await reader.ReadNextSectionAsync();
             }
 
-            return Created(nameof(AjaxController), null);
+            return Created(nameof(ApiController), null);
         }
 
-        [HttpGet]
+        [HttpPost]
         public async Task<IActionResult> DeleteDumpCallstack(int id)
         {
             var dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstAsync(cs => cs.DumpCallstackId == id);
@@ -352,6 +352,7 @@ namespace CrashDumpAnalyzer.Controllers
             {
                 entry.FixedVersion = version;
                 await _dbContext.SaveChangesAsync();
+                ModelState.Clear();
             }
             return NoContent();
         }

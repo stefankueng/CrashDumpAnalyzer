@@ -6,7 +6,7 @@
 
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
-    <form action="/Ajax/UploadFiles" method="post" enctype="multipart/form-data" onsubmit="return submitFilesForm(this);">
+    <form action="/Api/UploadFiles" method="post" enctype="multipart/form-data" onsubmit="return submitFilesForm(this);">
         <input type="file" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
         <label for="files-field" id="files-label"
                ondragover="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
@@ -15,7 +15,6 @@
                ondrop="stopDefault(event);dragLeave(this);addFilesAndSubmit(event);">Click to choose dump files or drag-n-drop them here</label>
     </form>
     <div style="text-align: left;"><div id="files-progress"></div></div>
-    <div class="modal-page" id="uploaded-files"></div>
     <div>
         <div class="grid-container">
             <div class="grid-item">@Html.DisplayNameFor(model => model.ApplicationName)</div>
@@ -32,22 +31,18 @@
 
                 <div class="grid-item">@Html.DisplayFor(modelItem => item.ApplicationName)</div>
                 <div class="grid-item">@Html.DisplayFor(modelItem => item.ApplicationVersion)</div>
-                <div class="grid-item">@Html.DisplayFor(modelItem => item.FixedVersion)
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
-                </div>
+                <div class="grid-item">@Html.DisplayFor(modelItem => item.FixedVersion)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button></div>
                 <div class="grid-item">@Html.DisplayFor(modelItem => item.ExceptionType)</div>
 
                 <div class="grid-item collapsed">@foreach (var dumpInfo in item.DumpInfos)
                     {
-<a href="/Ajax/DownloadFile/@dumpInfo.DumpFileInfoId">dump file (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
+<a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump file (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
                     }
                 </div>
 
 
                 <div class="grid-item collapsible collapsed">@Html.DisplayFor(modelItem => item.Callstack)</div>
-                <div class="grid-item">@Html.ActionLink("Delete", "DeleteDumpCallstack", "Ajax",
-                             new { id = item.DumpCallstackId },
-                             new { onclick = "return confirm('Are you sure you wish to delete this entry?');" })</div>
+                <div class="grid-item"><button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)">Delete</button></div>
             }
         </div>
     </div>
@@ -73,6 +68,19 @@
 
 
 <script type="text/javascript">
+    function deleteCallstack(id) {
+        console.debug("deleting callstack for " + id);
+        $.ajax({
+            url: 'Api/DeleteDumpCallstack?id=' + id,
+            processData: false,
+            contentType: false,
+            type: 'POST',
+            complete: function (data) {
+                location.reload();
+            },
+        });
+    }
+
     function stopDefault(event) {
         event.preventDefault();
         event.stopPropagation();
@@ -118,13 +126,7 @@
                 form.files.value = "";
                 dragLeave(label); // this will reset the text and styling of the drop zone
                 if (x.status == 201) {
-                    var images = x.responseText.split('|');
-                    for (var i = 0; i < images.length; i++) {
-                        var img = document.createElement("p");
-                        img.appendChild(images[i]);
-                        document.getElementById("uploaded-files").appendChild(img);
-                    }
-                    location.href = "#uploaded-files";
+                    location.reload();
                 }
                 else if (x.status == 500) {
                     alert(x.responseText); // do something with the server error
