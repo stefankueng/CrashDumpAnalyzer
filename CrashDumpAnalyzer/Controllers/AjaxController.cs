@@ -271,6 +271,12 @@ namespace CrashDumpAnalyzer.Controllers
                                         if (cs != null)
                                         {
                                             callstack = cs;
+                                            var v1 = new SemanticVersion(version);
+                                            var v2 = new SemanticVersion(callstack.ApplicationVersion);
+                                            if (v1 >= v2)
+                                            {
+                                                callstack.ApplicationVersion = version;
+                                            }
                                             doUpdate = true;
                                         }
                                         var unassigned = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
@@ -286,7 +292,7 @@ namespace CrashDumpAnalyzer.Controllers
                                     else
                                         dbContext.Add(callstack);
                                     await dbContext.SaveChangesAsync(token);
-                                    dbContext.Dispose();
+                                    await dbContext.DisposeAsync();
                                 }
                             });
 

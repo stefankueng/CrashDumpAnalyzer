@@ -1,4 +1,5 @@
-﻿@model IEnumerable<CrashDumpAnalyzer.Models.DumpCallstack>
+﻿@using CrashDumpAnalyzer.Utilities
+@model IEnumerable<CrashDumpAnalyzer.Models.DumpCallstack>
 @{
     ViewData["Title"] = "Home Page";
 }
@@ -34,7 +35,7 @@
 
                 <div class="grid-item collapsed">@foreach (var dumpInfo in item.DumpInfos)
                     {
-<a href="/Ajax/DownloadFile/@dumpInfo.DumpFileInfoId">dump file (@CrashDumpAnalyzer.Helpers.SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
+<a href="/Ajax/DownloadFile/@dumpInfo.DumpFileInfoId">dump file (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
                     }
                 </div>
 
