@@ -25,13 +25,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 50vh;
+    height: 10vh;
     width: 100%;
     background-color: lightpink;
     color: black;
     font-weight: bold;
     font-size: 25px;
-    border: 10px dashed black;
+    border: 2px dashed black;
     margin: 0;
     text-align: center;
     transition: .5s;
