@@ -24,6 +24,7 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly IServiceProvider _provider;
         private readonly string _dumpPath;
         private readonly string _cdbExe;
+        private readonly string _symbolPath = string.Empty;
 
         public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
                             IServiceProvider provider,
@@ -42,6 +43,7 @@ namespace CrashDumpAnalyzer.Controllers
 
             this._dumpPath = _configuration.GetValue<string>("DumpPath") ?? string.Empty;
             this._cdbExe = _configuration.GetValue<string>("CdbExe") ?? "cdb.exe";
+            this._symbolPath = _configuration.GetValue<string>("SymbolPath") ?? string.Empty;
         }
 
         [HttpPost]
@@ -166,6 +168,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 using Process process = new();
                                 process.StartInfo.FileName = _cdbExe;
                                 process.StartInfo.Arguments = $"-z {dumpFilePath} -c \"!analyze -v; lm lv; q\"";
+                                process.StartInfo.EnvironmentVariables["_NT_ALT_SYMBOL_PATH"] = _symbolPath;
                                 process.StartInfo.RedirectStandardOutput = true;
                                 process.Start();
                                 StreamReader sr = process.StandardOutput;
