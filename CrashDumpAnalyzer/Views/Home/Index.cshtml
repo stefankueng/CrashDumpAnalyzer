@@ -20,6 +20,7 @@
         <div class="grid-container">
             <div class="grid-item">@Html.DisplayNameFor(model => model.ApplicationName)</div>
             <div class="grid-item">@Html.DisplayNameFor(model => model.ApplicationVersion)</div>
+            <div class="grid-item">@Html.DisplayNameFor(model => model.FixedVersion)</div>
             <div class="grid-item">@Html.DisplayNameFor(model => model.ExceptionType)</div>
             <div class="grid-item">Dump</div>
             <div class="grid-item">@Html.DisplayNameFor(model => model.Callstack)</div>
@@ -31,6 +32,9 @@
 
                 <div class="grid-item">@Html.DisplayFor(modelItem => item.ApplicationName)</div>
                 <div class="grid-item">@Html.DisplayFor(modelItem => item.ApplicationVersion)</div>
+                <div class="grid-item">@Html.DisplayFor(modelItem => item.FixedVersion)
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
+                </div>
                 <div class="grid-item">@Html.DisplayFor(modelItem => item.ExceptionType)</div>
 
                 <div class="grid-item collapsed">@foreach (var dumpInfo in item.DumpInfos)
@@ -48,6 +52,26 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="setFixedVersionModal" tabindex="-1" role="dialog" aria-labelledby="setFixedVersionModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="setFixedVersionModalLabel">Modal title</h5>
+            </div>
+            <div class="modal-body">
+                <label for="fixedVersionEdit">fixed as of version:</label>
+                <input class="modalTextInput" type="text" id="fixedVersionEdit" name="fixedVersionEdit">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary saveEdit">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <script type="text/javascript">
     function stopDefault(event) {
         event.preventDefault();

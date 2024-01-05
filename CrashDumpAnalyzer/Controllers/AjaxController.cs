@@ -343,5 +343,18 @@ namespace CrashDumpAnalyzer.Controllers
             // Return the file. A byte array can also be used instead of a stream
             return File(fs, "application/octet-stream", "Dump.dmp");
         }
+
+        [HttpPost]
+        public async Task<IActionResult> SetFixedVersion(int id, string version)
+        {
+            var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
+            if (entry != null)
+            {
+                entry.FixedVersion = version;
+                await _dbContext.SaveChangesAsync();
+            }
+            return NoContent();
+        }
+
     }
 }
