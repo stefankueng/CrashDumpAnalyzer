@@ -12,13 +12,22 @@ $(document).on('click', '.collapsible', function () {
 $(function () {
     $('#setFixedVersionModal').on('show.bs.modal', function (e) {
         $('.modalTextInput').val('');
-        let btn = $(e.relatedTarget); // e.related here is the element that opened the modal, specifically the row button
-        let id = btn.data('id'); // this is how you get the of any `data` attribute of an element
+        $('#fixedVersionError').html('');
+        let btn = $(e.relatedTarget); // e.related here is the element that opened the modal (the button)
+        let id = btn.data('id');
         $('.saveEdit').data('id', id); // then pass it to the button inside the modal
     })
 
     $('.saveEdit').on('click', function () {
         let id = $(this).data('id'); // the rest is just the same
+        let text = $('.modalTextInput').val();
+        if (/^(\d\.\d\.\d\.\d)$/.test(text))
+            $('#fixedVersionError').html('');
+        else
+        {
+            $('#fixedVersionError').html('Enter version number in the format 1.2.3.4');
+            return;
+        }
         saveFixedVersion(id);
         $('#setFixedVersionModal').modal('toggle'); // this is to close the modal after clicking the modal button
     })
