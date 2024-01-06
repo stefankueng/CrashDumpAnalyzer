@@ -56,15 +56,15 @@ body {
 
 @keyframes dropbox {
     0% {
-        background-image: repeating-linear-gradient(30deg, green 1%, green 3%, darkgreen 5%, darkgreen 5%);
+        background-image: repeating-linear-gradient(0, green 1%, green 3%, darkgreen 5%, darkgreen 5%);
     }
 
     50% {
-        background-image: repeating-linear-gradient(30deg, darkgreen 1%, darkgreen 3%, green 5%, green 5%);
+        background-image: repeating-linear-gradient(0, darkgreen 1%, darkgreen 3%, green 5%, green 5%);
     }
 
     100% {
-        background-image: repeating-linear-gradient(30deg, green 1%, green 3%, darkgreen 5%, darkgreen 5%);
+        background-image: repeating-linear-gradient(0, green 1%, green 3%, darkgreen 5%, darkgreen 5%);
     }
 }
 
@@ -107,7 +107,13 @@ body {
     white-space: pre;
     text-align: left;
 }
-
+.grid-item-gray{
+    background-color: lightgray;
+    color: gray;
+}
+.grid-item-red{
+    background-color: lightsalmon;
+}
 .collapsed {
     white-space: nowrap;
     overflow: hidden;

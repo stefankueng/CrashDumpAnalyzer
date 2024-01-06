@@ -28,21 +28,32 @@
             @foreach (var item in Model)
             {
                 @if (item.DumpInfos.Count == 0) continue; // skip empty dump callstacks
+                @{
+                    var fixedVersion = new SemanticVersion(item.FixedVersion);
+                    var appVersion = new SemanticVersion(item.ApplicationVersion);
+                    var isFixed = item.FixedVersion.Length > 0 && appVersion <= fixedVersion;
+                    var isNotFixed = item.FixedVersion.Length > 0 && appVersion > fixedVersion;
+                    var stateClass = string.Empty;
+                    if (isFixed)
+                        stateClass = "grid-item-gray";
+                    else if (isNotFixed)
+                        stateClass = "grid-item-red";
 
-                <div class="grid-item">@Html.DisplayFor(modelItem => item.ApplicationName)</div>
-                <div class="grid-item">@Html.DisplayFor(modelItem => item.ApplicationVersion)</div>
-                <div class="grid-item">@Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames){<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>}</div>
-                <div class="grid-item">@Html.DisplayFor(modelItem => item.ExceptionType)</div>
-
-                <div class="grid-item collapsed">@foreach (var dumpInfo in item.DumpInfos)
-                    {
+                    <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ApplicationName)</div>
+                    <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion)</div>
+                    <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames){<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>}</div>
+                    <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ExceptionType)</div>
+    
+                    <div class="grid-item collapsed @stateClass">@foreach (var dumpInfo in item.DumpInfos)
+                        {
 <a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump file (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
-                    }
-                </div>
+                        }
+                    </div>
 
 
-                <div class="grid-item collapsible collapsed">@Html.DisplayFor(modelItem => item.Callstack)</div>
-                <div class="grid-item"><button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)">Delete</button></div>
+                    <div class="grid-item collapsible collapsed @stateClass">@Html.DisplayFor(modelItem => item.Callstack)</div>
+                    <div class="grid-item @stateClass"><button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)">Delete</button></div>
+                }
             }
         </div>
     </div>
