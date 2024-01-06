@@ -118,7 +118,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 DumpCallstack callstack = new DumpCallstack
                                 {
                                     Callstack = string.Empty,
-                                    ApplicationName = "Unassigned",
+                                    ApplicationName = Constants.UnassignedDumpNames,
                                     ExceptionType = string.Empty,
                                     ApplicationVersion = string.Empty
                                 };
@@ -126,7 +126,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 if (_dbContext.DumpCallstacks != null)
                                 {
                                     var cs = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(
-                                        x => x.ApplicationName == "Unassigned");
+                                        x => x.ApplicationName == Constants.UnassignedDumpNames);
                                     if (cs != null)
                                     {
                                         callstack = cs;
@@ -283,7 +283,7 @@ namespace CrashDumpAnalyzer.Controllers
                                             doUpdate = true;
                                         }
                                         var unassigned = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
-                                                                                       x => x.ApplicationName == "Unassigned", token);
+                                                                                       x => x.ApplicationName == Constants.UnassignedDumpNames, token);
                                         if (unassigned != null)
                                         {
                                             unassigned.DumpInfos.Remove(entry);

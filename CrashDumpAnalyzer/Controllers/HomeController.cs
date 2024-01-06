@@ -27,6 +27,11 @@ namespace CrashDumpAnalyzer.Controllers
                 var list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).ToListAsync();
                 list.Sort((a, b) =>
                 {
+                    // keep "Unassigned" at the very top
+                    if (a.ApplicationName == Constants.UnassignedDumpNames)
+                        return -1;
+                    if (b.ApplicationName == Constants.UnassignedDumpNames)
+                        return 1;
                     // if a callstack is marked as fixed in a specific version
                     // and there is a dump after that version, it should be shown first,
                     // because that indicates that the fix doesn't work

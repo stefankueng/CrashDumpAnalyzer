@@ -27,11 +27,11 @@
 
             @foreach (var item in Model)
             {
-                if (item.DumpInfos.Count == 0) continue; // skip empty dump callstacks
+                @if (item.DumpInfos.Count == 0) continue; // skip empty dump callstacks
 
                 <div class="grid-item">@Html.DisplayFor(modelItem => item.ApplicationName)</div>
                 <div class="grid-item">@Html.DisplayFor(modelItem => item.ApplicationVersion)</div>
-                <div class="grid-item">@Html.DisplayFor(modelItem => item.FixedVersion)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button></div>
+                <div class="grid-item">@Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames){<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>}</div>
                 <div class="grid-item">@Html.DisplayFor(modelItem => item.ExceptionType)</div>
 
                 <div class="grid-item collapsed">@foreach (var dumpInfo in item.DumpInfos)
