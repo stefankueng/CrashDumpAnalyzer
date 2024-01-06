@@ -4,6 +4,22 @@ using CrashDumpAnalyzer.Utilities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
+using System.Globalization;
+
+
+DateTime test;
+var today = DateTime.Now.ToString("ddd MMM dd HH:mm:ss.fff yyyy (UTC z:00)",new CultureInfo("en-us"));
+try
+{
+    test = DateTime.ParseExact("Mon Oct 31 02:58:29.000 2022 (UTC +1:00)", "ddd MMM d HH:mm:ss.fff yyyy (UTC z:00)", new CultureInfo("en-us"));
+    test = DateTime.ParseExact("Thu Feb 2 05:14:12.000 2023 (UTC +1:00)", "ddd MMM d HH:mm:ss.fff yyyy (UTC z:00)", new CultureInfo("en-us"));
+    test = DateTime.ParseExact("Sat Sep 3 00:30:01.000 2022 (UTC +1:00)", "ddd MMM d HH:mm:ss.fff yyyy (UTC z:00)", new CultureInfo("en-us"));
+
+}
+catch (Exception ex)
+{
+    var ee = ex.ToString();
+}
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.

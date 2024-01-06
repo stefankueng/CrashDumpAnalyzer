@@ -8,6 +8,7 @@ namespace CrashDumpAnalyzer.Models
 		public string FilePath { get; set; } = string.Empty;
 		public long FileSize { get; set; } = 0;
 		public DateTime UploadDate { get; set; }
+		public DateTime DumpTime { get; set; }
 		public string ApplicationName { get; set; } = string.Empty;
 		public string ApplicationVersion { get; set; } = string.Empty;
 		public string CallStack { get; set; } = string.Empty;

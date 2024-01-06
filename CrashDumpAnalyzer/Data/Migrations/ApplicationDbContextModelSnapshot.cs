@@ -69,6 +69,9 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.Property<int>("DumpCallstackId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime>("DumpTime")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("ExceptionType")
                         .IsRequired()
                         .HasColumnType("TEXT");

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CrashDumpAnalyzer.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240104111940_InitialMigration")]
+    [Migration("20240106124124_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -71,6 +71,9 @@ namespace CrashDumpAnalyzer.Data.Migrations
 
                     b.Property<int>("DumpCallstackId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("DumpTime")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ExceptionType")
                         .IsRequired()

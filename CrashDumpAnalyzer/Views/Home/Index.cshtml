@@ -28,7 +28,7 @@
             @foreach (var item in Model)
             {
                 @if (item.DumpInfos.Count == 0) continue; // skip empty dump callstacks
-                @{
+                {
                     var fixedVersion = new SemanticVersion(item.FixedVersion);
                     var appVersion = new SemanticVersion(item.ApplicationVersion);
                     var isFixed = item.FixedVersion.Length > 0 && appVersion <= fixedVersion;
@@ -44,10 +44,12 @@
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames){<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>}</div>
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ExceptionType)</div>
     
-                    <div class="grid-item collapsed @stateClass">@foreach (var dumpInfo in item.DumpInfos)
+                    <div class="grid-item collapsed @stateClass">@item.DumpInfos.Count dump(s), last @item.DumpInfos.Max(dumpInfo => dumpInfo.DumpTime).AsTimeAgo()<span>
+                        @foreach (var dumpInfo in item.DumpInfos)
                         {
 <a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump file (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
                         }
+                        </span>
                     </div>
 
 

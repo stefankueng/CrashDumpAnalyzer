@@ -48,7 +48,7 @@ namespace CrashDumpAnalyzer.Controllers
                         return -1;
                     // next sort by number of dumps - the more dumps with the same callstack the more urgent it is to fix
                     if (a.DumpInfos.Count != b.DumpInfos.Count)
-                        return a.DumpInfos.Count - b.DumpInfos.Count;
+                        return b.DumpInfos.Count - a.DumpInfos.Count;
                     // finally sort by date of last dump
                     return b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).CompareTo(a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate));
                 });

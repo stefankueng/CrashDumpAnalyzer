@@ -118,7 +118,9 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    cursor: pointer;
+}
+.collapsed span{
+    display: none
 }
 .collapsible {
     cursor: pointer;

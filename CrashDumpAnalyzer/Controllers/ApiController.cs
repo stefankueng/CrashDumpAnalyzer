@@ -7,6 +7,7 @@ using CrashDumpAnalyzer.Data;
 using CrashDumpAnalyzer.Models;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace CrashDumpAnalyzer.Controllers
 {
@@ -180,6 +181,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 string processName = string.Empty;
                                 string exceptionCode = string.Empty;
                                 string version = string.Empty;
+                                DateTime dumpTime = DateTime.MinValue;
                                 foreach (var lineString in output.Split(["\n"], StringSplitOptions.TrimEntries))
                                 {
                                     if (context == "STACK_TEXT")
@@ -242,6 +244,23 @@ namespace CrashDumpAnalyzer.Controllers
                                         context = string.Empty;
                                         exceptionCode = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
                                     }
+                                    if (lineString.Contains("Debug session time:"))
+                                    {
+                                        context = string.Empty;
+                                        var dateString = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
+                                        dateString=dateString.Replace("UTC + ", "UTC +");
+                                        dateString=dateString.Replace("UTC - ", "UTC -");
+                                        dateString=dateString.Replace("  ", " ");
+                                        try
+                                        {
+                                            var dt = DateTime.ParseExact(dateString, "ddd MMM d HH:mm:ss.fff yyyy (UTC z:00)", new CultureInfo("en-us"));
+                                            dumpTime = dt;
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _logger.LogError(ex, "Error parsing dump time");
+                                        }
+                                    }
                                     if (lineString.Length <= 1 && context.Length > 0)
                                         context = string.Empty;
 
@@ -256,6 +275,7 @@ namespace CrashDumpAnalyzer.Controllers
                                     entry.ApplicationName = processName;
                                     entry.ExceptionType = exceptionCode;
                                     entry.ApplicationVersion = version;
+                                    entry.DumpTime = dumpTime;
 
                                     // find out if we already have this callstack
                                     DumpCallstack callstack = new DumpCallstack
