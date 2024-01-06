@@ -1,11 +1,11 @@
 ﻿@using CrashDumpAnalyzer.Utilities
 @model IEnumerable<CrashDumpAnalyzer.Models.DumpCallstack>
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Crash Dump Analyzer";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
+    <h1 class="display-4">@ViewData["Title"]</h1>
     <form action="/Api/UploadFiles" method="post" enctype="multipart/form-data" onsubmit="return submitFilesForm(this);">
         <input type="file" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
         <label for="files-field" id="files-label"
