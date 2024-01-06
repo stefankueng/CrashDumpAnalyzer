@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.IO;
-using System.Linq;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Reflection;
-using System.Threading.Tasks;
 
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Net.Http.Headers;
@@ -153,7 +147,7 @@ namespace CrashDumpAnalyzer.Utilities
 
         private static bool IsValidFileExtensionAndSignature(string fileName, Stream data, string[] permittedExtensions)
         {
-            if (string.IsNullOrEmpty(fileName) || data == null || data.Length == 0)
+            if (string.IsNullOrEmpty(fileName) || data.Length == 0)
             {
                 return false;
             }

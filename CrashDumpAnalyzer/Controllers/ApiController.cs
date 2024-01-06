@@ -7,8 +7,6 @@ using CrashDumpAnalyzer.Data;
 using CrashDumpAnalyzer.Models;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
-using System.IO.Pipelines;
-using System;
 
 namespace CrashDumpAnalyzer.Controllers
 {
@@ -17,33 +15,30 @@ namespace CrashDumpAnalyzer.Controllers
     {
         private const long MaxFileSize = 10L * 1024L * 1024L * 1024L; // 10GB
         private readonly string[] _permittedExtensions = [".dmp", ".dump"];
-        private readonly IConfiguration _configuration;
         private readonly ILogger<ApiController> _logger;
         private readonly ApplicationDbContext _dbContext;
         private readonly IBackgroundTaskQueue _queue;
         private readonly IServiceProvider _provider;
         private readonly string _dumpPath;
         private readonly string _cdbExe;
-        private readonly string _symbolPath = string.Empty;
+        private readonly string _symbolPath;
 
         public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
                             IServiceProvider provider,
                             ApplicationDbContext dbContext,
                             IBackgroundTaskQueue queue)
         {
-            this._configuration = configuration;
             this._logger = logger;
             this._dbContext = dbContext;
             this._queue = queue;
             this._provider = provider;
             Debug.Assert(_dbContext != null);
             Debug.Assert(_queue != null);
-            Debug.Assert(_configuration != null);
             Debug.Assert(_logger != null);
 
-            this._dumpPath = _configuration.GetValue<string>("DumpPath") ?? string.Empty;
-            this._cdbExe = _configuration.GetValue<string>("CdbExe") ?? "cdb.exe";
-            this._symbolPath = _configuration.GetValue<string>("SymbolPath") ?? string.Empty;
+            this._dumpPath = configuration.GetValue<string>("DumpPath") ?? string.Empty;
+            this._cdbExe = configuration.GetValue<string>("CdbExe") ?? "cdb.exe";
+            this._symbolPath = configuration.GetValue<string>("SymbolPath") ?? string.Empty;
         }
 
         [HttpPost]
@@ -94,7 +89,7 @@ namespace CrashDumpAnalyzer.Controllers
                         {
                             string? trustedFileNameForDisplay = WebUtility.HtmlEncode(
                                 contentDisposition.FileName.Value);
-                            string trustedFileNameForFileStorage = DateTime.Now.ToString("yyyyMMddHHmmss") + Path.GetRandomFileName()+".dmp";
+                            string trustedFileNameForFileStorage = DateTime.Now.ToString("yyyyMMddHHmmss") + Path.GetRandomFileName() + ".dmp";
                             byte[] streamedFileContent = await FileHelpers.ProcessStreamedFile(
                                 section, contentDisposition, ModelState,
                                 _permittedExtensions, MaxFileSize);
@@ -158,7 +153,11 @@ namespace CrashDumpAnalyzer.Controllers
                             }
                             var serviceScope = _provider.GetService<IServiceScopeFactory>()?.CreateScope();
                             var dbContext = serviceScope?.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
+                            if (dbContext == null)
+                            {
+                                _logger.LogError("Error getting ApplicationDbContext");
+                                return BadRequest(ModelState);
+                            }
                             _ = _queue.QueueBackgroundWorkItemAsync(async (token) =>
                             {
                                 // use cbg to get a callstack from the dump
@@ -212,7 +211,7 @@ namespace CrashDumpAnalyzer.Controllers
                                             context = "MAIN_MODULE";
                                         }
                                     }
-                                    if (context=="MAIN_MODULE")
+                                    if (context == "MAIN_MODULE")
                                     {
                                         if (lineString.Contains("Product version:"))
                                         {
@@ -249,7 +248,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 }
                                 // we have the call stack, now update the database
                                 DumpFileInfo? entry = null;
-                                if (dbContext.DumpFileInfos != null)
+                                if ( dbContext.DumpFileInfos != null)
                                     entry = await dbContext.DumpFileInfos.FirstOrDefaultAsync(x => x.FilePath == dumpFilePath, token);
                                 if (entry != null)
                                 {
@@ -267,7 +266,7 @@ namespace CrashDumpAnalyzer.Controllers
                                         ApplicationVersion = version
                                     };
                                     bool doUpdate = false;
-                                    if (dbContext.DumpCallstacks != null)
+                                    if ( dbContext.DumpCallstacks != null)
                                     {
                                         var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
                                             x => x.Callstack == callstackString, token);
@@ -314,11 +313,11 @@ namespace CrashDumpAnalyzer.Controllers
         [HttpPost]
         public async Task<IActionResult> DeleteDumpCallstack(int id)
         {
-            var dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstAsync(cs => cs.DumpCallstackId == id);
-            if (dumpCallstack == null)
-            {
+            if (_dbContext.DumpCallstacks == null)
                 return NotFound();
-            }
+            var dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstAsync(cs => cs.DumpCallstackId == id);
+            if (dumpCallstack.DumpCallstackId != id)
+                return NotFound();
 
             try
             {
@@ -340,7 +339,11 @@ namespace CrashDumpAnalyzer.Controllers
         [HttpGet]
         public async Task<IActionResult> DownloadFile(int id)
         {
+            if (_dbContext.DumpFileInfos == null)
+                return NotFound();
             var entry = await _dbContext.DumpFileInfos.FirstOrDefaultAsync(x => x.DumpFileInfoId == id);
+            if (entry == null)
+                return NotFound();
             var fs = new FileStream(entry.FilePath, FileMode.Open);
 
             // Return the file. A byte array can also be used instead of a stream
@@ -350,6 +353,8 @@ namespace CrashDumpAnalyzer.Controllers
         [HttpPost]
         public async Task<IActionResult> SetFixedVersion(int id, string version)
         {
+            if (_dbContext.DumpCallstacks == null)
+                return NotFound();
             var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
             if (entry != null)
             {
