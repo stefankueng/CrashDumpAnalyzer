@@ -181,7 +181,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 string processName = string.Empty;
                                 string exceptionCode = string.Empty;
                                 string version = string.Empty;
-                                DateTime dumpTime = DateTime.MinValue;
+                                DateTime dumpTime = DateTime.Now;
                                 foreach (var lineString in output.Split(["\n"], StringSplitOptions.TrimEntries))
                                 {
                                     if (context == "STACK_TEXT")
