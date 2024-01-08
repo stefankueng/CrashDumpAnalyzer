@@ -187,7 +187,7 @@ namespace CrashDumpAnalyzer.Controllers
                                     if (context == "STACK_TEXT")
                                     {
                                         // the rightmost part is the 'interesting' part for us
-                                        var lineParts = lineString.Split([":"], StringSplitOptions.TrimEntries);
+                                        var lineParts = lineString.Split([" : "], StringSplitOptions.TrimEntries);
                                         if (lineParts.Length == 3)
                                         {
                                             callstackString += lineParts[2] + "\n";
@@ -208,13 +208,17 @@ namespace CrashDumpAnalyzer.Controllers
                                     }
                                     if (context == "MODULES")
                                     {
-                                        if (lineString.Contains(processName))
+                                        if (lineString.Contains(processName) || (lineString.Length > 0  && processName == "unknown"))
                                         {
                                             context = "MAIN_MODULE";
                                         }
                                     }
                                     if (context == "MAIN_MODULE")
                                     {
+                                        if (lineString.Contains("Image name:") && processName == "unknown")
+                                        {
+                                            processName = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
+                                        }
                                         if (lineString.Contains("Product version:"))
                                         {
                                             context = string.Empty;
@@ -261,7 +265,7 @@ namespace CrashDumpAnalyzer.Controllers
                                             _logger.LogError(ex, "Error parsing dump time");
                                         }
                                     }
-                                    if (lineString.Length <= 1 && context.Length > 0)
+                                    if (lineString.Length <= 1 && context.Length > 0 && context != "MODULES")
                                         context = string.Empty;
 
                                 }
