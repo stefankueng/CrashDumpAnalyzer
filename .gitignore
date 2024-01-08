@@ -5,3 +5,4 @@
 /FileUpload
 /*.dmp
 /CrashDumpAnalyzer/publish
+/CrashDumpAnalyzer/appsettings.json
