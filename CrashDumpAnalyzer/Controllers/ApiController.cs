@@ -8,6 +8,7 @@ using CrashDumpAnalyzer.Models;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace CrashDumpAnalyzer.Controllers
 {
@@ -23,6 +24,7 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly string _dumpPath;
         private readonly string _cdbExe;
         private readonly string _symbolPath;
+        private readonly Regex _regex;
 
         public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
                             IServiceProvider provider,
@@ -40,6 +42,15 @@ namespace CrashDumpAnalyzer.Controllers
             this._dumpPath = configuration.GetValue<string>("DumpPath") ?? string.Empty;
             this._cdbExe = configuration.GetValue<string>("CdbExe") ?? "cdb.exe";
             this._symbolPath = configuration.GetValue<string>("SymbolPath") ?? string.Empty;
+
+            string pattern = @"^((.*)\+0x([a-f0-9]+)|0x.*)$";
+            RegexOptions options = RegexOptions.Multiline;
+            _regex = new Regex(pattern, options);
+        }
+
+        private string RemoveEmptyLines(string lines)
+        {
+            return Regex.Replace(lines, @"^\s*$\n|\r", string.Empty, RegexOptions.Multiline).TrimEnd();
         }
 
         [HttpPost]
@@ -208,24 +219,28 @@ namespace CrashDumpAnalyzer.Controllers
                                     }
                                     if (context == "MODULES")
                                     {
-                                        if (lineString.Contains(processName) || (lineString.Length > 0  && processName == "unknown"))
+                                        if (lineString.Contains(processName) || (lineString.Length > 0 && processName == "unknown"))
                                         {
                                             context = "MAIN_MODULE";
                                         }
                                     }
                                     if (context == "MAIN_MODULE")
                                     {
-                                        if (lineString.Contains("Image name:") && processName == "unknown")
+                                        if (lineString.Contains("Image name:") && processName == "unknown" && lineString.Contains(".exe"))
                                         {
                                             processName = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
                                         }
-                                        if (lineString.Contains("Product version:"))
+                                        if (lineString.Contains("Product version:") && processName != "unknown")
                                         {
                                             context = string.Empty;
                                             version = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
                                         }
                                     }
-
+                                    if (lineString.Contains("Could not open dump file"))
+                                    {
+                                        callstackString = lineString;
+                                        context = "STACK_TEXT";
+                                    }
                                     if (lineString.Contains("STACK_TEXT:"))
                                     {
                                         context = "STACK_TEXT";
@@ -252,9 +267,9 @@ namespace CrashDumpAnalyzer.Controllers
                                     {
                                         context = string.Empty;
                                         var dateString = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
-                                        dateString=dateString.Replace("UTC + ", "UTC +");
-                                        dateString=dateString.Replace("UTC - ", "UTC -");
-                                        dateString=dateString.Replace("  ", " ");
+                                        dateString = dateString.Replace("UTC + ", "UTC +");
+                                        dateString = dateString.Replace("UTC - ", "UTC -");
+                                        dateString = dateString.Replace("  ", " ");
                                         try
                                         {
                                             var dt = DateTime.ParseExact(dateString, "ddd MMM d HH:mm:ss.fff yyyy (UTC z:00)", new CultureInfo("en-us"));
@@ -271,8 +286,11 @@ namespace CrashDumpAnalyzer.Controllers
                                 }
                                 // we have the call stack, now update the database
                                 DumpFileInfo? entry = null;
-                                if ( dbContext.DumpFileInfos != null)
+                                if (dbContext.DumpFileInfos != null)
                                     entry = await dbContext.DumpFileInfos.FirstOrDefaultAsync(x => x.FilePath == dumpFilePath, token);
+
+                                string cleanCallstackString = _regex.Replace(callstackString, @"$2");
+                                cleanCallstackString = RemoveEmptyLines(cleanCallstackString);
                                 if (entry != null)
                                 {
                                     entry.CallStack = callstackString;
@@ -285,25 +303,35 @@ namespace CrashDumpAnalyzer.Controllers
                                     DumpCallstack callstack = new DumpCallstack
                                     {
                                         Callstack = callstackString,
+                                        CleanCallstack = cleanCallstackString,
                                         ApplicationName = processName,
                                         ExceptionType = exceptionCode,
                                         ApplicationVersion = version
                                     };
                                     bool doUpdate = false;
-                                    if ( dbContext.DumpCallstacks != null)
+                                    if (dbContext.DumpCallstacks != null)
                                     {
-                                        var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
-                                            x => x.Callstack == callstackString, token);
-                                        if (cs != null)
+
+                                        try
                                         {
-                                            callstack = cs;
-                                            var v1 = new SemanticVersion(version);
-                                            var v2 = new SemanticVersion(callstack.ApplicationVersion);
-                                            if (v1 >= v2)
+                                            var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
+                                                x => x.CleanCallstack == cleanCallstackString, token);
+
+                                            if (cs != null)
                                             {
-                                                callstack.ApplicationVersion = version;
+                                                callstack = cs;
+                                                var v1 = new SemanticVersion(version);
+                                                var v2 = new SemanticVersion(callstack.ApplicationVersion);
+                                                if (v1 >= v2)
+                                                {
+                                                    callstack.ApplicationVersion = version;
+                                                }
+                                                doUpdate = true;
                                             }
-                                            doUpdate = true;
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _logger.LogError(ex, "Error parsing callstack");
                                         }
                                         var unassigned = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
                                                                                        x => x.ApplicationName == Constants.UnassignedDumpNames, token);
