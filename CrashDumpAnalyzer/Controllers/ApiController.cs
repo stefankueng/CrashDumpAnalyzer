@@ -24,7 +24,7 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly string _dumpPath;
         private readonly string _cdbExe;
         private readonly string _symbolPath;
-        private readonly Regex _regex;
+        private readonly Regex _cleanCallstackRegex;
 
         public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
                             IServiceProvider provider,
@@ -45,7 +45,7 @@ namespace CrashDumpAnalyzer.Controllers
 
             string pattern = @"^((.*)\+0x([a-f0-9]+)|0x.*)$";
             RegexOptions options = RegexOptions.Multiline;
-            _regex = new Regex(pattern, options);
+            _cleanCallstackRegex = new Regex(pattern, options);
         }
 
         private string RemoveEmptyLines(string lines)
@@ -289,7 +289,8 @@ namespace CrashDumpAnalyzer.Controllers
                                 if (dbContext.DumpFileInfos != null)
                                     entry = await dbContext.DumpFileInfos.FirstOrDefaultAsync(x => x.FilePath == dumpFilePath, token);
 
-                                string cleanCallstackString = _regex.Replace(callstackString, @"$2");
+                                // filter out offsets and lines with no symbols
+                                string cleanCallstackString = _cleanCallstackRegex.Replace(callstackString, @"$2");
                                 cleanCallstackString = RemoveEmptyLines(cleanCallstackString);
                                 if (entry != null)
                                 {
