@@ -49,7 +49,7 @@
                     <div class="grid-item collapsed @stateClass">@dumpCountInfo<span>
                         @foreach (var dumpInfo in item.DumpInfos)
                         {
-<a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump file (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
+<a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
                         }
                         </span>
                     </div>
