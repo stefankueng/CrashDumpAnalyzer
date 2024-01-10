@@ -178,8 +178,9 @@ namespace CrashDumpAnalyzer.Controllers
 
                                 using Process process = new();
                                 process.StartInfo.FileName = _cdbExe;
-                                process.StartInfo.Arguments = $"-z {dumpFilePath} -c \"!analyze -v; lm lv; q\"";
+                                process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \"!analyze -v; lm lv; q\"";
                                 process.StartInfo.EnvironmentVariables["_NT_ALT_SYMBOL_PATH"] = _symbolPath;
+                                process.StartInfo.EnvironmentVariables["_NT_SOURCE_PATH "] = "srv\\*";
                                 process.StartInfo.RedirectStandardOutput = true;
                                 process.Start();
                                 StreamReader sr = process.StandardOutput;
