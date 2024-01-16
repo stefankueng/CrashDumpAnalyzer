@@ -31,6 +31,20 @@ $(function () {
         saveFixedVersion(id);
         $('#setFixedVersionModal').modal('toggle'); // this is to close the modal after clicking the modal button
     })
+
+    $('#setTicketModal').on('show.bs.modal', function (e) {
+        $('.modalTicketInput').val('');
+        let btn = $(e.relatedTarget); // e.related here is the element that opened the modal (the button)
+        let id = btn.data('id');
+        $('.saveTicket').data('id', id); // then pass it to the button inside the modal
+    })
+
+    $('.saveTicket').on('click', function () {
+        let id = $(this).data('id'); // the rest is just the same
+        let text = $('.modalTicketInput').val();
+        saveTicket(id);
+        $('#setFixedVersionModal').modal('toggle'); // this is to close the modal after clicking the modal button
+    })
 })
 function saveFixedVersion(id) {
     console.debug("Saving fixed version for " + id);
@@ -38,6 +52,20 @@ function saveFixedVersion(id) {
     console.log(text + ' --> ' + id);
     $.ajax({
         url: 'Api/SetFixedVersion?id='+id+'&version='+text,
+        processData: false,
+        contentType: false,
+        type: 'POST',
+        complete: function (data) {
+            location.reload();
+        },
+    });
+}
+function saveTicket(id) {
+    console.debug("Saving ticket for " + id);
+    let text = $('.modalTicketInput').val();
+    console.log(text + ' --> ' + id);
+    $.ajax({
+        url: 'Api/SetTicket?id='+id+'&ticket='+text,
         processData: false,
         contentType: false,
         type: 'POST',

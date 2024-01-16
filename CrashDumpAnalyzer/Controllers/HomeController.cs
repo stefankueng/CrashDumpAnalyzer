@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using CrashDumpAnalyzer.Utilities;
+using System.Configuration;
+using Microsoft.Extensions.Configuration;
 
 namespace CrashDumpAnalyzer.Controllers
 {
@@ -14,10 +16,11 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly ApplicationDbContext _dbContext;
 
-        public HomeController(ILogger<HomeController> logger, ApplicationDbContext context)
+        public HomeController(IConfiguration configuration, ILogger<HomeController> logger, ApplicationDbContext context)
         {
             _logger = logger;
             _dbContext = context;
+            Constants.TicketBaseUrl = configuration.GetValue<string>("TicketBaseUrl") ?? string.Empty;
         }
 
         public async Task<IActionResult> Index()
@@ -53,7 +56,8 @@ namespace CrashDumpAnalyzer.Controllers
                     return b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).CompareTo(a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate));
                 });
                 return View(list);
-            }            return View();
+            }
+            return View();
         }
 
         public IActionResult Privacy()

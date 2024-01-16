@@ -419,6 +419,20 @@ namespace CrashDumpAnalyzer.Controllers
             }
             return NoContent();
         }
+        [HttpPost]
+        public async Task<IActionResult> SetTicket(int id, string ticket)
+        {
+            if (_dbContext.DumpCallstacks == null)
+                return NotFound();
+            var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
+            if (entry != null)
+            {
+                entry.Ticket = ticket;
+                await _dbContext.SaveChangesAsync();
+                ModelState.Clear();
+            }
+            return NoContent();
+        }
 
     }
 }

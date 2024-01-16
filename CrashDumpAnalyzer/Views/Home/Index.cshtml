@@ -19,6 +19,7 @@
         <div class="grid-container">
             <div class="grid-item">@Html.DisplayNameFor(model => model.ApplicationName)</div>
             <div class="grid-item">@Html.DisplayNameFor(model => model.ApplicationVersion)</div>
+            <div class="grid-item">@Html.DisplayNameFor(model => model.Ticket)</div>
             <div class="grid-item">@Html.DisplayNameFor(model => model.FixedVersion)</div>
             <div class="grid-item">@Html.DisplayNameFor(model => model.ExceptionType)</div>
             <div class="grid-item">Dump</div>
@@ -43,6 +44,7 @@
 
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ApplicationName)</div>
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion)</div>
+                    <div class="grid-item @stateClass"><a href="@Constants.TicketBaseUrl + @item.Ticket" target="_blank">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></div>
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames){<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>}</div>
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ExceptionType)</div>
     
@@ -82,6 +84,23 @@
     </div>
 </div>
 
+<div class="modal fade" id="setTicketModal" tabindex="-1" role="dialog" aria-labelledby="setTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="setTicketModalLabel">Enter the version where the problem is fixed</h5>
+            </div>
+            <div class="modal-body">
+                <label for="ticketEdit">Ticket:</label>
+                <input class="modalTicketInput" type="text" id="ticketEdit" name="ticketEdit">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary saveTicket">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script type="text/javascript">
     function deleteCallstack(id) {
