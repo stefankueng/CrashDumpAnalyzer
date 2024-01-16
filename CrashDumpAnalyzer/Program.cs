@@ -23,6 +23,7 @@ builder.Services.AddAntiforgery(options =>
 });
 builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
 builder.Services.AddHostedService<QueuedHostedService>();
+builder.Logging.AddLog4Net();
 
 var app = builder.Build();
 

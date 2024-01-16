@@ -188,6 +188,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 await process.WaitForExitAsync(token);
 
                                 // go through the output and find the important bits
+                                _logger.LogInformation(output);
                                 string context = string.Empty;
                                 string callstackString = string.Empty;
                                 string processName = string.Empty;
