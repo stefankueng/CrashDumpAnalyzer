@@ -40,18 +40,18 @@
                     else if (isNotFixed)
                         stateClass = "grid-item-red";
 
-                    string dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count +" dump(s)" : @item.DumpInfos.Count + " dump(s): " + @item.DumpInfos.Max(dumpInfo => dumpInfo.DumpTime).AsTimeAgo();
+                    string dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count +" dump(s)" : @item.DumpInfos.Count + " dump(s), uploaded " + @item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).AsTimeAgo();
 
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ApplicationName)</div>
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion)</div>
                     <div class="grid-item @stateClass"><a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></div>
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames){<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>}</div>
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ExceptionType)</div>
-    
+
                     <div class="grid-item collapsed @stateClass">@dumpCountInfo<span>
                         @foreach (var dumpInfo in item.DumpInfos)
                         {
-<a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
+<div><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a> Dump from @dumpInfo.DumpTime.AsTimeAgo()</div>
                         }
                         </span>
                     </div>
