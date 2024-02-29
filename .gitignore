@@ -6,3 +6,8 @@
 /*.dmp
 /CrashDumpAnalyzer/publish
 /CrashDumpAnalyzer/appsettings.json
+/WebApplication.db
+/WebApplication.db-shm
+/WebApplication.db-wal
+/CrashDumpAnalyzer/CrashDumpAnalyzer.csproj.user
+/CrashDumpAnalyzer/Properties/PublishProfiles/FolderProfile.pubxml.user

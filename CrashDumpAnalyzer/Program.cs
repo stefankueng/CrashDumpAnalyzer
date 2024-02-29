@@ -22,6 +22,7 @@ builder.Services.AddAntiforgery(options =>
     options.SuppressXFrameOptionsHeader = false;
 });
 builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+builder.Services.AddWindowsService();
 builder.Services.AddHostedService<QueuedHostedService>();
 builder.Logging.AddLog4Net();
 
