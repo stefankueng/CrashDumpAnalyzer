@@ -49,11 +49,13 @@ namespace CrashDumpAnalyzer.Controllers
                         return 1;
                     if (string.IsNullOrEmpty(a.FixedVersion) && !string.IsNullOrEmpty(b.FixedVersion))
                         return -1;
-                    // next sort by number of dumps - the more dumps with the same callstack the more urgent it is to fix
-                    if (a.DumpInfos.Count != b.DumpInfos.Count)
-                        return b.DumpInfos.Count - a.DumpInfos.Count;
-                    // finally sort by date of last dump
-                    return b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).CompareTo(a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate));
+                    var uploadA = a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
+                    var uploadB = b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
+                    if (uploadA != uploadB)
+                        return uploadB.CompareTo(uploadA); // sort by date of last upload, so it's easy to find the just uploaded ones
+
+                    // sort by number of dumps - the more dumps with the same callstack the more urgent it is to fix
+                    return b.DumpInfos.Count - a.DumpInfos.Count;
                 });
                 return View(list);
             }
