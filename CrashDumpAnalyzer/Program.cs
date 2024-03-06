@@ -1,8 +1,11 @@
 using CrashDumpAnalyzer.Data;
 using CrashDumpAnalyzer.Services;
 using CrashDumpAnalyzer.Utilities;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +29,16 @@ builder.Services.AddWindowsService();
 builder.Services.AddHostedService<QueuedHostedService>();
 builder.Logging.AddLog4Net();
 
+builder.Services.Configure<KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = int.MaxValue; // if don't set default value is: 30 MB
+});
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = int.MaxValue; // if don't set default value is: 128 MB
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+});
 var app = builder.Build();
 
 using (var serviceScope = app.Services.GetService<IServiceScopeFactory>()?.CreateScope())

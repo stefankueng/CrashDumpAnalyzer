@@ -15,7 +15,7 @@ namespace CrashDumpAnalyzer.Controllers
 
     public class ApiController : Controller
     {
-        private const long MaxFileSize = 10L * 1024L * 1024L * 1024L; // 10GB
+        private const long MaxFileSize = long.MaxValue;
         private readonly string[] _permittedExtensions = [".dmp", ".dump"];
         private readonly ILogger<ApiController> _logger;
         private readonly ApplicationDbContext _dbContext;
@@ -23,8 +23,11 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly IServiceProvider _provider;
         private readonly string _dumpPath;
         private readonly string _cdbExe;
+        private readonly string _agestoreExe;
+        private readonly string _cachePath;
         private readonly string _symbolPath;
         private readonly Regex _cleanCallstackRegex;
+        private long _maxCacheSize;
 
         public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
                             IServiceProvider provider,
@@ -42,6 +45,11 @@ namespace CrashDumpAnalyzer.Controllers
             this._dumpPath = configuration.GetValue<string>("DumpPath") ?? string.Empty;
             this._cdbExe = configuration.GetValue<string>("CdbExe") ?? "cdb.exe";
             this._symbolPath = configuration.GetValue<string>("SymbolPath") ?? string.Empty;
+            this._cachePath = configuration.GetValue<string>("CachePath") ?? string.Empty;
+            this._agestoreExe = configuration.GetValue<string>("AgestoreExe") ?? string.Empty;
+            this._maxCacheSize = configuration.GetValue<long>("MaxCacheSize");
+            if (this._maxCacheSize == 0)
+                this._maxCacheSize = 30_000_000_000;
 
             string pattern = @"^((.*)\+0x([a-f0-9]+)|0x.*)$";
             RegexOptions options = RegexOptions.Multiline;
@@ -54,7 +62,7 @@ namespace CrashDumpAnalyzer.Controllers
         }
 
         [HttpPost]
-        [RequestSizeLimit(MaxFileSize)]
+        [DisableRequestSizeLimit]
         [RequestFormLimits(MultipartBodyLengthLimit = MaxFileSize)]
         public async Task<IActionResult> UploadFiles()
         {
@@ -178,8 +186,9 @@ namespace CrashDumpAnalyzer.Controllers
 
                                 using Process process = new();
                                 process.StartInfo.FileName = _cdbExe;
+                                process.StartInfo.WorkingDirectory = Path.GetDirectoryName(_cdbExe);
                                 process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \"!analyze -v; lm lv; q\"";
-                                process.StartInfo.EnvironmentVariables["_NT_ALT_SYMBOL_PATH"] = _symbolPath;
+                                process.StartInfo.EnvironmentVariables["_NT_SYMBOL_PATH"] = _symbolPath;
                                 process.StartInfo.EnvironmentVariables["_NT_SOURCE_PATH "] = "srv\\*";
                                 process.StartInfo.RedirectStandardOutput = true;
                                 process.Start();
@@ -350,6 +359,21 @@ namespace CrashDumpAnalyzer.Controllers
                                         dbContext.Add(callstack);
                                     await dbContext.SaveChangesAsync(token);
                                     await dbContext.DisposeAsync();
+
+                                    // now run agestore to keep the cache size in check
+                                    if (_agestoreExe!=string.Empty)
+                                    {
+                                        using Process agestoreProcess = new();
+                                        agestoreProcess.StartInfo.FileName = _agestoreExe;
+                                        agestoreProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(_agestoreExe);
+                                        agestoreProcess.StartInfo.Arguments = $"{_cachePath} -size={_maxCacheSize} -s -y";
+                                        agestoreProcess.StartInfo.RedirectStandardOutput = true;
+                                        agestoreProcess.Start();
+                                        StreamReader agestoreSr = agestoreProcess.StandardOutput;
+                                        string agestoreOutput = await agestoreSr.ReadToEndAsync(token);
+                                        await agestoreProcess.WaitForExitAsync(token);
+                                        _logger.LogInformation(agestoreOutput);
+                                    }
                                 }
                             });
 
