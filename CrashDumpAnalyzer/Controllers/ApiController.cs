@@ -414,6 +414,31 @@ namespace CrashDumpAnalyzer.Controllers
             }
             return NoContent();
         }
+        [HttpPost]
+        public async Task<IActionResult> DeleteDumpFile(int callstackId, int dumpId)
+        {
+            if (_dbContext.DumpCallstacks == null)
+                return NotFound();
+            var dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstAsync(cs => cs.DumpCallstackId == callstackId);
+            if (dumpCallstack.DumpCallstackId != callstackId)
+                return NotFound();
+
+            try
+            {
+                var dumpToRemove = dumpCallstack.DumpInfos.First(x => x.DumpFileInfoId == dumpId);
+                if (dumpToRemove != null)
+                {
+                    System.IO.File.Delete(dumpToRemove.FilePath);
+                    dumpCallstack.DumpInfos.Remove(dumpToRemove);
+                    await _dbContext.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting callstack from database");
+            }
+            return NoContent();
+        }
 
         [HttpGet]
         public async Task<IActionResult> DownloadFile(int id)

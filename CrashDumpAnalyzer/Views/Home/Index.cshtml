@@ -51,7 +51,7 @@
                     <div class="grid-item collapsed @stateClass">@dumpCountInfo<span>
                         @foreach (var dumpInfo in item.DumpInfos)
                         {
-<div><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a> Dump from @dumpInfo.DumpTime.AsTimeAgo()</div>
+                                <div><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a> Dump from @dumpInfo.DumpTime.AsTimeAgo()<button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)">Delete</button></div>
                         }
                         </span>
                     </div>
@@ -126,6 +126,18 @@
         console.debug("deleting callstack for " + id);
         $.ajax({
             url: 'Api/DeleteDumpCallstack?id=' + id,
+            processData: false,
+            contentType: false,
+            type: 'POST',
+            complete: function (data) {
+                location.reload();
+            },
+        });
+    }
+    function deleteDump(callstackId, dumpId) {
+        console.debug("deleting dump " + dumpId + " of callstack " + callstackId);
+        $.ajax({
+            url: 'Api/DeleteDumpFile?callstackId=' + callstackId + '&dumpId=' + dumpId,
             processData: false,
             contentType: false,
             type: 'POST',
