@@ -45,6 +45,20 @@ $(function () {
         saveTicket(id);
         $('#setFixedVersionModal').modal('toggle'); // this is to close the modal after clicking the modal button
     })
+
+    $('#setCommentModal').on('show.bs.modal', function (e) {
+        $('.modalCommentInput').val('');
+        let btn = $(e.relatedTarget); // e.related here is the element that opened the modal (the button)
+        let id = btn.data('id');
+        $('.saveComment').data('id', id); // then pass it to the button inside the modal
+    })
+
+    $('.saveComment').on('click', function () {
+        let id = $(this).data('id'); // the rest is just the same
+        let text = $('.modalCommentInput').val();
+        saveComment(id);
+        $('#setCommentModal').modal('toggle'); // this is to close the modal after clicking the modal button
+    })
 })
 function saveFixedVersion(id) {
     console.debug("Saving fixed version for " + id);
@@ -66,6 +80,21 @@ function saveTicket(id) {
     console.log(text + ' --> ' + id);
     $.ajax({
         url: 'Api/SetTicket?id='+id+'&ticket='+text,
+        processData: false,
+        contentType: false,
+        type: 'POST',
+        complete: function (data) {
+            location.reload();
+        },
+    });
+}
+
+function saveComment(id) {
+    console.debug("Saving comment for " + id);
+    let text = $('.modalCommentInput').val();
+    console.log(text + ' --> ' + id);
+    $.ajax({
+        url: 'Api/SetComment?id='+id+'&comment='+text,
         processData: false,
         contentType: false,
         type: 'POST',

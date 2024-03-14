@@ -107,6 +107,16 @@ body {
     white-space: pre;
     text-align: left;
 }
+    .grid-item p {
+        display:flow;
+        min-width: 0;
+        min-height: 0;
+        word-break: break-word;
+        max-width: 300px;
+        text-overflow:clip;
+        white-space:pre-wrap;
+    }
+
 .grid-item-gray{
     background-color: lightgray;
     color: gray;

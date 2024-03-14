@@ -8,6 +8,7 @@
 		public string FixedVersion { get; set; } = string.Empty;
 		public string ExceptionType { get; set; } = string.Empty;
 		public string Ticket { get; set; } = string.Empty;
+		public string Comment { get; set; } = string.Empty;
 		public string Callstack { get; set; } = string.Empty;
 		public string CleanCallstack { get; set; } = string.Empty;
 		public List<DumpFileInfo> DumpInfos { get; set; } = new ();

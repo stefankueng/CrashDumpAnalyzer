@@ -437,7 +437,7 @@ namespace CrashDumpAnalyzer.Controllers
             var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
             if (entry != null)
             {
-                entry.FixedVersion = version;
+                entry.FixedVersion = version ?? string.Empty;
                 await _dbContext.SaveChangesAsync();
                 ModelState.Clear();
             }
@@ -451,7 +451,21 @@ namespace CrashDumpAnalyzer.Controllers
             var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
             if (entry != null)
             {
-                entry.Ticket = ticket == null ? string.Empty : ticket;
+                entry.Ticket = ticket ?? string.Empty;
+                await _dbContext.SaveChangesAsync();
+                ModelState.Clear();
+            }
+            return NoContent();
+        }
+        [HttpPost]
+        public async Task<IActionResult> SetComment(int id, string comment)
+        {
+            if (_dbContext.DumpCallstacks == null)
+                return NotFound();
+            var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
+            if (entry != null)
+            {
+                entry.Comment = comment ?? string.Empty;
                 await _dbContext.SaveChangesAsync();
                 ModelState.Clear();
             }

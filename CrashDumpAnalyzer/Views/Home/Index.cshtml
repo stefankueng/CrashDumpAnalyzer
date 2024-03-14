@@ -46,7 +46,7 @@
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion)</div>
                     <div class="grid-item @stateClass"><a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></div>
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames){<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>}</div>
-                    <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ExceptionType)</div>
+                    <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ExceptionType)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId">&#x1f4ac;</button><p>@item.Comment</p></div>
 
                     <div class="grid-item collapsed @stateClass">@dumpCountInfo<span>
                         @foreach (var dumpInfo in item.DumpInfos)
@@ -97,6 +97,25 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary close" data-bs-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-primary saveTicket">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="setCommentModal" tabindex="-1" role="dialog" aria-labelledby="setCommentModallLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="setCommentModalLabel">Enter a comment</h5>
+            </div>
+            <div class="modal-body">
+                <label for="commentEdit">Comment:</label>
+                <input class="modalCommentInput" type="text" id="commentEdit" name="commentEdit">
+                <p id="commentError" style="color: red;"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary saveComment">Save changes</button>
             </div>
         </div>
     </div>
