@@ -485,6 +485,7 @@ namespace CrashDumpAnalyzer.Controllers
         [HttpPost]
         public async Task<IActionResult> SetComment(int id, string comment)
         {
+            _logger.LogInformation("Setting comment for {id} to {comment}", id, comment);
             if (_dbContext.DumpCallstacks == null)
                 return NotFound();
             var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);

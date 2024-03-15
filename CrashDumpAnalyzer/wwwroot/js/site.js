@@ -43,7 +43,7 @@ $(function () {
         let id = $(this).data('id'); // the rest is just the same
         let text = $('.modalTicketInput').val();
         saveTicket(id);
-        $('#setFixedVersionModal').modal('toggle'); // this is to close the modal after clicking the modal button
+        $('#setTicketModal').modal('toggle'); // this is to close the modal after clicking the modal button
     })
 
     $('#setCommentModal').on('show.bs.modal', function (e) {
@@ -54,6 +54,7 @@ $(function () {
     })
 
     $('.saveComment').on('click', function () {
+        console.debug("Saving comment");
         let id = $(this).data('id'); // the rest is just the same
         let text = $('.modalCommentInput').val();
         saveComment(id);
