@@ -21,7 +21,7 @@ $(function () {
     $('.saveEdit').on('click', function () {
         let id = $(this).data('id'); // the rest is just the same
         let text = $('.modalTextInput').val();
-        if (/^(\d+\.\d+\.\d+\.\d+)$/.test(text))
+        if (!text || (/^(\d+\.\d+\.\d+\.\d+)$/.test(text)))
             $('#fixedVersionError').html('');
         else
         {
