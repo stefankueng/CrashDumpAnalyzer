@@ -348,7 +348,7 @@ namespace CrashDumpAnalyzer.Controllers
 										try
 										{
 											var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
-												x => x.CleanCallstack == cleanCallstackString, token);
+												x => x.CleanCallstack == cleanCallstackString && x.ApplicationName == processName, token);
 
 											if (cs != null)
 											{
