@@ -187,7 +187,7 @@ namespace CrashDumpAnalyzer.Controllers
 								using Process process = new();
 								process.StartInfo.FileName = _cdbExe;
 								process.StartInfo.WorkingDirectory = Path.GetDirectoryName(_cdbExe);
-								process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \"!analyze -v; lm lv; kL; q\"";
+								process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \"!analyze -v; lm lv; .ecxr; kL; q\"";
 								process.StartInfo.EnvironmentVariables["_NT_SYMBOL_PATH"] = _symbolPath;
 								process.StartInfo.EnvironmentVariables["_NT_SOURCE_PATH "] = "srv\\*";
 								process.StartInfo.RedirectStandardOutput = true;
@@ -312,7 +312,9 @@ namespace CrashDumpAnalyzer.Controllers
 										context = string.Empty;
 
 								}
-								if (exceptionCode == "c0000374" && callstackString.Split([" : "], StringSplitOptions.TrimEntries).Length < 3)
+								var csLength = callstackString.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
+								var alternateCsLength = alternateCallstackString.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
+								if (csLength < 3 && alternateCsLength > 3)
 								{
 									callstackString = alternateCallstackString;
 								}
