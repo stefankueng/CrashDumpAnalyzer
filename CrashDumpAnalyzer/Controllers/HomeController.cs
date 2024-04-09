@@ -28,6 +28,10 @@ namespace CrashDumpAnalyzer.Controllers
             if (_dbContext.DumpCallstacks != null)
             {
                 var list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).ToListAsync();
+                // sort individual dumps by upload date
+                foreach (var dumpCallstack in list)
+                    dumpCallstack.DumpInfos.Sort((a, b) => b.UploadDate.CompareTo(a.UploadDate));
+
                 list.Sort((a, b) =>
                 {
                     // keep "Unassigned" at the very top
