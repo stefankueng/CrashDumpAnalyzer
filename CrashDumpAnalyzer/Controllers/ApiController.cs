@@ -521,5 +521,19 @@ namespace CrashDumpAnalyzer.Controllers
 			return NoContent();
 		}
 
+		[HttpPost]
+		public async Task<IActionResult> LinkCallstack(int id, int toId)
+		{
+			if (_dbContext.DumpCallstacks == null)
+				return NotFound();
+			var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
+			if (entry != null)
+			{
+				entry.LinkedToDumpCallstackId = toId;
+				await _dbContext.SaveChangesAsync();
+				ModelState.Clear();
+			}
+			return NoContent();
+		}
 	}
 }

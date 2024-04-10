@@ -1,16 +1,17 @@
 ﻿namespace CrashDumpAnalyzer.Models
 {
-	public class DumpCallstack
-	{
-		public int DumpCallstackId { get; set; }
-		public string ApplicationName { get; set; } = string.Empty;
-		public string ApplicationVersion { get; set; } = string.Empty;
-		public string FixedVersion { get; set; } = string.Empty;
-		public string ExceptionType { get; set; } = string.Empty;
-		public string Ticket { get; set; } = string.Empty;
-		public string Comment { get; set; } = string.Empty;
-		public string Callstack { get; set; } = string.Empty;
-		public string CleanCallstack { get; set; } = string.Empty;
-		public List<DumpFileInfo> DumpInfos { get; set; } = new ();
-	}
+    public class DumpCallstack
+    {
+        public int DumpCallstackId { get; set; }
+        public string ApplicationName { get; set; } = string.Empty;
+        public string ApplicationVersion { get; set; } = string.Empty;
+        public string FixedVersion { get; set; } = string.Empty;
+        public string ExceptionType { get; set; } = string.Empty;
+        public string Ticket { get; set; } = string.Empty;
+        public string Comment { get; set; } = string.Empty;
+        public string Callstack { get; set; } = string.Empty;
+        public string CleanCallstack { get; set; } = string.Empty;
+        public int LinkedToDumpCallstackId { get; set; } = 0;
+        public List<DumpFileInfo> DumpInfos { get; set; } = new ();
+    }
 }

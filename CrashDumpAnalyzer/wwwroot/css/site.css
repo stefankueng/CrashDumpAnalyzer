@@ -135,3 +135,10 @@ body {
 .collapsible {
     cursor: pointer;
 }
+.draggable {
+    cursor: move;
+}
+    .draggable.over {
+        border: 3px #000;
+        background-color: gray;
+}

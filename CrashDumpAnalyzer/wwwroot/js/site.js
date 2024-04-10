@@ -23,8 +23,7 @@ $(function () {
         let text = $('.modalTextInput').val();
         if (!text || (/^(\d+\.\d+\.\d+\.\d+)$/.test(text)))
             $('#fixedVersionError').html('');
-        else
-        {
+        else {
             $('#fixedVersionError').html('Enter version number in the format 1.2.3.4');
             return;
         }
@@ -60,13 +59,74 @@ $(function () {
         saveComment(id);
         $('#setCommentModal').modal('toggle'); // this is to close the modal after clicking the modal button
     })
+
+    $('.draggable').on('dragstart', function (e) {
+        {
+            let id = $(this).data('id'); // the rest is just the same
+
+            e.dataTransfer = e.originalEvent.dataTransfer;
+            e.dataTransfer.setData(this.textContent, id);
+            this.style.opacity = '0.4';
+        }
+    })
+    $('.draggable').on('dragend', function () {
+        {
+            this.style.opacity = '1';
+        }
+    })
+    $('.draggable').on('dragenter', function (e) {
+        {
+            this.classList.add('over');
+        }
+    })
+    $('.draggable').on('dragleave', function () {
+        {
+            this.classList.remove('over');
+        }
+    })
+    $('.draggable').on('dragover', function (e) {
+        {
+            e.dataTransfer = e.originalEvent.dataTransfer;
+            e.dataTransfer.dropEffect = 'none';
+            if (e.dataTransfer.types[0] === this.textContent.toLowerCase()) {
+                e.dataTransfer.dropEffect = 'move';
+            }
+            e.preventDefault();
+            return false;
+        }
+    })
+    $('.draggable').on('drop', function (e) {
+        {
+            e.stopPropagation();
+            this.classList.remove('over');
+            e.dataTransfer = e.originalEvent.dataTransfer;
+            e.dataTransfer.dropEffect = 'none';
+            if (e.dataTransfer.types[0] === this.textContent.toLowerCase()) {
+                let toId = $(this).data('id'); // the rest is just the same
+                let id = Number(e.dataTransfer.getData(e.dataTransfer.types[0]));
+
+                $.ajax({
+                    url: 'Api/LinkCallstack?id=' + id + '&toId=' + toId,
+                    processData: false,
+                    contentType: false,
+                    type: 'POST',
+                    complete: function (data) {
+                        location.reload();
+                    },
+                });
+            }
+
+
+            return false;
+        }
+    })
 })
 function saveFixedVersion(id) {
     console.debug("Saving fixed version for " + id);
     let text = $('.modalTextInput').val();
     console.log(text + ' --> ' + id);
     $.ajax({
-        url: 'Api/SetFixedVersion?id='+id+'&version='+text,
+        url: 'Api/SetFixedVersion?id=' + id + '&version=' + text,
         processData: false,
         contentType: false,
         type: 'POST',
@@ -80,7 +140,7 @@ function saveTicket(id) {
     let text = $('.modalTicketInput').val();
     console.log(text + ' --> ' + id);
     $.ajax({
-        url: 'Api/SetTicket?id='+id+'&ticket='+text,
+        url: 'Api/SetTicket?id=' + id + '&ticket=' + text,
         processData: false,
         contentType: false,
         type: 'POST',
@@ -95,7 +155,7 @@ function saveComment(id) {
     let text = $('.modalCommentInput').val();
     console.log(text + ' --> ' + id);
     $.ajax({
-        url: 'Api/SetComment?id='+id+'&comment='+text,
+        url: 'Api/SetComment?id=' + id + '&comment=' + text,
         processData: false,
         contentType: false,
         type: 'POST',
@@ -104,4 +164,3 @@ function saveComment(id) {
         },
     });
 }
-

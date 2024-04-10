@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using CrashDumpAnalyzer.Utilities;
 using System.Configuration;
 using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
 
 namespace CrashDumpAnalyzer.Controllers
 {
@@ -61,7 +62,46 @@ namespace CrashDumpAnalyzer.Controllers
                     // sort by number of dumps - the more dumps with the same callstack the more urgent it is to fix
                     return b.DumpInfos.Count - a.DumpInfos.Count;
                 });
-                return View(list);
+
+                Dictionary<int, List<DumpCallstack>> groupedCallstacks = new();
+                List<DumpCallstack> resultList = new();
+                foreach (var callstack in list)
+                {
+                    if (callstack.LinkedToDumpCallstackId != 0)
+                        continue;
+                    groupedCallstacks[callstack.DumpCallstackId] =
+                    [
+                        callstack
+                    ];
+                }
+                foreach (var callstack in list)
+                {
+                    if (callstack.LinkedToDumpCallstackId == 0)
+                        continue;
+                    groupedCallstacks[callstack.LinkedToDumpCallstackId].Add(callstack);
+                }
+
+                foreach (var group in groupedCallstacks)
+                {
+                    if (group.Value.Count == 1)
+                    {
+                        resultList.Add(group.Value[0]);
+                    }
+                    else
+                    {
+                        var first = group.Value[0];
+                        for (int i = 1; i < group.Value.Count; i++)
+                        {
+                            first.DumpInfos.AddRange(group.Value[i].DumpInfos);
+                            first.Callstack += "\n---------------------------------------\n" + group.Value[i].Callstack;
+                            if (first.ExceptionType != group.Value[i].ExceptionType)
+                                first.ExceptionType += "\n\n" + group.Value[i].ExceptionType;
+                        }
+                        resultList.Add(first);
+                    }
+                }
+
+                return View(resultList);
             }
             return View();
         }

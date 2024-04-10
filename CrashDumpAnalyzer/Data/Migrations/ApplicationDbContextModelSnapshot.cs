@@ -51,6 +51,9 @@ namespace CrashDumpAnalyzer.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("LinkedToDumpCallstackId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Ticket")
                         .IsRequired()
                         .HasColumnType("TEXT");
