@@ -438,6 +438,30 @@ namespace CrashDumpAnalyzer.Controllers
 			return NoContent();
 		}
 		[HttpPost]
+		public async Task<IActionResult> UnlinkDumpCallstack(int id)
+		{
+			if (_dbContext.DumpCallstacks == null)
+				return NotFound();
+			var dumpCallstack = await _dbContext.DumpCallstacks.FirstAsync(cs => cs.LinkedToDumpCallstackId == id);
+			do
+			{
+				try
+				{
+					dumpCallstack.LinkedToDumpCallstackId = 0;
+					await _dbContext.SaveChangesAsync();
+					dumpCallstack = await _dbContext.DumpCallstacks.FirstAsync(cs => cs.LinkedToDumpCallstackId == id);
+				}
+				catch (Exception ex)
+				{
+					dumpCallstack = null;
+                    _logger.LogError(ex, "Error unlinking");
+				}
+			} while (dumpCallstack != null);
+
+			return NoContent();
+		}
+
+		[HttpPost]
 		public async Task<IActionResult> DeleteDumpFile(int callstackId, int dumpId)
 		{
 			if (_dbContext.DumpCallstacks == null)

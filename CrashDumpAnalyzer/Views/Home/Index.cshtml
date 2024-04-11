@@ -51,14 +51,14 @@
                     <div class="grid-item collapsed @stateClass"><p data-bs-toggle="tooltip" title="@item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate)">@dumpCountInfo</p><span>
                         @foreach (var dumpInfo in item.DumpInfos)
                         {
-                                <div data-bs-toggle="tooltip" title="@dumpInfo.DumpTime"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a> Dump from @dumpInfo.DumpTime.AsTimeAgo()<button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)">Delete</button></div>
+                                <div data-bs-toggle="tooltip" title="@dumpInfo.DumpTime"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a> Dump from @dumpInfo.DumpTime.AsTimeAgo()<button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)">&#x274C;</button></div>
                         }
                         </span>
                     </div>
 
 
                     <div class="grid-item collapsible collapsed @stateClass">@Html.DisplayFor(modelItem => item.Callstack)</div>
-                    <div class="grid-item @stateClass"><button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)">Delete</button></div>
+                    <div class="grid-item @stateClass">@if (item.Callstack.Contains("--------------")){<button type="button" class="btn btn-primary" onclick="unlinkCallstack(@item.DumpCallstackId)">&#x1F517;</button>}<button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)">&#x274C;</button></div>
                 }
             }
         </div>
@@ -138,6 +138,18 @@
         console.debug("deleting dump " + dumpId + " of callstack " + callstackId);
         $.ajax({
             url: 'Api/DeleteDumpFile?callstackId=' + callstackId + '&dumpId=' + dumpId,
+            processData: false,
+            contentType: false,
+            type: 'POST',
+            complete: function (data) {
+                location.reload();
+            },
+        });
+    }
+    function unlinkCallstack(id) {
+        console.debug("unlinking callstack for " + id);
+        $.ajax({
+            url: 'Api/UnlinkDumpCallstack?id=' + id,
             processData: false,
             contentType: false,
             type: 'POST',
