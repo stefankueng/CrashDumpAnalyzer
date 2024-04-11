@@ -432,7 +432,7 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         System.IO.File.Delete(dumpInfo.FilePath);
                     }
-                    dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstAsync(cs => cs.LinkedToDumpCallstackId == id);
+                    dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(cs => cs.LinkedToDumpCallstackId == id);
                 }
                 catch (Exception ex)
                 {
@@ -454,7 +454,7 @@ namespace CrashDumpAnalyzer.Controllers
                 {
                     dumpCallstack.LinkedToDumpCallstackId = 0;
                     await _dbContext.SaveChangesAsync();
-                    dumpCallstack = await _dbContext.DumpCallstacks.FirstAsync(cs => cs.LinkedToDumpCallstackId == id);
+                    dumpCallstack = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(cs => cs.LinkedToDumpCallstackId == id);
                 }
                 catch (Exception ex)
                 {
