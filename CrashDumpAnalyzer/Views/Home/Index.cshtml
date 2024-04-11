@@ -40,7 +40,7 @@
                     else if (isNotFixed)
                         stateClass = "grid-item-red";
 
-                    string dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count +" dump(s)" : @item.DumpInfos.Count + " dump(s), uploaded " + @item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).AsTimeAgo();
+                    string dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") : @item.DumpInfos.Count + " dump"+(@item.DumpInfos.Count == 1 ? "" : "s")+", uploaded " + @item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).AsTimeAgo();
 
                     <div class="grid-item @stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">@Html.DisplayFor(modelItem => item.ApplicationName)</div>
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion)</div>
