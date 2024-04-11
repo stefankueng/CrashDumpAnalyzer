@@ -550,6 +550,8 @@ namespace CrashDumpAnalyzer.Controllers
 		{
 			if (_dbContext.DumpCallstacks == null)
 				return NotFound();
+			if (id == toId)
+				return BadRequest();
 			var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
 			if (entry != null)
 			{

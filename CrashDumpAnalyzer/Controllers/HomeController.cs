@@ -76,7 +76,7 @@ namespace CrashDumpAnalyzer.Controllers
                 }
                 foreach (var callstack in list)
                 {
-                    if (callstack.LinkedToDumpCallstackId == 0)
+                    if ((callstack.LinkedToDumpCallstackId == 0)||(callstack.DumpCallstackId == callstack.LinkedToDumpCallstackId))
                         continue;
                     groupedCallstacks[callstack.LinkedToDumpCallstackId].Add(callstack);
                 }

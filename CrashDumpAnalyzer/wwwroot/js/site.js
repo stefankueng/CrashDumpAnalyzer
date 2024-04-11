@@ -104,16 +104,17 @@ $(function () {
             if (e.dataTransfer.types[0] === this.textContent.toLowerCase()) {
                 let toId = $(this).data('id'); // the rest is just the same
                 let id = Number(e.dataTransfer.getData(e.dataTransfer.types[0]));
-
-                $.ajax({
-                    url: 'Api/LinkCallstack?id=' + id + '&toId=' + toId,
-                    processData: false,
-                    contentType: false,
-                    type: 'POST',
-                    complete: function (data) {
-                        location.reload();
-                    },
-                });
+                if (id !== toId) {
+                    $.ajax({
+                        url: 'Api/LinkCallstack?id=' + id + '&toId=' + toId,
+                        processData: false,
+                        contentType: false,
+                        type: 'POST',
+                        complete: function (data) {
+                            location.reload();
+                        },
+                    });
+                }
             }
 
 
