@@ -76,7 +76,7 @@ namespace CrashDumpAnalyzer.Controllers
                 }
                 foreach (var callstack in list)
                 {
-                    if ((callstack.LinkedToDumpCallstackId == 0)||(callstack.DumpCallstackId == callstack.LinkedToDumpCallstackId))
+                    if ((callstack.LinkedToDumpCallstackId == 0) || (callstack.DumpCallstackId == callstack.LinkedToDumpCallstackId))
                         continue;
                     groupedCallstacks[callstack.LinkedToDumpCallstackId].Add(callstack);
                 }
@@ -96,6 +96,30 @@ namespace CrashDumpAnalyzer.Controllers
                             first.Callstack += "\n---------------------------------------\n" + group.Value[i].Callstack;
                             if (first.ExceptionType != group.Value[i].ExceptionType)
                                 first.ExceptionType += "\n\n" + group.Value[i].ExceptionType;
+                            // use the lower 'fixed version' of the linked callstacks
+                            if (first.FixedVersion != group.Value[i].FixedVersion)
+                            {
+                                if (first.FixedVersion.Length == 0)
+                                    first.FixedVersion = group.Value[i].FixedVersion;
+                                if (group.Value[i].FixedVersion.Length != 0)
+                                {
+                                    var firstVersion = new SemanticVersion(first.FixedVersion);
+                                    var secondVersion = new SemanticVersion(group.Value[i].FixedVersion);
+                                    first.FixedVersion = firstVersion < secondVersion ? first.FixedVersion : group.Value[i].FixedVersion;
+                                }
+                            }
+                            // use the higher 'application version' of the linked callstacks
+                            if (first.ApplicationVersion != group.Value[i].ApplicationVersion)
+                            {
+                                if (first.ApplicationVersion.Length == 0)
+                                    first.ApplicationVersion = group.Value[i].ApplicationVersion;
+                                if (group.Value[i].ApplicationVersion.Length != 0)
+                                {
+                                    var firstVersion = new SemanticVersion(first.ApplicationVersion);
+                                    var secondVersion = new SemanticVersion(group.Value[i].ApplicationVersion);
+                                    first.ApplicationVersion = firstVersion > secondVersion ? first.ApplicationVersion : group.Value[i].ApplicationVersion;
+                                }
+                            }
                         }
                         resultList.Add(first);
                     }
