@@ -562,6 +562,18 @@ namespace CrashDumpAnalyzer.Controllers
                 entry.LinkedToDumpCallstackId = toId;
                 await _dbContext.SaveChangesAsync();
                 ModelState.Clear();
+
+                do
+                {
+                    entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.LinkedToDumpCallstackId == id);
+                    if (entry != null)
+                    {
+                        entry.LinkedToDumpCallstackId = toId;
+                        await _dbContext.SaveChangesAsync();
+                    }
+                } while (entry != null);
+
+
             }
             return NoContent();
         }

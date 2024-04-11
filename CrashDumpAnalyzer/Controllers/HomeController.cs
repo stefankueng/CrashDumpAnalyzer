@@ -69,16 +69,16 @@ namespace CrashDumpAnalyzer.Controllers
                 {
                     if (callstack.LinkedToDumpCallstackId != 0)
                         continue;
-                    groupedCallstacks[callstack.DumpCallstackId] =
-                    [
-                        callstack
-                    ];
+                    groupedCallstacks[callstack.DumpCallstackId] = [callstack];
                 }
                 foreach (var callstack in list)
                 {
                     if ((callstack.LinkedToDumpCallstackId == 0) || (callstack.DumpCallstackId == callstack.LinkedToDumpCallstackId))
                         continue;
-                    groupedCallstacks[callstack.LinkedToDumpCallstackId].Add(callstack);
+                    if (groupedCallstacks.ContainsKey(callstack.LinkedToDumpCallstackId))
+                        groupedCallstacks[callstack.LinkedToDumpCallstackId].Add(callstack);
+                    else
+                        groupedCallstacks[callstack.DumpCallstackId] = [callstack];
                 }
 
                 foreach (var group in groupedCallstacks)
