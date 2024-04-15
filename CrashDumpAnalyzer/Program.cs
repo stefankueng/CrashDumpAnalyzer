@@ -31,12 +31,12 @@ builder.Logging.AddLog4Net();
 
 builder.Services.Configure<KestrelServerOptions>(options =>
 {
-    options.Limits.MaxRequestBodySize = int.MaxValue; // if don't set default value is: 30 MB
+    options.Limits.MaxRequestBodySize = long.MaxValue; // if don't set default value is: 30 MB
 });
 builder.Services.Configure<FormOptions>(options =>
 {
     options.ValueLengthLimit = int.MaxValue;
-    options.MultipartBodyLengthLimit = int.MaxValue; // if don't set default value is: 128 MB
+    options.MultipartBodyLengthLimit = long.MaxValue; // if don't set default value is: 128 MB
     options.MultipartHeadersLengthLimit = int.MaxValue;
 });
 var app = builder.Build();

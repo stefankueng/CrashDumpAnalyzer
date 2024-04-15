@@ -99,29 +99,29 @@ namespace CrashDumpAnalyzer.Utilities
             return Array.Empty<byte>();
         }
 
-        public static async Task<byte[]> ProcessStreamedFile(
+        public static async Task<bool> ProcessStreamedFile(
             MultipartSection section, ContentDispositionHeaderValue contentDisposition,
-            ModelStateDictionary modelState, string[] permittedExtensions, long sizeLimit)
+            ModelStateDictionary modelState, string[] permittedExtensions, long sizeLimit, Stream stream )
         {
             try
             {
-                using (var memoryStream = new MemoryStream())
+                
                 {
-                    await section.Body.CopyToAsync(memoryStream);
+                    await section.Body.CopyToAsync(stream);
 
                     // Check if the file is empty or exceeds the size limit.
-                    if (memoryStream.Length == 0)
+                    if (stream.Length == 0)
                     {
                         modelState.AddModelError("File", "The file is empty.");
                     }
-                    else if (memoryStream.Length > sizeLimit)
+                    else if (stream.Length > sizeLimit)
                     {
                         var megabyteSizeLimit = sizeLimit / 1048576;
                         modelState.AddModelError("File",
                         $"The file exceeds {megabyteSizeLimit:N1} MB.");
                     }
                     else if (contentDisposition.FileName.Value != null && !IsValidFileExtensionAndSignature(
-                                 contentDisposition.FileName.Value, memoryStream,
+                                 contentDisposition.FileName.Value, stream,
                                  permittedExtensions))
                     {
                         modelState.AddModelError("File",
@@ -130,7 +130,7 @@ namespace CrashDumpAnalyzer.Utilities
                     }
                     else
                     {
-                        return memoryStream.ToArray();
+                        return true;
                     }
                 }
             }
@@ -142,7 +142,7 @@ namespace CrashDumpAnalyzer.Utilities
                 // Log the exception
             }
 
-            return Array.Empty<byte>();
+            return false;
         }
 
         private static bool IsValidFileExtensionAndSignature(string fileName, Stream data, string[] permittedExtensions)

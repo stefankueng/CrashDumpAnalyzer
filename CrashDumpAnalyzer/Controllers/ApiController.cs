@@ -110,19 +110,20 @@ namespace CrashDumpAnalyzer.Controllers
                             string? trustedFileNameForDisplay = WebUtility.HtmlEncode(
                                 contentDisposition.FileName.Value);
                             string trustedFileNameForFileStorage = DateTime.Now.ToString("yyyyMMddHHmmss") + Path.GetRandomFileName() + ".dmp";
-                            byte[] streamedFileContent = await FileHelpers.ProcessStreamedFile(
-                                section, contentDisposition, ModelState,
-                                _permittedExtensions, MaxFileSize);
-
-                            if (!ModelState.IsValid)
-                            {
-                                return BadRequest(ModelState);
-                            }
-
                             await using (FileStream targetStream = System.IO.File.Create(
-                                       Path.Combine(_dumpPath, trustedFileNameForFileStorage)))
+                                       Path.Combine(_dumpPath, trustedFileNameForFileStorage), 10_000_000))
                             {
-                                await targetStream.WriteAsync(streamedFileContent);
+                                var success = await FileHelpers.ProcessStreamedFile(
+                                section, contentDisposition, ModelState,
+                                _permittedExtensions, MaxFileSize, targetStream);
+
+                                if (!ModelState.IsValid || !success)
+                                {
+                                    targetStream.Close();
+                                    System.IO.File.Delete(Path.Combine(_dumpPath, trustedFileNameForFileStorage));
+                                    return BadRequest(ModelState);
+                                }
+
                                 DumpFileInfo entry = new DumpFileInfo
                                 {
                                     FilePath = Path.Combine(_dumpPath, trustedFileNameForFileStorage),
