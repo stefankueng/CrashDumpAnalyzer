@@ -42,7 +42,7 @@
 
                     string dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") : @item.DumpInfos.Count + " dump"+(@item.DumpInfos.Count == 1 ? "" : "s")+", uploaded " + @item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).AsTimeAgo();
 
-                    <div class="grid-item @stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">@Html.DisplayFor(modelItem => item.ApplicationName) <a href="/Home/Dump?callstackId=@item.DumpCallstackId">&#x1F517;</a></div>
+                    <div class="grid-item @stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">@Html.DisplayFor(modelItem => item.ApplicationName) <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;">&#9678;</a></div>
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion)</div>
                     <div class="grid-item @stateClass"><a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></div>
                     <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames){<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>}</div>
