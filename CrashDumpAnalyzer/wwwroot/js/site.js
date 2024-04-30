@@ -106,7 +106,7 @@ $(function () {
                 let id = Number(e.dataTransfer.getData(e.dataTransfer.types[0]));
                 if (id !== toId) {
                     $.ajax({
-                        url: 'Api/LinkCallstack?id=' + id + '&toId=' + toId,
+                        url: '/Api/LinkCallstack?id=' + id + '&toId=' + toId,
                         processData: false,
                         contentType: false,
                         type: 'POST',
@@ -127,7 +127,7 @@ function saveFixedVersion(id) {
     let text = $('.modalTextInput').val();
     console.log(text + ' --> ' + id);
     $.ajax({
-        url: 'Api/SetFixedVersion?id=' + id + '&version=' + text,
+        url: '/Api/SetFixedVersion?id=' + id + '&version=' + text,
         processData: false,
         contentType: false,
         type: 'POST',
@@ -141,7 +141,7 @@ function saveTicket(id) {
     let text = $('.modalTicketInput').val();
     console.log(text + ' --> ' + id);
     $.ajax({
-        url: 'Api/SetTicket?id=' + id + '&ticket=' + text,
+        url: '/Api/SetTicket?id=' + id + '&ticket=' + text,
         processData: false,
         contentType: false,
         type: 'POST',
@@ -156,7 +156,7 @@ function saveComment(id) {
     let text = $('.modalCommentInput').val();
     console.log(text + ' --> ' + id);
     $.ajax({
-        url: 'Api/SetComment?id=' + id + '&comment=' + text,
+        url: '/Api/SetComment?id=' + id + '&comment=' + text,
         processData: false,
         contentType: false,
         type: 'POST',

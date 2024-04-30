@@ -28,7 +28,44 @@ namespace CrashDumpAnalyzer.Controllers
         {
             if (_dbContext.DumpCallstacks != null)
             {
-                var list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).ToListAsync();
+                var resultList = await FetchCallStacks(null);
+                return View(resultList);
+            }
+            return View();
+        }
+
+        public async Task<IActionResult> Dump(int callstackId)
+        {
+            if (_dbContext.DumpCallstacks != null)
+            {
+                var list = await FetchCallStacks(callstackId);
+                if (list != null && list.Count == 1)
+                    return View(list[0]);
+            }
+            return View();
+        }
+
+
+        public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        private async Task<List<DumpCallstack>> FetchCallStacks(int? id)
+        {
+            if (_dbContext.DumpCallstacks != null)
+            {
+                List<DumpCallstack>? list = null;
+                if (id == null)
+                    list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).ToListAsync();
+                else
+                    list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).Where(dumpCallstack => dumpCallstack.DumpCallstackId == id || dumpCallstack.LinkedToDumpCallstackId == id).ToListAsync();
                 // sort individual dumps by upload date
                 foreach (var dumpCallstack in list)
                     dumpCallstack.DumpInfos.Sort((a, b) => b.UploadDate.CompareTo(a.UploadDate));
@@ -124,21 +161,9 @@ namespace CrashDumpAnalyzer.Controllers
                         resultList.Add(first);
                     }
                 }
-
-                return View(resultList);
+                return resultList;
             }
-            return View();
-        }
-
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            return new List<DumpCallstack>();
         }
 
         private bool HasDumpAfterFixedVersion(DumpCallstack dumpCallstack)

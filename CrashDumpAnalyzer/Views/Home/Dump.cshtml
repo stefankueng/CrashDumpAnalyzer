@@ -1,0 +1,76 @@
+﻿@using CrashDumpAnalyzer.Utilities
+@model CrashDumpAnalyzer.Models.DumpCallstack
+@{
+    ViewData["Title"] = "Crash Dump Analyzer - Dump";
+}
+
+<div class="text-center">
+    <h1 class="display-4">@ViewData["Title"]</h1>
+    <div>
+        @if (Model != null)
+        {
+            var item = Model;
+            var fixedVersion = new SemanticVersion(item.FixedVersion);
+            var appVersion = new SemanticVersion(item.ApplicationVersion);
+            var isFixed = item.FixedVersion.Length > 0 && appVersion <= fixedVersion;
+            var isNotFixed = item.FixedVersion.Length > 0 && appVersion > fixedVersion;
+
+            string dumpCountInfo = @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s");
+
+
+            <table>
+                <tr>
+                    <td>@Html.DisplayNameFor(modelItem => item.ApplicationName)</td>
+                    <td>@Html.DisplayFor(modelItem => item.ApplicationName)</td>
+                </tr>
+                <tr>
+                    <td>@Html.DisplayNameFor(modelItem => item.ApplicationVersion)</td>
+                    <td>@Html.DisplayFor(modelItem => item.ApplicationVersion)</td>
+                </tr>
+                <tr>
+                    <td>@Html.DisplayNameFor(modelItem => item.Comment)</td>
+                    <td>@Html.DisplayFor(modelItem => item.Comment)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">&#x1f5e8;</button></td>
+                </tr>
+                <tr>
+                    <td>@Html.DisplayNameFor(modelItem => item.Ticket)</td>
+                    <td><a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></td>
+                </tr>
+                <tr>
+                    <td>@Html.DisplayNameFor(modelItem => item.FixedVersion)</td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames)
+                        {
+                            <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
+                        }
+                    </td>
+                </tr>
+                <tr>
+                    <td>@Html.DisplayNameFor(modelItem => item.ExceptionType)</td>
+                    <td style="white-space: pre-line;">@Html.DisplayFor(modelItem => item.ExceptionType)</td>
+                </tr>
+                <tr>
+                    <td>Dumps</td>
+                    <td style="padding:0">
+                        <table style="border-style:none;border-width:0">
+                            @foreach (var dumpInfo in item.DumpInfos)
+                            {
+                                <tr style="border-style:none;border-width:0">
+                                    <td style="border-style:none;border-width:0"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a><button type="button" class="btn btn-primary" Style="float: right;" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">&#x274C;</button></td>
+                                    <td style="border-style:none;border-width:0">Dump from @dumpInfo.DumpTime (@dumpInfo.DumpTime.AsTimeAgo())</td>
+                                    <td style="border-style:none;border-width:0">Uploaded @dumpInfo.UploadDate (@dumpInfo.UploadDate.AsTimeAgo())</td>
+                                </tr>
+                            }
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td>@Html.DisplayNameFor(modelItem => item.Callstack)</td>
+                    <td style="white-space: pre-line;">@Html.DisplayFor(modelItem => item.Callstack)</td>
+                </tr>
+            </table>
+        }
+
+    </div>
+</div>
+
+<partial name="_CallStackHelpers" />
