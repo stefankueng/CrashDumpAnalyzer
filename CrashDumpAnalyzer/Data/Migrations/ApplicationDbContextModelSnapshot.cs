@@ -43,6 +43,9 @@ namespace CrashDumpAnalyzer.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("ExceptionType")
                         .IsRequired()
                         .HasColumnType("TEXT");

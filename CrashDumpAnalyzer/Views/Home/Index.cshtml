@@ -29,7 +29,8 @@
             </tr>
             @foreach (var item in Model)
             {
-                @if (item.DumpInfos.Count == 0) continue; // skip empty dump callstacks
+                @if (item.DumpInfos.Count == 0 && !item.Deleted)
+                    continue; // skip empty dump callstacks
                 {
                     var fixedVersion = new SemanticVersion(item.FixedVersion);
                     var appVersion = new SemanticVersion(item.ApplicationVersion);
@@ -41,7 +42,9 @@
                     else if (isNotFixed)
                         stateClass = "grid-item-red";
 
-                    string dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") : @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") + ", uploaded " + @item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).AsTimeAgo();
+                    string dumpCountInfo = string.Empty;
+                    if (item.DumpInfos.Count > 0)
+                        dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") : @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") + ", uploaded " + @item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).AsTimeAgo();
                     <tr>
                         <td class="@stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">@Html.DisplayFor(modelItem => item.ApplicationName) <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;">&#9678;</a></td>
                         <td class="@stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion)</td>
@@ -55,12 +58,14 @@
                         <td class="@stateClass">@Html.DisplayFor(modelItem => item.ExceptionType)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">&#x1f5e8;</button><p>@item.Comment</p></td>
 
                         <td class="collapsed @stateClass">
-                            <p data-bs-toggle="tooltip" title="@item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate)">@dumpCountInfo</p><span>
+                            @if (item.DumpInfos.Count > 0)
+                            {                            <p data-bs-toggle="tooltip" title="@item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate)">@dumpCountInfo</p><span>
                                 @foreach (var dumpInfo in item.DumpInfos)
                                 {
                                     <div data-bs-toggle="tooltip" title="@dumpInfo.DumpTime"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a> Dump from @dumpInfo.DumpTime.AsTimeAgo()<button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">&#x274C;</button></div>
                                 }
                             </span>
+                            }
                         </td>
 
 

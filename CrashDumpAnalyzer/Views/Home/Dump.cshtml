@@ -17,7 +17,12 @@
 
             string dumpCountInfo = @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s");
 
-
+            if (item.Deleted)
+            {
+                <div class="alert alert-danger" role="alert">
+                    This dump callstack has been deleted.
+                </div>
+            }
             <table>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.ApplicationName)</td>

@@ -24,11 +24,11 @@ namespace CrashDumpAnalyzer.Controllers
             Constants.TicketBaseUrl = configuration.GetValue<string>("TicketBaseUrl") ?? string.Empty;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? deleted)
         {
             if (_dbContext.DumpCallstacks != null)
             {
-                var resultList = await FetchCallStacks(null);
+                var resultList = await FetchCallStacks(null, deleted);
                 return View(resultList);
             }
             return View();
@@ -38,7 +38,7 @@ namespace CrashDumpAnalyzer.Controllers
         {
             if (_dbContext.DumpCallstacks != null)
             {
-                var list = await FetchCallStacks(callstackId);
+                var list = await FetchCallStacks(callstackId, null);
                 if (list != null && list.Count == 1)
                     return View(list[0]);
             }
@@ -57,19 +57,24 @@ namespace CrashDumpAnalyzer.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
 
-        private async Task<List<DumpCallstack>> FetchCallStacks(int? id)
+        private async Task<List<DumpCallstack>> FetchCallStacks(int? id, int? deleted)
         {
             if (_dbContext.DumpCallstacks != null)
             {
                 List<DumpCallstack>? list = null;
                 if (id == null)
-                    list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).ToListAsync();
+                    list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
+                        .Where(dumpCallstack => (dumpCallstack.Deleted == (deleted > 0))).ToListAsync();
                 else
-                    list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).Where(dumpCallstack => dumpCallstack.DumpCallstackId == id || dumpCallstack.LinkedToDumpCallstackId == id).ToListAsync();
+                    list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
+                        .Where(dumpCallstack => dumpCallstack.DumpCallstackId == id ||
+                        dumpCallstack.LinkedToDumpCallstackId == id).ToListAsync();
                 // sort individual dumps by upload date
                 foreach (var dumpCallstack in list)
-                    dumpCallstack.DumpInfos.Sort((a, b) => b.UploadDate.CompareTo(a.UploadDate));
-
+                {
+                    if (dumpCallstack.DumpInfos.Count > 0)
+                        dumpCallstack.DumpInfos.Sort((a, b) => b.UploadDate.CompareTo(a.UploadDate));
+                }
                 list.Sort((a, b) =>
                 {
                     // keep "Unassigned" at the very top
@@ -91,11 +96,15 @@ namespace CrashDumpAnalyzer.Controllers
                         return 1;
                     if (string.IsNullOrEmpty(a.FixedVersion) && !string.IsNullOrEmpty(b.FixedVersion))
                         return -1;
-                    var uploadA = a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
-                    var uploadB = b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
-                    if (uploadA != uploadB)
-                        return uploadB.CompareTo(uploadA); // sort by date of last upload, so it's easy to find the just uploaded ones
-
+                    if (a.DumpInfos.Count > 0 && b.DumpInfos.Count > 0)
+                    {
+                        var uploadA = a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
+                        var uploadB = b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
+                        if (uploadA != uploadB)
+                            return
+                                uploadB.CompareTo(
+                                    uploadA); // sort by date of last upload, so it's easy to find the just uploaded ones
+                    }
                     // sort by number of dumps - the more dumps with the same callstack the more urgent it is to fix
                     return b.DumpInfos.Count - a.DumpInfos.Count;
                 });

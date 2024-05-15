@@ -12,6 +12,7 @@
         public string Callstack { get; set; } = string.Empty;
         public string CleanCallstack { get; set; } = string.Empty;
         public int LinkedToDumpCallstackId { get; set; } = 0;
+        public bool Deleted { get; set; } = false;
         public List<DumpFileInfo> DumpInfos { get; set; } = new ();
     }
 }

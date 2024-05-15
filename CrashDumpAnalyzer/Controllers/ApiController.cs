@@ -422,25 +422,34 @@ namespace CrashDumpAnalyzer.Controllers
             if (dumpCallstack.DumpCallstackId != id)
                 return NotFound();
 
-            do
+            try
             {
-                try
+                // only mark the callstack as deleted, do not delete it from the db
+                dumpCallstack.Deleted = true;
+                // but we delete all dump files from this callstack:
+                // the callstack itself is still stored as text in the db
+                foreach (var dumpInfo in dumpCallstack.DumpInfos)
                 {
-                    _dbContext.DumpCallstacks.Remove(dumpCallstack);
-                    await _dbContext.SaveChangesAsync();
-                    // now delete all dump files from this callstack
-                    foreach (var dumpInfo in dumpCallstack.DumpInfos)
+                    System.IO.File.Delete(dumpInfo.FilePath);
+                }
+                dumpCallstack.DumpInfos.Clear();
+                await _dbContext.SaveChangesAsync();
+                var dumpCallstacks = _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).Where(cs => cs.LinkedToDumpCallstackId == id);
+                foreach (var callStack in dumpCallstacks)
+                {
+                    callStack.Deleted = true;
+                    foreach (var dumpInfo in callStack.DumpInfos)
                     {
                         System.IO.File.Delete(dumpInfo.FilePath);
                     }
-                    dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(cs => cs.LinkedToDumpCallstackId == id);
+                    callStack.DumpInfos.Clear();
+                    await _dbContext.SaveChangesAsync();
                 }
-                catch (Exception ex)
-                {
-                    dumpCallstack = null;
-                    _logger.LogError(ex, "Error deleting callstack from database");
-                }
-            } while (dumpCallstack != null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting callstack from database");
+            }
             return NoContent();
         }
         [HttpPost]
