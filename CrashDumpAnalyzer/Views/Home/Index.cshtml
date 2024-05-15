@@ -16,16 +16,17 @@
     </form>
     <div style="text-align: left;"><div id="files-progress"></div></div>
     <div>
-        <div class="grid-container">
-            <div class="grid-item">@Html.DisplayNameFor(model => model.ApplicationName)</div>
-            <div class="grid-item">@Html.DisplayNameFor(model => model.ApplicationVersion)</div>
-            <div class="grid-item">@Html.DisplayNameFor(model => model.Ticket)</div>
-            <div class="grid-item">@Html.DisplayNameFor(model => model.FixedVersion)</div>
-            <div class="grid-item">@Html.DisplayNameFor(model => model.ExceptionType)</div>
-            <div class="grid-item">Dump</div>
-            <div class="grid-item">@Html.DisplayNameFor(model => model.Callstack)</div>
-            <div class="grid-item"></div>
-
+        <table class="flowTable">
+            <tr>
+                <th>@Html.DisplayNameFor(model => model.ApplicationName)</th>
+                <th>@Html.DisplayNameFor(model => model.ApplicationVersion)</th>
+                <th>@Html.DisplayNameFor(model => model.Ticket)</th>
+                <th>@Html.DisplayNameFor(model => model.FixedVersion)</th>
+                <th>@Html.DisplayNameFor(model => model.ExceptionType)</th>
+                <th>Dumps</th>
+                <th>@Html.DisplayNameFor(model => model.Callstack)</th>
+                <th></th>
+            </tr>
             @foreach (var item in Model)
             {
                 @if (item.DumpInfos.Count == 0) continue; // skip empty dump callstacks
@@ -40,28 +41,42 @@
                     else if (isNotFixed)
                         stateClass = "grid-item-red";
 
-                    string dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") : @item.DumpInfos.Count + " dump"+(@item.DumpInfos.Count == 1 ? "" : "s")+", uploaded " + @item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).AsTimeAgo();
+                    string dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") : @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") + ", uploaded " + @item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).AsTimeAgo();
+                    <tr>
+                        <td class="@stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">@Html.DisplayFor(modelItem => item.ApplicationName) <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;">&#9678;</a></td>
+                        <td class="@stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion)</td>
+                        <td class="@stateClass"><a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></td>
+                        <td class="@stateClass">
+                            @Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames)
+                            {
+                                <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
+                            }
+                        </td>
+                        <td class="@stateClass">@Html.DisplayFor(modelItem => item.ExceptionType)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">&#x1f5e8;</button><p>@item.Comment</p></td>
 
-                    <div class="grid-item @stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">@Html.DisplayFor(modelItem => item.ApplicationName) <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;">&#9678;</a></div>
-                    <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion)</div>
-                    <div class="grid-item @stateClass"><a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></div>
-                    <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames){<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>}</div>
-                    <div class="grid-item @stateClass">@Html.DisplayFor(modelItem => item.ExceptionType)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">&#x1f5e8;</button><p>@item.Comment</p></div>
-
-                    <div class="grid-item collapsed @stateClass"><p data-bs-toggle="tooltip" title="@item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate)">@dumpCountInfo</p><span>
-                        @foreach (var dumpInfo in item.DumpInfos)
-                        {
-                                <div data-bs-toggle="tooltip" title="@dumpInfo.DumpTime"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a> Dump from @dumpInfo.DumpTime.AsTimeAgo()<button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">&#x274C;</button></div>
-                        }
-                        </span>
-                    </div>
+                        <td class="collapsed @stateClass">
+                            <p data-bs-toggle="tooltip" title="@item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate)">@dumpCountInfo</p><span>
+                                @foreach (var dumpInfo in item.DumpInfos)
+                                {
+                                    <div data-bs-toggle="tooltip" title="@dumpInfo.DumpTime"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a> Dump from @dumpInfo.DumpTime.AsTimeAgo()<button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">&#x274C;</button></div>
+                                }
+                            </span>
+                        </td>
 
 
-                    <div class="grid-item collapsible collapsed @stateClass">@Html.DisplayFor(modelItem => item.Callstack)</div>
-                    <div class="grid-item @stateClass">@if (item.Callstack.Contains("--------------")){<button type="button" class="btn btn-primary" onclick="unlinkCallstack(@item.DumpCallstackId)" title="ungroup callstacks">&#x1F517;</button>}<button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)" title="delete callstack">&#x274C;</button></div>
+                        <td class="collapsible collapsed callstack @stateClass">@Html.DisplayFor(modelItem => item.Callstack)</td>
+                        <td class="@stateClass">
+                            @if (item.Callstack.Contains("--------------"))
+                            {
+                                <button type="button" class="btn btn-primary" onclick="unlinkCallstack(@item.DumpCallstackId)" title="ungroup callstacks">&#x1F517;</button>
+                            }<button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)" title="delete callstack">&#x274C;</button>
+                        </td>
+                    </tr>
                 }
             }
-        </div>
+        </table>
+
+
     </div>
 </div>
 

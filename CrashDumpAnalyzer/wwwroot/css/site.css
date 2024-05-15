@@ -27,7 +27,7 @@ body {
     justify-content: center;
     height: 10vh;
     width: 100%;
-    background-color:bisque;
+    background-color: bisque;
     color: black;
     font-weight: bold;
     font-size: 25px;
@@ -107,41 +107,74 @@ body {
     white-space: pre;
     text-align: left;
 }
+
     .grid-item p {
-        display:flow;
+        display: flow;
         min-width: 0;
         min-height: 0;
         word-break: break-word;
         max-width: 300px;
-        text-overflow:clip;
-        white-space:pre-wrap;
+        text-overflow: clip;
+        white-space: pre-wrap;
     }
 
-.grid-item-gray{
+.grid-item-gray {
     background-color: lightgray;
     color: gray;
 }
-.grid-item-red{
+
+.grid-item-red {
     background-color: lightsalmon;
 }
+
+.flowTable {
+    display: table;
+    overflow-x: auto;
+    white-space: nowrap;
+    border-collapse: collapse;
+}
+
+    .flowTable td, th {
+        display: table-cell;
+        border: 1px solid black;
+        text-align: left;
+        padding: 2px;
+    }
+
+.callstack {
+    min-width: 0;
+    min-height: 0;
+    text-overflow: clip;
+    white-space: pre-wrap;
+}
+
 .collapsed {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 300px;
 }
-.collapsed span{
-    display: none
-}
+
+    .collapsed span {
+        display: none
+    }
+
 .collapsible {
     cursor: pointer;
 }
+
+.nobr {
+    white-space: nowrap
+}
+
 .draggable {
     cursor: move;
 }
+
     .draggable.over {
         border: 3px #000;
         background-color: gray;
-}
+    }
 
 table {
     border-collapse: collapse;
