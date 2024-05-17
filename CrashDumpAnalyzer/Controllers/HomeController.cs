@@ -9,6 +9,7 @@ using CrashDumpAnalyzer.Utilities;
 using System.Configuration;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
+using System.Net;
 
 namespace CrashDumpAnalyzer.Controllers
 {

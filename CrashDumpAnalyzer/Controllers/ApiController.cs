@@ -79,6 +79,9 @@ namespace CrashDumpAnalyzer.Controllers
                 MediaTypeHeaderValue.Parse(Request.ContentType));
             MultipartReader reader = new MultipartReader(boundary, HttpContext.Request.Body);
             MultipartSection? section = await reader.ReadNextSectionAsync();
+            string uploadedFromIp = string.Empty;
+            if (Request.HttpContext.Connection.RemoteIpAddress != null)
+                uploadedFromIp = Request.HttpContext.Connection.RemoteIpAddress.ToString();
 
             while (section != null)
             {
@@ -128,7 +131,8 @@ namespace CrashDumpAnalyzer.Controllers
                                 {
                                     FilePath = Path.Combine(_dumpPath, trustedFileNameForFileStorage),
                                     FileSize = targetStream.Length,
-                                    UploadDate = DateTime.Now
+                                    UploadDate = DateTime.Now,
+                                    UploadedFromIp = uploadedFromIp,
                                 };
 
                                 DumpCallstack callstack = new DumpCallstack
@@ -193,6 +197,13 @@ namespace CrashDumpAnalyzer.Controllers
                                 process.StartInfo.EnvironmentVariables["_NT_SOURCE_PATH "] = "srv\\*";
                                 process.StartInfo.RedirectStandardOutput = true;
                                 process.Start();
+
+                                // while the process analyzes the dump, we fetch the computer name from the ip
+                                var myIp = IPAddress.Parse(uploadedFromIp);
+                                var getIpHost = await Dns.GetHostEntryAsync(myIp);
+                                List<string> compName = [.. getIpHost.HostName.Split('.')];
+                                var uploadedFromHostname = compName.First();
+
                                 StreamReader sr = process.StandardOutput;
                                 string output = await sr.ReadToEndAsync(token);
                                 await process.WaitForExitAsync(token);
@@ -334,6 +345,7 @@ namespace CrashDumpAnalyzer.Controllers
                                     entry.ExceptionType = exceptionCode;
                                     entry.ApplicationVersion = version;
                                     entry.DumpTime = dumpTime;
+                                    entry.UploadedFromHostname = uploadedFromHostname;
 
                                     // find out if we already have this callstack
                                     DumpCallstack callstack = new DumpCallstack
@@ -516,7 +528,7 @@ namespace CrashDumpAnalyzer.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> SetFixedVersion(int id, string version)
+        public async Task<IActionResult> SetFixedVersion(int id, string? version)
         {
             if (_dbContext.DumpCallstacks == null)
                 return NotFound();

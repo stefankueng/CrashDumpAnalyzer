@@ -15,7 +15,11 @@
             var isFixed = item.FixedVersion.Length > 0 && appVersion <= fixedVersion;
             var isNotFixed = item.FixedVersion.Length > 0 && appVersion > fixedVersion;
 
-            string dumpCountInfo = @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s");
+            var stateClass = string.Empty;
+            if (isFixed)
+                stateClass = "grid-item-gray";
+            else if (isNotFixed)
+                stateClass = "grid-item-red";
 
             if (item.Deleted)
             {
@@ -29,8 +33,8 @@
                     <td>@Html.DisplayFor(modelItem => item.ApplicationName)</td>
                 </tr>
                 <tr>
-                    <td>@Html.DisplayNameFor(modelItem => item.ApplicationVersion)</td>
-                    <td>@Html.DisplayFor(modelItem => item.ApplicationVersion)</td>
+                    <td class="@stateClass">@Html.DisplayNameFor(modelItem => item.ApplicationVersion)</td>
+                    <td class="@stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion)</td>
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Comment)</td>
@@ -41,8 +45,8 @@
                     <td><a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></td>
                 </tr>
                 <tr>
-                    <td>@Html.DisplayNameFor(modelItem => item.FixedVersion)</td>
-                    <td>
+                    <td class="@stateClass">@Html.DisplayNameFor(modelItem => item.FixedVersion)</td>
+                    <td class="@stateClass">
                         @Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames)
                         {
                             <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
@@ -63,6 +67,7 @@
                                     <td style="border-style:none;border-width:0"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a><button type="button" class="btn btn-primary" Style="float: right;" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">&#x274C;</button></td>
                                     <td style="border-style:none;border-width:0">Dump from @dumpInfo.DumpTime (@dumpInfo.DumpTime.AsTimeAgo())</td>
                                     <td style="border-style:none;border-width:0">Uploaded @dumpInfo.UploadDate (@dumpInfo.UploadDate.AsTimeAgo())</td>
+                                    <td style="border-style:none;border-width:0">Uploaded from ip: @dumpInfo.UploadedFromIp, hostname: @dumpInfo.UploadedFromHostname)</td>
                                 </tr>
                             }
                         </table>

@@ -13,6 +13,8 @@ namespace CrashDumpAnalyzer.Models
 		public string ApplicationVersion { get; set; } = string.Empty;
 		public string CallStack { get; set; } = string.Empty;
 		public string ExceptionType { get; set; } = string.Empty;
+		public string UploadedFromIp { get; set; } = string.Empty;
+		public string UploadedFromHostname { get; set; } = string.Empty;
 
 		public int DumpCallstackId { get; set; }
 		public DumpCallstack? DumpCallstack { get; set; }

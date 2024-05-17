@@ -104,6 +104,14 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.Property<DateTime>("UploadDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("UploadedFromHostname")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UploadedFromIp")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.HasKey("DumpFileInfoId");
 
                     b.HasIndex("DumpCallstackId");
