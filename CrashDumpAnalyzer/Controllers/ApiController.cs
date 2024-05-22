@@ -359,7 +359,6 @@ namespace CrashDumpAnalyzer.Controllers
                                     bool doUpdate = false;
                                     if (dbContext.DumpCallstacks != null)
                                     {
-
                                         try
                                         {
                                             var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
@@ -368,6 +367,7 @@ namespace CrashDumpAnalyzer.Controllers
                                             if (cs != null)
                                             {
                                                 callstack = cs;
+                                                callstack.Deleted = false;
                                                 var v1 = new SemanticVersion(version);
                                                 var v2 = new SemanticVersion(callstack.ApplicationVersion);
                                                 if (v1 >= v2)
