@@ -58,7 +58,7 @@
     function deleteCallstack(id) {
         console.debug("deleting callstack for " + id);
         $.ajax({
-            url: 'Api/DeleteDumpCallstack?id=' + id,
+            url: '/Api/DeleteDumpCallstack?id=' + id,
             processData: false,
             contentType: false,
             type: 'POST',
@@ -70,7 +70,7 @@
     function deleteDump(callstackId, dumpId) {
         console.debug("deleting dump " + dumpId + " of callstack " + callstackId);
         $.ajax({
-            url: 'Api/DeleteDumpFile?callstackId=' + callstackId + '&dumpId=' + dumpId,
+            url: '/Api/DeleteDumpFile?callstackId=' + callstackId + '&dumpId=' + dumpId,
             processData: false,
             contentType: false,
             type: 'POST',
@@ -82,7 +82,7 @@
     function unlinkCallstack(id) {
         console.debug("unlinking callstack for " + id);
         $.ajax({
-            url: 'Api/UnlinkDumpCallstack?id=' + id,
+            url: '/Api/UnlinkDumpCallstack?id=' + id,
             processData: false,
             contentType: false,
             type: 'POST',
