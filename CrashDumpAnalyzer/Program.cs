@@ -61,6 +61,20 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+builder.Configuration.GetSection("StaticFolders").GetChildren().ToList().ForEach(folder =>
+{
+    if (folder.Value != null)
+    {
+        app.UseStaticFiles(new StaticFileOptions()
+        {
+            ServeUnknownFileTypes = true,
+            FileProvider = new PhysicalFileProvider(
+            Path.Combine(Directory.GetCurrentDirectory(), folder.Value)
+        ),
+            RequestPath = new PathString($"/{folder.Key}")
+        });
+    }
+});
 
 app.UseRouting();
 
