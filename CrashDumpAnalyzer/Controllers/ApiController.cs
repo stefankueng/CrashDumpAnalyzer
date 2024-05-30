@@ -198,11 +198,18 @@ namespace CrashDumpAnalyzer.Controllers
                                 process.StartInfo.RedirectStandardOutput = true;
                                 process.Start();
 
-                                // while the process analyzes the dump, we fetch the computer name from the ip
-                                var myIp = IPAddress.Parse(uploadedFromIp);
-                                var getIpHost = await Dns.GetHostEntryAsync(myIp);
-                                List<string> compName = [.. getIpHost.HostName.Split('.')];
-                                var uploadedFromHostname = compName.First();
+                                string uploadedFromHostname = "unknown host";
+                                try
+                                {
+                                    // while the process analyzes the dump, we fetch the computer name from the ip
+                                    var myIp = IPAddress.Parse(uploadedFromIp);
+                                    var getIpHost = await Dns.GetHostEntryAsync(myIp);
+                                    List<string> compName = [.. getIpHost.HostName.Split('.')];
+                                    uploadedFromHostname = compName.First();
+                                }
+                                catch (Exception)
+                                {
+                                }
 
                                 StreamReader sr = process.StandardOutput;
                                 string output = await sr.ReadToEndAsync(token);
