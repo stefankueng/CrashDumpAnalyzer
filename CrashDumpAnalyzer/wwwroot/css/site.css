@@ -185,6 +185,9 @@ table, th, td {
     border: 1px solid black;
     text-align: left;
     padding: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 tr:hover {
