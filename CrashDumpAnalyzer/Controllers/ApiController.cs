@@ -192,7 +192,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 using Process process = new();
                                 process.StartInfo.FileName = _cdbExe;
                                 process.StartInfo.WorkingDirectory = Path.GetDirectoryName(_cdbExe);
-                                process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \"!analyze -v; lm lv; .ecxr; kL; q\"";
+                                process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \"!analyze -v; lm lv; .ecxr; kL; !peb; q\"";
                                 process.StartInfo.EnvironmentVariables["_NT_SYMBOL_PATH"] = _symbolPath;
                                 process.StartInfo.EnvironmentVariables["_NT_SOURCE_PATH "] = "srv\\*";
                                 process.StartInfo.RedirectStandardOutput = true;
@@ -223,6 +223,9 @@ namespace CrashDumpAnalyzer.Controllers
                                 string processName = string.Empty;
                                 string exceptionCode = string.Empty;
                                 string version = string.Empty;
+                                string computerName = string.Empty;
+                                string domain = string.Empty;
+                                string environment = string.Empty;
                                 DateTime dumpTime = DateTime.Now;
                                 foreach (var lineString in output.Split(["\n"], StringSplitOptions.TrimEntries))
                                 {
@@ -279,6 +282,30 @@ namespace CrashDumpAnalyzer.Controllers
                                             version = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
                                         }
                                     }
+                                    if (context == "PEB")
+                                    {
+                                        if (lineString.Contains("COMPUTERNAME="))
+                                        {
+                                            var parts = lineString.Split(["="], StringSplitOptions.TrimEntries);
+                                            if (parts.Length == 2)
+                                            {
+                                                computerName = parts[1];
+                                            }
+                                        }
+                                        if (lineString.Contains("USERDOMAIN="))
+                                        {
+                                            // USERDOMAIN
+                                            var parts = lineString.Split(["="], StringSplitOptions.TrimEntries);
+                                            if (parts.Length == 2)
+                                            {
+                                                domain = parts[1];
+                                            }
+                                        }
+                                        if (lineString.Contains(":quit"))
+                                            context = string.Empty;
+                                        else
+                                            environment += lineString + "\n";
+                                    }
                                     if (lineString.Contains("Could not open dump file"))
                                     {
                                         callstackString = lineString;
@@ -327,6 +354,14 @@ namespace CrashDumpAnalyzer.Controllers
                                     {
                                         context = "ALTERNATE_STACK_TEXT";
                                     }
+                                    if (lineString.Contains("PEB at"))
+                                    {
+                                        context = "PEB";
+                                    }
+                                    if (lineString.Contains(":quit"))
+                                    {
+                                        context = string.Empty;
+                                    }
                                     if (lineString.Length <= 1 && context.Length > 0 && context != "MODULES")
                                         context = string.Empty;
 
@@ -353,6 +388,9 @@ namespace CrashDumpAnalyzer.Controllers
                                     entry.ApplicationVersion = version;
                                     entry.DumpTime = dumpTime;
                                     entry.UploadedFromHostname = uploadedFromHostname;
+                                    entry.ComputerName = computerName;
+                                    entry.Domain = domain;
+                                    entry.Environment = environment;
 
                                     // find out if we already have this callstack
                                     DumpCallstack callstack = new DumpCallstack
@@ -509,7 +547,7 @@ namespace CrashDumpAnalyzer.Controllers
                 if (dumpToRemove != null)
                 {
                     System.IO.File.Delete(dumpToRemove.FilePath);
-                    dumpCallstack.DumpInfos.Remove(dumpToRemove);
+                    dumpToRemove.FilePath = string.Empty;
                     await _dbContext.SaveChangesAsync();
                 }
             }

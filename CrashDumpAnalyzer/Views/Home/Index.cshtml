@@ -59,13 +59,25 @@
 
                         <td class="collapsed @stateClass">
                             @if (item.DumpInfos.Count > 0)
-                            {                            
+                            {
                                 <p data-bs-toggle="tooltip" title="@item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate)">@dumpCountInfo</p>
                                 <span>
-                                @foreach (var dumpInfo in item.DumpInfos)
-                                {
-                                    <p data-bs-toggle="tooltip" title="@dumpInfo.DumpTime"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a> Dump from @dumpInfo.DumpTime.AsTimeAgo()<button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">&#x274C;</button></p>
-                                }
+                                    @{
+                                        var del = 0;
+                                        foreach (var dumpInfo in item.DumpInfos)
+                                        {
+                                            if (dumpInfo.FilePath.Length > 0)
+                                            {
+                                                <p data-bs-toggle="tooltip" title="@dumpInfo.DumpTime"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a> Dump from @dumpInfo.DumpTime.AsTimeAgo()<button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">&#x274C;</button></p>
+                                            }
+                                            else
+                                                ++del;
+                                        }
+                                        if (del > 0)
+                                        {
+                                            <p>@del dump files deleted</p>
+                                        }
+                                    }
                                 </span>
                             }
                         </td>
