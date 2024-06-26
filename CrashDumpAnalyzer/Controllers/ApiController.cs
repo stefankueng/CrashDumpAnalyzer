@@ -487,7 +487,14 @@ namespace CrashDumpAnalyzer.Controllers
                 // the callstack itself is still stored as text in the db
                 foreach (var dumpInfo in dumpCallstack.DumpInfos)
                 {
-                    System.IO.File.Delete(dumpInfo.FilePath);
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(dumpInfo.FilePath))
+                            System.IO.File.Delete(dumpInfo.FilePath);
+                    }
+                    catch (Exception)
+                    {
+                    }
                 }
                 dumpCallstack.DumpInfos.Clear();
                 await _dbContext.SaveChangesAsync();
@@ -497,7 +504,14 @@ namespace CrashDumpAnalyzer.Controllers
                     callStack.Deleted = true;
                     foreach (var dumpInfo in callStack.DumpInfos)
                     {
-                        System.IO.File.Delete(dumpInfo.FilePath);
+                        try
+                        {
+                            if (!string.IsNullOrEmpty(dumpInfo.FilePath))
+                                System.IO.File.Delete(dumpInfo.FilePath);
+                        }
+                        catch (Exception)
+                        {
+                        }
                     }
                     callStack.DumpInfos.Clear();
                     await _dbContext.SaveChangesAsync();
@@ -546,7 +560,14 @@ namespace CrashDumpAnalyzer.Controllers
                 var dumpToRemove = dumpCallstack.DumpInfos.First(x => x.DumpFileInfoId == dumpId);
                 if (dumpToRemove != null)
                 {
-                    System.IO.File.Delete(dumpToRemove.FilePath);
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(dumpToRemove.FilePath))
+                            System.IO.File.Delete(dumpToRemove.FilePath);
+                    }
+                    catch (Exception)
+                    {
+                    }
                     dumpToRemove.FilePath = string.Empty;
                     await _dbContext.SaveChangesAsync();
                 }
