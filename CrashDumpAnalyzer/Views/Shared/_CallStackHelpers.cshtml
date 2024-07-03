@@ -91,5 +91,17 @@
             },
         });
     }
+    function reAnalyzeDump(callstackId) {
+    console.debug("reanalyzing first dump of callstack " + callstackId);
+    $.ajax({
+        url: '/Api/ReAnalyzeDumpFile?callstackId=' + callstackId,
+        processData: false,
+        contentType: false,
+        type: 'POST',
+        complete: function (data) {
+            location.reload();
+        },
+    });
+    }
 
 </script>

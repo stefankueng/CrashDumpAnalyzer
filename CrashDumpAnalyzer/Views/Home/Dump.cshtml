@@ -30,7 +30,7 @@
             <table>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.ApplicationName)</td>
-                    <td>@Html.DisplayFor(modelItem => item.ApplicationName)</td>
+                    <td>@Html.DisplayFor(modelItem => item.ApplicationName)<button type="button" class="btn btn-primary" Style="float: right;" onclick="reAnalyzeDump(@item.DumpCallstackId)" title="delete dump file">&#x21bb;</button></td>
                 </tr>
                 <tr>
                     <td class="@stateClass">@Html.DisplayNameFor(modelItem => item.ApplicationVersion)</td>

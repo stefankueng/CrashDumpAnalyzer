@@ -26,7 +26,6 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly string _agestoreExe;
         private readonly string _cachePath;
         private readonly string _symbolPath;
-        private readonly Regex _cleanCallstackRegex;
         private long _maxCacheSize;
 
         public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
@@ -50,16 +49,8 @@ namespace CrashDumpAnalyzer.Controllers
             this._maxCacheSize = configuration.GetValue<long>("MaxCacheSize");
             if (this._maxCacheSize == 0)
                 this._maxCacheSize = 30_000_000_000;
-
-            string pattern = @"^((.*)\+0x([a-f0-9]+)|0x.*)$";
-            RegexOptions options = RegexOptions.Multiline;
-            _cleanCallstackRegex = new Regex(pattern, options);
         }
 
-        private string RemoveEmptyLines(string lines)
-        {
-            return Regex.Replace(lines, @"^\s*$\n|\r", string.Empty, RegexOptions.Multiline).TrimEnd();
-        }
 
         [HttpPost]
         [DisableRequestSizeLimit]
@@ -192,15 +183,8 @@ namespace CrashDumpAnalyzer.Controllers
                                 // use cbg to get a callstack from the dump
                                 // and then update the database with the callstack
                                 string dumpFilePath = Path.Combine(_dumpPath, trustedFileNameForFileStorage);
-
-                                using Process process = new();
-                                process.StartInfo.FileName = _cdbExe;
-                                process.StartInfo.WorkingDirectory = Path.GetDirectoryName(_cdbExe);
-                                process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \"!analyze -v; lm lv; .ecxr; kL; !peb; q\"";
-                                process.StartInfo.EnvironmentVariables["_NT_SYMBOL_PATH"] = _symbolPath;
-                                process.StartInfo.EnvironmentVariables["_NT_SOURCE_PATH "] = "srv\\*";
-                                process.StartInfo.RedirectStandardOutput = true;
-                                process.Start();
+                                var dumpAnalyzer = new DumpAnalyzer(_cdbExe, _symbolPath, _logger);
+                                var dumpAnalyzeTask = dumpAnalyzer.AnalyzeDump(dumpFilePath, token);
 
                                 string uploadedFromHostname = "unknown host";
                                 try
@@ -214,252 +198,9 @@ namespace CrashDumpAnalyzer.Controllers
                                 catch (Exception)
                                 {
                                 }
+                                var dumpData = await dumpAnalyzeTask;
 
-                                StreamReader sr = process.StandardOutput;
-                                string output = await sr.ReadToEndAsync(token);
-                                await process.WaitForExitAsync(token);
-
-                                // go through the output and find the important bits
-                                _logger.LogInformation(output);
-                                string context = string.Empty;
-                                string callstackString = string.Empty;
-                                string alternateCallstackString = string.Empty;
-                                string processName = string.Empty;
-                                string exceptionCode = string.Empty;
-                                string version = string.Empty;
-                                string computerName = string.Empty;
-                                string domain = string.Empty;
-                                string environment = string.Empty;
-                                DateTime dumpTime = DateTime.Now;
-                                foreach (var lineString in output.Split(["\n"], StringSplitOptions.TrimEntries))
-                                {
-                                    if (context == "STACK_TEXT")
-                                    {
-                                        // the rightmost part is the 'interesting' part for us
-                                        var lineParts = lineString.Split([" : "], StringSplitOptions.TrimEntries);
-                                        if (lineParts.Length == 3)
-                                        {
-                                            callstackString += lineParts[2] + "\n";
-                                        }
-                                        if (lineParts.Length == 2)
-                                        {
-                                            callstackString += lineParts[1] + "\n";
-                                        }
-                                        if (lineParts.Length == 1)
-                                        {
-                                            callstackString += lineParts[0].Substring(lineParts[0].LastIndexOf(' ') + 1) + "\n";
-                                        }
-                                    }
-                                    if (context == "ALTERNATE_STACK_TEXT")
-                                    {
-                                        if (lineString.Contains("quit:"))
-                                        {
-                                            context = "";
-                                        }
-                                        else
-                                        {
-                                            // the rightmost part is the 'interesting' part for us
-                                            alternateCallstackString += lineString.Substring(lineString.LastIndexOf(' ') + 1) + "\n";
-                                        }
-                                    }
-                                    if (context == "VERSION")
-                                    {
-                                        context = string.Empty;
-                                        version = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
-                                    }
-                                    if (context == "MODULES")
-                                    {
-                                        if (lineString.Contains(processName) || (lineString.Length > 0 && processName == "unknown"))
-                                        {
-                                            context = "MAIN_MODULE";
-                                        }
-                                    }
-                                    if (context == "MAIN_MODULE")
-                                    {
-                                        if (lineString.Contains("Image name:") && processName == "unknown" && lineString.Contains(".exe"))
-                                        {
-                                            processName = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
-                                        }
-                                        if (lineString.Contains("Product version:") && processName != "unknown")
-                                        {
-                                            context = string.Empty;
-                                            version = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
-                                        }
-                                    }
-                                    if (context == "PEB")
-                                    {
-                                        if (lineString.Contains("COMPUTERNAME="))
-                                        {
-                                            var parts = lineString.Split(["="], StringSplitOptions.TrimEntries);
-                                            if (parts.Length == 2)
-                                            {
-                                                computerName = parts[1];
-                                            }
-                                        }
-                                        if (lineString.Contains("USERDOMAIN="))
-                                        {
-                                            // USERDOMAIN
-                                            var parts = lineString.Split(["="], StringSplitOptions.TrimEntries);
-                                            if (parts.Length == 2)
-                                            {
-                                                domain = parts[1];
-                                            }
-                                        }
-                                        if (lineString.Contains(":quit"))
-                                            context = string.Empty;
-                                        else
-                                            environment += lineString + "\n";
-                                    }
-                                    if (lineString.Contains("Could not open dump file"))
-                                    {
-                                        callstackString = lineString;
-                                        context = "STACK_TEXT";
-                                    }
-                                    if (lineString.Contains("STACK_TEXT:"))
-                                    {
-                                        context = "STACK_TEXT";
-                                    }
-                                    if (lineString.Contains("---------"))
-                                    {
-                                        context = "MODULES";
-                                    }
-                                    if (lineString.Contains("Key  : WER.Process.Version"))
-                                    {
-                                        context = "VERSION";
-                                    }
-                                    if (lineString.Contains("PROCESS_NAME:"))
-                                    {
-                                        context = string.Empty;
-                                        processName = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
-                                    }
-                                    if (lineString.Contains("ExceptionCode:"))
-                                    {
-                                        context = string.Empty;
-                                        exceptionCode = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
-                                    }
-                                    if (lineString.Contains("Debug session time:"))
-                                    {
-                                        context = string.Empty;
-                                        var dateString = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
-                                        dateString = dateString.Replace("UTC + ", "UTC +");
-                                        dateString = dateString.Replace("UTC - ", "UTC -");
-                                        dateString = dateString.Replace("  ", " ");
-                                        try
-                                        {
-                                            var dt = DateTime.ParseExact(dateString, "ddd MMM d HH:mm:ss.fff yyyy (UTC z:00)", new CultureInfo("en-us"));
-                                            dumpTime = dt;
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            _logger.LogError(ex, "Error parsing dump time");
-                                        }
-                                    }
-                                    if (lineString.Contains("Child-SP"))
-                                    {
-                                        context = "ALTERNATE_STACK_TEXT";
-                                    }
-                                    if (lineString.Contains("PEB at"))
-                                    {
-                                        context = "PEB";
-                                    }
-                                    if (lineString.Contains(":quit"))
-                                    {
-                                        context = string.Empty;
-                                    }
-                                    if (lineString.Length <= 1 && context.Length > 0 && context != "MODULES")
-                                        context = string.Empty;
-
-                                }
-                                var csLength = callstackString.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
-                                var alternateCsLength = alternateCallstackString.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
-                                if (csLength < 3 && alternateCsLength > 3)
-                                {
-                                    callstackString = alternateCallstackString;
-                                }
-                                // we have the call stack, now update the database
-                                DumpFileInfo? entry = null;
-                                if (dbContext.DumpFileInfos != null)
-                                    entry = await dbContext.DumpFileInfos.FirstOrDefaultAsync(x => x.FilePath == dumpFilePath, token);
-
-                                // filter out offsets and lines with no symbols
-                                string cleanCallstackString = _cleanCallstackRegex.Replace(callstackString, @"$2");
-                                cleanCallstackString = RemoveEmptyLines(cleanCallstackString);
-                                if (entry != null)
-                                {
-                                    entry.CallStack = callstackString;
-                                    entry.ApplicationName = processName;
-                                    entry.ExceptionType = exceptionCode;
-                                    entry.ApplicationVersion = version;
-                                    entry.DumpTime = dumpTime;
-                                    entry.UploadedFromHostname = uploadedFromHostname;
-                                    entry.ComputerName = computerName;
-                                    entry.Domain = domain;
-                                    entry.Environment = environment;
-
-                                    // find out if we already have this callstack
-                                    DumpCallstack callstack = new DumpCallstack
-                                    {
-                                        Callstack = callstackString,
-                                        CleanCallstack = cleanCallstackString,
-                                        ApplicationName = processName,
-                                        ExceptionType = exceptionCode,
-                                        ApplicationVersion = version
-                                    };
-                                    bool doUpdate = false;
-                                    if (dbContext.DumpCallstacks != null)
-                                    {
-                                        try
-                                        {
-                                            var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
-                                                x => x.CleanCallstack == cleanCallstackString && x.ApplicationName == processName, token);
-
-                                            if (cs != null)
-                                            {
-                                                callstack = cs;
-                                                callstack.Deleted = false;
-                                                var v1 = new SemanticVersion(version);
-                                                var v2 = new SemanticVersion(callstack.ApplicationVersion);
-                                                if (v1 >= v2)
-                                                {
-                                                    callstack.ApplicationVersion = version;
-                                                }
-                                                doUpdate = true;
-                                            }
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            _logger.LogError(ex, "Error parsing callstack");
-                                        }
-                                        var unassigned = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
-                                                                                       x => x.ApplicationName == Constants.UnassignedDumpNames, token);
-                                        if (unassigned != null)
-                                        {
-                                            unassigned.DumpInfos.Remove(entry);
-                                        }
-                                    }
-                                    callstack.DumpInfos.Add(entry);
-                                    if (doUpdate)
-                                        dbContext.Update(callstack);
-                                    else
-                                        dbContext.Add(callstack);
-                                    await dbContext.SaveChangesAsync(token);
-                                    await dbContext.DisposeAsync();
-
-                                    // now run agestore to keep the cache size in check
-                                    if (_agestoreExe != string.Empty)
-                                    {
-                                        using Process agestoreProcess = new();
-                                        agestoreProcess.StartInfo.FileName = _agestoreExe;
-                                        agestoreProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(_agestoreExe);
-                                        agestoreProcess.StartInfo.Arguments = $"{_cachePath} -size={_maxCacheSize} -s -y";
-                                        agestoreProcess.StartInfo.RedirectStandardOutput = true;
-                                        agestoreProcess.Start();
-                                        StreamReader agestoreSr = agestoreProcess.StandardOutput;
-                                        string agestoreOutput = await agestoreSr.ReadToEndAsync(token);
-                                        await agestoreProcess.WaitForExitAsync(token);
-                                        _logger.LogInformation(agestoreOutput);
-                                    }
-                                }
+                                await UpdateDumpDataInDatabase(dbContext, dumpFilePath, uploadedFromHostname, dumpData, null, token);
                             });
 
                         }
@@ -668,6 +409,148 @@ namespace CrashDumpAnalyzer.Controllers
 
             }
             return NoContent();
+        }
+
+        public async Task<IActionResult> ReAnalyzeDumpFile(int callstackId)
+        {
+            if (_dbContext.DumpCallstacks == null)
+                return NotFound();
+            var dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
+                .FirstAsync(cs => (cs.DumpCallstackId == callstackId || cs.LinkedToDumpCallstackId == callstackId));
+            if (dumpCallstack == null)
+                return NotFound();
+            try
+            {
+                var dumpToAnalyze = dumpCallstack.DumpInfos.First(x => !string.IsNullOrEmpty(x.FilePath));
+                if (dumpToAnalyze != null)
+                {
+                    if (string.IsNullOrEmpty(dumpToAnalyze.FilePath))
+                        return NotFound();
+
+                    var serviceScope = _provider.GetService<IServiceScopeFactory>()?.CreateScope();
+                    var dbContext = serviceScope?.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    if (dbContext == null)
+                    {
+                        _logger.LogError("Error getting ApplicationDbContext");
+                        return BadRequest(ModelState);
+                    }
+                    _ = _queue.QueueBackgroundWorkItemAsync(async (token) =>
+                    {
+                        try
+                        {
+                            var dumpAnalyzer = new DumpAnalyzer(_cdbExe, _symbolPath, _logger);
+                            var dumpData = await dumpAnalyzer.AnalyzeDump(dumpToAnalyze.FilePath, token);
+                            await UpdateDumpDataInDatabase(dbContext, dumpToAnalyze.FilePath, null, dumpData, dumpCallstack.ApplicationName == Constants.UnassignedDumpNames ? null : callstackId, token);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error re-analyzing callstack");
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error re-analyzing callstack");
+            }
+            return NoContent();
+        }
+        private async Task UpdateDumpDataInDatabase(ApplicationDbContext dbContext, string dumpFilePath, string? uploadedFromHostname, DumpData dumpData, int? callstackId, CancellationToken token)
+        {
+            // we have the call stack, now update the database
+            DumpFileInfo? entry = null;
+            if (dbContext.DumpFileInfos != null)
+                entry = await dbContext.DumpFileInfos.FirstOrDefaultAsync(x => x.FilePath == dumpFilePath, token);
+
+            if (entry != null)
+            {
+                entry.CallStack = dumpData.callstackString;
+                entry.ApplicationName = dumpData.processName;
+                entry.ExceptionType = dumpData.exceptionCode;
+                entry.ApplicationVersion = dumpData.version;
+                entry.DumpTime = dumpData.dumpTime;
+                if (!string.IsNullOrEmpty(uploadedFromHostname))
+                    entry.UploadedFromHostname = uploadedFromHostname;
+                entry.ComputerName = dumpData.computerName;
+                entry.Domain = dumpData.domain;
+                entry.Environment = dumpData.environment;
+
+                // find out if we already have this callstack
+                DumpCallstack callstack = new DumpCallstack
+                {
+                    Callstack = dumpData.callstackString,
+                    CleanCallstack = dumpData.cleanCallstackString,
+                    ApplicationName = dumpData.processName,
+                    ExceptionType = dumpData.exceptionCode,
+                    ApplicationVersion = dumpData.version
+                };
+                bool doUpdate = false;
+                if (dbContext.DumpCallstacks != null)
+                {
+                    try
+                    {
+                        var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
+                            x => callstackId != null ? (x.DumpCallstackId == callstackId) : (x.CleanCallstack == dumpData.cleanCallstackString && x.ApplicationName == dumpData.processName), token);
+
+                        if (cs != null)
+                        {
+                            callstack = cs;
+                            callstack.Deleted = false;
+                            var v1 = new SemanticVersion(dumpData.version);
+                            var v2 = new SemanticVersion(callstack.ApplicationVersion);
+                            if (v1 >= v2)
+                            {
+                                callstack.ApplicationVersion = dumpData.version;
+                            }
+                            if (callstackId != null)
+                            {
+                                cs.CleanCallstack = dumpData.cleanCallstackString;
+                                cs.Callstack = dumpData.callstackString;
+                            }
+                            doUpdate = true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error parsing callstack");
+                    }
+                    if (callstackId != null)
+                    {
+
+                    }
+                    else
+                    {
+                        var unassigned = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
+                                                                                       x => x.ApplicationName == Constants.UnassignedDumpNames, token);
+                        if (unassigned != null)
+                        {
+                            unassigned.DumpInfos.Remove(entry);
+                        }
+                    }
+                }
+                callstack.DumpInfos.Add(entry);
+                if (doUpdate)
+                    dbContext.Update(callstack);
+                else
+                    dbContext.Add(callstack);
+                await dbContext.SaveChangesAsync(token);
+                await dbContext.DisposeAsync();
+
+                // now run agestore to keep the cache size in check
+                if (_agestoreExe != string.Empty)
+                {
+                    using Process agestoreProcess = new();
+                    agestoreProcess.StartInfo.FileName = _agestoreExe;
+                    agestoreProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(_agestoreExe);
+                    agestoreProcess.StartInfo.Arguments = $"{_cachePath} -size={_maxCacheSize} -s -y";
+                    agestoreProcess.StartInfo.RedirectStandardOutput = true;
+                    agestoreProcess.Start();
+                    StreamReader agestoreSr = agestoreProcess.StandardOutput;
+                    string agestoreOutput = await agestoreSr.ReadToEndAsync(token);
+                    await agestoreProcess.WaitForExitAsync(token);
+                    _logger.LogInformation(agestoreOutput);
+                }
+            }
         }
     }
 }
