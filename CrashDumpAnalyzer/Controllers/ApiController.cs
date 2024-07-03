@@ -150,6 +150,10 @@ namespace CrashDumpAnalyzer.Controllers
                                     if (cs != null)
                                     {
                                         callstack = cs;
+                                        callstack.Deleted = false;
+                                        callstack.FixedVersion = string.Empty;
+                                        callstack.Ticket = string.Empty;
+                                        callstack.Comment = string.Empty;
                                         doUpdate = true;
                                     }
                                 }
