@@ -508,6 +508,17 @@ namespace CrashDumpAnalyzer.Controllers
                                 cs.Callstack = dumpData.callstackString;
                             }
                             doUpdate = true;
+
+                            // if this dump is linked to another callstack, we need to ensure the linked callstack is not deleted
+                            if (cs.LinkedToDumpCallstackId != 0)
+                            {
+                                var linked = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(x => x.DumpCallstackId == cs.LinkedToDumpCallstackId, token);
+                                if (linked != null)
+                                {
+                                    linked.Deleted = false;
+                                    dbContext.Update(linked);
+                                }
+                            }
                         }
                     }
                     catch (Exception ex)
