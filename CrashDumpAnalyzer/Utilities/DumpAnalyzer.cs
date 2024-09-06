@@ -89,7 +89,7 @@ namespace CrashDumpAnalyzer.Utilities
                 }
                 if (context == "ALTERNATE_STACK_TEXT")
                 {
-                    if (lineString.Contains("quit:"))
+                    if (lineString.Contains("quit:") || lineString.Contains("PEB at"))
                     {
                         context = "";
                     }
