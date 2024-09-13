@@ -8,6 +8,13 @@ $(document).on('click', '.collapsible', function () {
     $(this).prev().toggleClass('collapsed');
     $(this).next().toggleClass('collapsed');
 });
+$(document).ready(function () {
+    $('.btn').each(function () {
+        if (Array.from($(this).text().trim()).length === 1) {
+            $(this).addClass('single-char');
+        }
+    });
+});
 
 $(function () {
     $('#setFixedVersionModal').on('show.bs.modal', function (e) {

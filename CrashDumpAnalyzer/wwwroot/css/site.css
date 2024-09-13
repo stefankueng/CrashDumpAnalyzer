@@ -8,9 +8,50 @@ html {
     }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+.btn {
+    background-color: rgba(0, 0, 255, 0.1);
+    border: solid;
+    border-color: rgba(0,0,0,0.5);
+    border-radius: 4px;
+    cursor: pointer;
+    color: black;
 }
+
+    .btn.single-char {
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Add text shadow */
+    }
+
+    .btn:hover {
+        background-color: rgba(0, 0, 255, 0.2);
+        color: black;
+    }
+
+    .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+        outline: none;
+        box-shadow: 0 0 5px rgba(0, 0, 255, 0.5);
+        background-color: rgba(0, 0, 255, 0.5);
+        color: black;
+    }
+
+a.button-link {
+    background-color: transparent;
+    border: none;
+    border-color: rgba(0,0,0,0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    color: blue;
+    display: inline-block;
+    padding: 5px 10px; /* Padding for button-like appearance */
+    text-decoration: none; /* Remove underline */
+    font-size: 17px; /* Adjust font size as needed */
+    text-align: center; /* Center text */
+    cursor: pointer; /* Pointer cursor on hover */
+}
+
+    a.button-link:hover {
+        background-color: rgba(0, 0, 255, 0.1); /* Slightly less transparent on hover */
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Add text shadow */
+    }
 
 html {
     position: relative;
