@@ -159,13 +159,14 @@ body {
         white-space: pre-wrap;
     }
 
-.grid-item-gray {
-    background-color: lightgray;
+.grid-item-done {
+    background-color: rgba(200,200,200,0.8);
     color: gray;
 }
 
-.grid-item-red {
-    background-color: lightsalmon;
+.grid-item-notdone {
+    background-color: rgba(255,120,120,0.3);
+    color: red;
 }
 
 .flowTable {
@@ -216,6 +217,10 @@ body {
         border: 3px #000;
         background-color: gray;
     }
+
+.comment {
+    color: rgb(0, 120, 0);
+}
 
 table {
     border-collapse: collapse;

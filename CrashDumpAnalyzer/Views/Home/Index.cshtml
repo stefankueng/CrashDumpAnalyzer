@@ -67,9 +67,9 @@
                         var isNotFixed = item.FixedVersion.Length > 0 && appVersion > fixedVersion;
                         var stateClass = string.Empty;
                         if (isFixed)
-                            stateClass = "grid-item-gray";
+                            stateClass = "grid-item-done";
                         else if (isNotFixed)
-                            stateClass = "grid-item-red";
+                            stateClass = "grid-item-notdone";
 
                         string dumpCountInfo = string.Empty;
                         if (item.DumpInfos.Count > 0)
@@ -84,7 +84,14 @@
                                     <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
                                 }
                             </td>
-                            <td class="@stateClass" style="max-width: 300px;">@Html.DisplayFor(modelItem => item.ExceptionType)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">🗨</button><p>@item.Comment</p></td>
+                            <td class="@stateClass" style="max-width: 300px;">
+                                @Html.DisplayFor(modelItem => item.ExceptionType)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">🗨</button>
+                                @if (item.Comment.Length > 0)
+                                {
+                                    <hr />
+                                    <p class="comment">@item.Comment</p>
+                                }
+                            </td>
 
                             <td class="collapsed @stateClass">
                                 @if (item.DumpInfos.Count > 0)
