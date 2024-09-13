@@ -133,7 +133,7 @@ function saveFixedVersion(id) {
     let text = $('.modalTextInput').val();
     console.log(text + ' --> ' + id);
     $.ajax({
-        url: '/Api/SetFixedVersion?id=' + id + '&version=' + text,
+        url: '/Api/SetFixedVersion?id=' + id + '&version=' + encodeURIComponent(text),
         processData: false,
         contentType: false,
         type: 'POST',
@@ -147,7 +147,7 @@ function saveTicket(id) {
     let text = $('.modalTicketInput').val();
     console.log(text + ' --> ' + id);
     $.ajax({
-        url: '/Api/SetTicket?id=' + id + '&ticket=' + text,
+        url: '/Api/SetTicket?id=' + id + '&ticket=' + encodeURIComponent(text),
         processData: false,
         contentType: false,
         type: 'POST',
