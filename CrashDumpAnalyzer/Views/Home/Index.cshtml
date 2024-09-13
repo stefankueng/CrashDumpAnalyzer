@@ -75,7 +75,7 @@
                         if (item.DumpInfos.Count > 0)
                             dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") : @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") + ", uploaded " + @item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).AsTimeAgo();
                         <tr>
-                            <td class="@stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">@Html.DisplayFor(modelItem => item.ApplicationName) <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;">&#9678;</a></td>
+                            <td class="@stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">@Html.DisplayFor(modelItem => item.ApplicationName) <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;" class="button-link">◎</a></td>
                             <td class="@stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion)</td>
                             <td class="@stateClass"><a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></td>
                             <td class="@stateClass">
@@ -84,7 +84,7 @@
                                     <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
                                 }
                             </td>
-                            <td class="@stateClass" style="max-width: 300px;">@Html.DisplayFor(modelItem => item.ExceptionType)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">&#x1f5e8;</button><p style="white-space:break-spaces;">@item.Comment</p></td>
+                            <td class="@stateClass" style="max-width: 300px;">@Html.DisplayFor(modelItem => item.ExceptionType)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">🗨</button><p>@item.Comment</p></td>
 
                             <td class="collapsed @stateClass">
                                 @if (item.DumpInfos.Count > 0)
@@ -97,7 +97,7 @@
                                             {
                                                 if (dumpInfo.FilePath.Length > 0)
                                                 {
-                                                    <p data-bs-toggle="tooltip" title="@dumpInfo.DumpTime"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a> Dump from @dumpInfo.DumpTime.AsTimeAgo()<button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">&#x274C;</button></p>
+                                                    <p data-bs-toggle="tooltip" title="@dumpInfo.DumpTime"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a> Dump from @dumpInfo.DumpTime.AsTimeAgo()<button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">❌</button></p>
                                                 }
                                                 else
                                                     ++del;
@@ -116,8 +116,8 @@
                             <td class="@stateClass">
                                 @if (item.Callstack.Contains("--------------"))
                                 {
-                                    <button type="button" class="btn btn-primary" onclick="unlinkCallstack(@item.DumpCallstackId)" title="ungroup callstacks">&#x1F517;</button>
-                                }<button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)" title="delete callstack">&#x274C;</button>
+                                    <button type="button" class="btn btn-primary" onclick="unlinkCallstack(@item.DumpCallstackId)" title="ungroup callstacks">🔗</button>
+                                }<button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)" title="delete callstack">❌</button>
                             </td>
                         </tr>
                     }
@@ -127,67 +127,67 @@
 
         </div>
     </div>
+</div>
+<partial name="_CallStackHelpers" />
 
-    <partial name="_CallStackHelpers" />
-
-    <script type="text/javascript">
-        function stopDefault(event) {
-            event.preventDefault();
-            event.stopPropagation();
+<script type="text/javascript">
+    function stopDefault(event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    function dragOver(label, text) {
+        label.style.animationName = "dropbox";
+        label.innerText = text;
+    }
+    function dragLeave(label) {
+        label.style.animationName = "";
+        label.innerText = "Click to choose dump files or drag-n-drop them here";
+    }
+    function addFilesAndSubmit(event) {
+        var files = event.target.files || event.dataTransfer.files;
+        var field = document.getElementById("files-field");
+        field.files = files;
+        submitFilesForm(field.form);
+    }
+    function submitFilesForm(form) {
+        var label = document.getElementById("files-label");
+        dragOver(label, "Uploading dump files..."); // set the drop zone text and styling
+        if (!FormData) {
+            alert("Function not supported by this browser.")
+            return false;
         }
-        function dragOver(label, text) {
-            label.style.animationName = "dropbox";
-            label.innerText = text;
+        var fd = new FormData();
+        //fd.append(form.elements[0].name, form.elements[0].value); // must append the AntiForgeryToken to the form data
+        for (var i = 0; i < form.files.files.length; i++) {
+            var field = form.files;
+            fd.append(field.name, field.files[i], field.files[i].name);
         }
-        function dragLeave(label) {
-            label.style.animationName = "";
-            label.innerText = "Click to choose dump files or drag-n-drop them here";
+        var progress = document.getElementById("files-progress");
+        var x = new XMLHttpRequest();
+        if (x.upload) {
+            x.upload.addEventListener("progress", function (event) {
+                var percentage = Math.round(event.loaded / event.total * 100);
+                progress.innerText = progress.style.width = percentage + "%";
+            });
         }
-        function addFilesAndSubmit(event) {
-            var files = event.target.files || event.dataTransfer.files;
-            var field = document.getElementById("files-field");
-            field.files = files;
-            submitFilesForm(field.form);
-        }
-        function submitFilesForm(form) {
-            var label = document.getElementById("files-label");
-            dragOver(label, "Uploading dump files..."); // set the drop zone text and styling
-            if (!FormData) {
-                alert("Function not supported by this browser.")
-                return false;
-            }
-            var fd = new FormData();
-            //fd.append(form.elements[0].name, form.elements[0].value); // must append the AntiForgeryToken to the form data
-            for (var i = 0; i < form.files.files.length; i++) {
-                var field = form.files;
-                fd.append(field.name, field.files[i], field.files[i].name);
-            }
-            var progress = document.getElementById("files-progress");
-            var x = new XMLHttpRequest();
-            if (x.upload) {
-                x.upload.addEventListener("progress", function (event) {
-                    var percentage = Math.round(event.loaded / event.total * 100);
-                    progress.innerText = progress.style.width = percentage + "%";
-                });
-            }
-            x.onreadystatechange = function () {
-                if (x.readyState == 4) {
-                    progress.innerText = progress.style.width = "";
-                    form.files.value = "";
-                    dragLeave(label); // this will reset the text and styling of the drop zone
-                    if (x.status == 201) {
-                        location.reload();
-                    }
-                    else if (x.status == 500) {
-                        alert(x.responseText); // do something with the server error
-                    }
-                    else {
-                        alert(x.status + ": " + x.statusText + x.responseText + x);
-                    }
+        x.onreadystatechange = function () {
+            if (x.readyState == 4) {
+                progress.innerText = progress.style.width = "";
+                form.files.value = "";
+                dragLeave(label); // this will reset the text and styling of the drop zone
+                if (x.status == 201) {
+                    location.reload();
                 }
-            };
-            x.open(form.method, form.action, true);
-            x.send(fd);
-            return false; // do not forget this
-        }
-    </script>
+                else if (x.status == 500) {
+                    alert(x.responseText); // do something with the server error
+                }
+                else {
+                    alert(x.status + ": " + x.statusText + x.responseText + x);
+                }
+            }
+        };
+        x.open(form.method, form.action, true);
+        x.send(fd);
+        return false; // do not forget this
+    }
+</script>
