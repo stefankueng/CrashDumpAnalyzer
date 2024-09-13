@@ -30,7 +30,7 @@
                     @foreach (var item in Model.UploadedDumps)
                     {
                         <tr>
-                            <td>@item.UploadDate, @item.UploadDate.AsTimeAgo() from @item.UploadedFromIp (@item.UploadedFromHostname)</td>
+                            <td>@item.UploadDate (@item.UploadDate.AsTimeAgo()), from @item.UploadedFromIp (@item.UploadedFromHostname)</td>
                             @if (item.CallStack.Length == 0)
                             {
                                 <td>still analyzing...</td>

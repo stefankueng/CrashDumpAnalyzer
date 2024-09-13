@@ -30,7 +30,7 @@
             <table>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.ApplicationName)</td>
-                    <td>@Html.DisplayFor(modelItem => item.ApplicationName)<button type="button" class="btn btn-primary" Style="float: right;" onclick="reAnalyzeDump(@item.DumpCallstackId)" title="re-analyze dump file">&#x21bb;</button></td>
+                    <td>@Html.DisplayFor(modelItem => item.ApplicationName)<button type="button" class="btn btn-primary" Style="float: right;" onclick="reAnalyzeDump(@item.DumpCallstackId)" title="re-analyze dump file">↻</button></td>
                 </tr>
                 <tr>
                     <td class="@stateClass">@Html.DisplayNameFor(modelItem => item.ApplicationVersion)</td>
@@ -38,7 +38,7 @@
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Comment)</td>
-                    <td>@Html.DisplayFor(modelItem => item.Comment)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">&#x1f5e8;</button></td>
+                    <td>@Html.DisplayFor(modelItem => item.Comment)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">🗨</button></td>
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Ticket)</td>
@@ -66,7 +66,7 @@
                                 <tr style="border-style:none;border-width:0">
                                     @if (dumpInfo.FilePath.Length > 0)
                                     {
-                                        <td style="border-style:none;border-width:0"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a><button type="button" class="btn btn-primary" Style="float: right;" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">&#x274C;</button></td>
+                                        <td style="border-style:none;border-width:0"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a><button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">❌</button></td>
                                     }
                                     else
                                     {
@@ -74,8 +74,8 @@
                                     }
                                     <td style="border-style:none;border-width:0">Dump from @dumpInfo.DumpTime (@dumpInfo.DumpTime.AsTimeAgo())</td>
                                     <td style="border-style:none;border-width:0">Uploaded @dumpInfo.UploadDate (@dumpInfo.UploadDate.AsTimeAgo())</td>
-                                    <td style="border-style:none;border-width:0">Uploaded from ip: @dumpInfo.UploadedFromIp, hostname: @dumpInfo.UploadedFromHostname)</td>
-                                    <td style="border-style:none;border-width:0">Hostname: @dumpInfo.ComputerName, domain: @dumpInfo.Domain)</td>
+                                    <td style="border-style:none;border-width:0">Uploaded from ip: @dumpInfo.UploadedFromIp, hostname: @dumpInfo.UploadedFromHostname</td>
+                                    <td style="border-style:none;border-width:0">Hostname: @dumpInfo.ComputerName, domain: @dumpInfo.Domain</td>
                                 </tr>
                             }
                         </table>
