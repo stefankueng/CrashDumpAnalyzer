@@ -72,7 +72,7 @@ body {
     color: black;
     font-weight: bold;
     font-size: 25px;
-    border: 2px dashed black;
+    border: 2px solid black;
     margin: 0;
     text-align: center;
     transition: .5s;
