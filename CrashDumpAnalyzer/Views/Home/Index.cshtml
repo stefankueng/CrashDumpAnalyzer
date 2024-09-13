@@ -19,8 +19,8 @@
                 </form>
                 <div style="text-align: left;"><div id="files-progress"></div></div>
             </divstyle>
-            <div style="width: 10%"></div>
-            <div style="width: 30%; height: 200px; overflow-y: auto;">
+            <div style="width: 5%"></div>
+            <div style="min-width: 600px; width: 35%; height: 200px; overflow-y: auto;">
                 <h4>last @Model.UploadedDumps.Count() uploaded dumps</h4>
                 <table class="flowTable">
                     <tr>
@@ -30,7 +30,7 @@
                     @foreach (var item in Model.UploadedDumps)
                     {
                         <tr>
-                            <td>@item.UploadDate.AsTimeAgo() from @item.UploadedFromIp (@item.UploadedFromHostname)</td>
+                            <td>@item.UploadDate, @item.UploadDate.AsTimeAgo() from @item.UploadedFromIp (@item.UploadedFromHostname)</td>
                             @if (item.CallStack.Length == 0)
                             {
                                 <td>still analyzing...</td>
