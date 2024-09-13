@@ -8,6 +8,8 @@
 
             return timeSpan.TotalSeconds switch
             {
+                < 1 => $"{timeSpan.Seconds} seconds ago",
+                <= 1 => $"{timeSpan.Seconds} second ago",
                 <= 60 => $"{timeSpan.Seconds} seconds ago",
 
                 _ => timeSpan.TotalMinutes switch
