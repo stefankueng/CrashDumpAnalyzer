@@ -62,7 +62,6 @@ $(function () {
     $('.saveComment').on('click', function () {
         console.debug("Saving comment");
         let id = $(this).data('id'); // the rest is just the same
-        let text = $('.modalCommentInput').val();
         saveComment(id);
         $('#setCommentModal').modal('toggle'); // this is to close the modal after clicking the modal button
     })
@@ -163,7 +162,7 @@ function saveComment(id) {
     let text = $('.modalCommentInput').val();
     console.log(text + ' --> ' + id);
     $.ajax({
-        url: '/Api/SetComment?id=' + id + '&comment=' + text,
+        url: '/Api/SetComment?id=' + id + '&comment=' + encodeURIComponent(text),
         processData: false,
         contentType: false,
         type: 'POST',
@@ -171,4 +170,4 @@ function saveComment(id) {
             location.reload();
         },
     });
-}
+    }
