@@ -23,6 +23,8 @@ $(function () {
         let btn = $(e.relatedTarget); // e.related here is the element that opened the modal (the button)
         let id = btn.data('id');
         $('.saveEdit').data('id', id); // then pass it to the button inside the modal
+        let version = btn.closest('td').find('.version').text().trim();
+        $('.modalTextInput').val(version);
     })
 
     $('.saveEdit').on('click', function () {
@@ -39,10 +41,11 @@ $(function () {
     })
 
     $('#setTicketModal').on('show.bs.modal', function (e) {
-        $('.modalTicketInput').val('');
         let btn = $(e.relatedTarget); // e.related here is the element that opened the modal (the button)
         let id = btn.data('id');
         $('.saveTicket').data('id', id); // then pass it to the button inside the modal
+        let ticket = btn.closest('td').find('.ticket').text().trim();
+        $('.modalTicketInput').val(ticket);
     })
 
     $('.saveTicket').on('click', function () {
@@ -53,10 +56,12 @@ $(function () {
     })
 
     $('#setCommentModal').on('show.bs.modal', function (e) {
-        $('.modalCommentInput').val('');
         let btn = $(e.relatedTarget); // e.related here is the element that opened the modal (the button)
         let id = btn.data('id');
         $('.saveComment').data('id', id); // then pass it to the button inside the modal
+        // Fetch the comment from the model item and set it in the modal input
+        let comment = btn.closest('td').find('.comment').text().trim();
+        $('.modalCommentInput').val(comment);
     })
 
     $('.saveComment').on('click', function () {

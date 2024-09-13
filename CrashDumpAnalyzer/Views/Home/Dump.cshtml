@@ -38,16 +38,19 @@
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Comment)</td>
-                    <td style="white-space: pre;">@Html.DisplayFor(modelItem => item.Comment)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">🗨</button></td>
+                    <td style="white-space: pre;"><p class="comment">@Html.DisplayFor(modelItem => item.Comment)</p><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">🗨</button></td>
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Ticket)</td>
-                    <td><a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></td>
+                    <td><a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank" class="ticket">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></td>
                 </tr>
                 <tr>
                     <td class="@stateClass">@Html.DisplayNameFor(modelItem => item.FixedVersion)</td>
                     <td class="@stateClass">
-                        @Html.DisplayFor(modelItem => item.FixedVersion)@if (item.ApplicationName != Constants.UnassignedDumpNames)
+                        <p class="version">
+                            @Html.DisplayFor(modelItem => item.FixedVersion)
+                        </p>
+                        @if (item.ApplicationName != Constants.UnassignedDumpNames)
                         {
                             <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
                         }
