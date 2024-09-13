@@ -30,7 +30,13 @@ namespace CrashDumpAnalyzer.Controllers
             if (_dbContext.DumpCallstacks != null)
             {
                 var resultList = await FetchCallStacks(null, deleted);
-                return View(resultList);
+                var dumpList = await FetchLastDumpFileInfos();
+                var data = new IndexPageData
+                {
+                    Callstacks = resultList,
+                    UploadedDumps = dumpList
+                };
+                return View(data);
             }
             return View();
         }
@@ -56,6 +62,35 @@ namespace CrashDumpAnalyzer.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        private async Task<List<DumpFileInfo>> FetchLastDumpFileInfos()
+        {
+            if (_dbContext.DumpFileInfos != null)
+            {
+                var resultList = await _dbContext.DumpFileInfos.AsNoTracking()
+                    .OrderByDescending(dumpFileInfo => dumpFileInfo.UploadDate)
+                    .Take(20)
+                    .ToListAsync();
+                foreach (var dumpFileInfo in resultList)
+                {
+                    if (string.IsNullOrEmpty(dumpFileInfo.UploadedFromHostname))
+                    {
+                        try
+                        {
+                            var myIp = IPAddress.Parse(dumpFileInfo.UploadedFromIp);
+                            var getIpHost = await Dns.GetHostEntryAsync(myIp);
+                            List<string> compName = [.. getIpHost.HostName.Split('.')];
+                            dumpFileInfo.UploadedFromHostname = compName.First();
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    }
+                }
+                return resultList;
+            }
+            return [];
         }
 
         private async Task<List<DumpCallstack>> FetchCallStacks(int? id, int? deleted)
