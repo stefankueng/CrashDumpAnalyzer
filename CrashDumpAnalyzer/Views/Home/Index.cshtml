@@ -18,9 +18,16 @@
                            ondrop="stopDefault(event);dragLeave(this);addFilesAndSubmit(event);">Click to choose dump files or drag-n-drop them here</label>
                 </form>
                 <div style="text-align: left;"><div id="files-progress"></div></div>
+                <div style="text-align: left; padding-bottom: 10px; padding-top: 5px">
+                    <form action="/" method="get" class="nosubmit">
+                        <div style="display: flex;">
+                            <input type="text" class="nosubmit" name="searchstring" placeholder="Search..." value="@Model.ActiveFilterString" />
+                        </div>
+                    </form>
+                </div>
             </divstyle>
             <div style="width: 5%"></div>
-            <div style="min-width: 600px; width: 35%; height: 200px; overflow-y: auto;">
+            <div style="min-width: 600px; width: 35%; height: 240px; overflow-y: auto;">
                 <h4>last @Model.UploadedDumps.Count() uploaded dumps</h4>
                 <table class="flowTable">
                     <tr>

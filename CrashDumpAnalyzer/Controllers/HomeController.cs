@@ -25,16 +25,17 @@ namespace CrashDumpAnalyzer.Controllers
             Constants.TicketBaseUrl = configuration.GetValue<string>("TicketBaseUrl") ?? string.Empty;
         }
 
-        public async Task<IActionResult> Index(int? deleted)
+        public async Task<IActionResult> Index(int? deleted, string searchString)
         {
             if (_dbContext.DumpCallstacks != null)
             {
-                var resultList = await FetchCallStacks(null, deleted);
+                var resultList = await FetchCallStacks(null, deleted, searchString);
                 var dumpList = await FetchLastDumpFileInfos();
                 var data = new IndexPageData
                 {
                     Callstacks = resultList,
-                    UploadedDumps = dumpList
+                    UploadedDumps = dumpList,
+                    ActiveFilterString = searchString
                 };
                 return View(data);
             }
@@ -74,7 +75,8 @@ namespace CrashDumpAnalyzer.Controllers
                     .ToListAsync();
                 foreach (var dumpFileInfo in resultList)
                 {
-                    if (string.IsNullOrEmpty(dumpFileInfo.UploadedFromHostname))
+                    if (string.IsNullOrEmpty(dumpFileInfo.UploadedFromHostname) &&
+                        !string.IsNullOrWhiteSpace(dumpFileInfo.UploadedFromIp))
                     {
                         try
                         {
@@ -93,24 +95,57 @@ namespace CrashDumpAnalyzer.Controllers
             return [];
         }
 
-        private async Task<List<DumpCallstack>> FetchCallStacks(int? id, int? deleted)
+        private async Task<List<DumpCallstack>> FetchCallStacks(int? id, int? deleted, string searchString = "")
         {
             if (_dbContext.DumpCallstacks != null)
             {
                 List<DumpCallstack>? list = null;
                 if (id == null)
-                    list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
-                        .Where(dumpCallstack => (dumpCallstack.Deleted == (deleted > 0))).ToListAsync();
+                {
+                    if (string.IsNullOrWhiteSpace(searchString))
+                        list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
+                            .Where(dumpCallstack => dumpCallstack.Deleted == (deleted > 0))
+                            .ToListAsync();
+                    else // with search string, include deleted callstacks
+                        list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
+                            .ToListAsync();
+
+                }
                 else
+                {
                     list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
                         .Where(dumpCallstack => dumpCallstack.DumpCallstackId == id ||
-                        dumpCallstack.LinkedToDumpCallstackId == id).ToListAsync();
+                                                dumpCallstack.LinkedToDumpCallstackId == id)
+                        .ToListAsync();
+                }
+
+                if (!string.IsNullOrWhiteSpace(searchString))
+                {
+                    // filter by search string
+                    list = list.Where(dumpCallstack =>
+                        dumpCallstack.ApplicationName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                        dumpCallstack.ApplicationVersion.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                        dumpCallstack.FixedVersion.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                        dumpCallstack.ExceptionType.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                        dumpCallstack.Ticket.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                        dumpCallstack.Comment.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                        dumpCallstack.Callstack.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                        dumpCallstack.DumpInfos.Any(dumpFileInfo =>
+                            dumpFileInfo.UploadedFromIp.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                            dumpFileInfo.UploadedFromHostname.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                            dumpFileInfo.Environment.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                            dumpFileInfo.ComputerName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                            dumpFileInfo.Domain.Contains(searchString, StringComparison.OrdinalIgnoreCase)))
+                        .ToList();
+                }
+
                 // sort individual dumps by upload date
                 foreach (var dumpCallstack in list)
                 {
                     if (dumpCallstack.DumpInfos.Count > 0)
                         dumpCallstack.DumpInfos.Sort((a, b) => b.UploadDate.CompareTo(a.UploadDate));
                 }
+
                 list.Sort((a, b) =>
                 {
                     // keep "Unassigned" at the very top
@@ -118,6 +153,7 @@ namespace CrashDumpAnalyzer.Controllers
                         return -1;
                     if (b.ApplicationName == Constants.UnassignedDumpNames)
                         return 1;
+
                     // if a callstack is marked as fixed in a specific version
                     // and there is a dump after that version, it should be shown first,
                     // because that indicates that the fix doesn't work
@@ -127,20 +163,21 @@ namespace CrashDumpAnalyzer.Controllers
                         return -1;
                     if (!aDumpAfterFixedVersion && bDumpAfterFixedVersion)
                         return 1;
+
                     // if a callstack is marked as fixed, move it to the end of the list
                     if (!string.IsNullOrEmpty(a.FixedVersion) && string.IsNullOrEmpty(b.FixedVersion))
                         return 1;
                     if (string.IsNullOrEmpty(a.FixedVersion) && !string.IsNullOrEmpty(b.FixedVersion))
                         return -1;
+
                     if (a.DumpInfos.Count > 0 && b.DumpInfos.Count > 0)
                     {
                         var uploadA = a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
                         var uploadB = b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
                         if (uploadA != uploadB)
-                            return
-                                uploadB.CompareTo(
-                                    uploadA); // sort by date of last upload, so it's easy to find the just uploaded ones
+                            return uploadB.CompareTo(uploadA); // sort by date of last upload, so it's easy to find the just uploaded ones
                     }
+
                     // sort by number of dumps - the more dumps with the same callstack the more urgent it is to fix
                     return b.DumpInfos.Count - a.DumpInfos.Count;
                 });
@@ -151,16 +188,16 @@ namespace CrashDumpAnalyzer.Controllers
                 {
                     if (callstack.LinkedToDumpCallstackId != 0)
                         continue;
-                    groupedCallstacks[callstack.DumpCallstackId] = [callstack];
+                    groupedCallstacks[callstack.DumpCallstackId] = new List<DumpCallstack> { callstack };
                 }
                 foreach (var callstack in list)
                 {
-                    if ((callstack.LinkedToDumpCallstackId == 0) || (callstack.DumpCallstackId == callstack.LinkedToDumpCallstackId))
+                    if (callstack.LinkedToDumpCallstackId == 0 || callstack.DumpCallstackId == callstack.LinkedToDumpCallstackId)
                         continue;
                     if (groupedCallstacks.ContainsKey(callstack.LinkedToDumpCallstackId))
                         groupedCallstacks[callstack.LinkedToDumpCallstackId].Add(callstack);
                     else
-                        groupedCallstacks[callstack.DumpCallstackId] = [callstack];
+                        groupedCallstacks[callstack.DumpCallstackId] = new List<DumpCallstack> { callstack };
                 }
 
                 foreach (var group in groupedCallstacks)
