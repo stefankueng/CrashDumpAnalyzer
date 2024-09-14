@@ -26,7 +26,8 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly string _agestoreExe;
         private readonly string _cachePath;
         private readonly string _symbolPath;
-        private long _maxCacheSize;
+        private readonly long _maxCacheSize=0;
+        private readonly long _deleteDumpsUploadedBeforeDays=0;
 
         public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
                             IServiceProvider provider,
@@ -49,6 +50,9 @@ namespace CrashDumpAnalyzer.Controllers
             this._maxCacheSize = configuration.GetValue<long>("MaxCacheSize");
             if (this._maxCacheSize == 0)
                 this._maxCacheSize = 30_000_000_000;
+            this._deleteDumpsUploadedBeforeDays = configuration.GetValue<long>("DeleteDumpsUploadedBeforeDays");
+            if (this._deleteDumpsUploadedBeforeDays == 0)
+                this._deleteDumpsUploadedBeforeDays = 30;
         }
 
 
@@ -94,116 +98,113 @@ namespace CrashDumpAnalyzer.Controllers
 
                         return BadRequest(ModelState);
                     }
-                    else
-                    {
-                        // Don't trust the file name sent by the client. To display
-                        // the file name, HTML-encode the value.
+                    // Don't trust the file name sent by the client. To display
+                    // the file name, HTML-encode the value.
 
-                        if (contentDisposition != null)
+                    if (contentDisposition != null)
+                    {
+                        string? trustedFileNameForDisplay = WebUtility.HtmlEncode(
+                            contentDisposition.FileName.Value);
+                        string trustedFileNameForFileStorage = DateTime.Now.ToString("yyyyMMddHHmmss") + Path.GetRandomFileName() + ".dmp";
+                        await using (FileStream targetStream = System.IO.File.Create(
+                                         Path.Combine(_dumpPath, trustedFileNameForFileStorage), 10_000_000))
                         {
-                            string? trustedFileNameForDisplay = WebUtility.HtmlEncode(
-                                contentDisposition.FileName.Value);
-                            string trustedFileNameForFileStorage = DateTime.Now.ToString("yyyyMMddHHmmss") + Path.GetRandomFileName() + ".dmp";
-                            await using (FileStream targetStream = System.IO.File.Create(
-                                       Path.Combine(_dumpPath, trustedFileNameForFileStorage), 10_000_000))
-                            {
-                                var success = await FileHelpers.ProcessStreamedFile(
+                            var success = await FileHelpers.ProcessStreamedFile(
                                 section, contentDisposition, ModelState,
                                 _permittedExtensions, MaxFileSize, targetStream);
 
-                                if (!ModelState.IsValid || !success)
-                                {
-                                    targetStream.Close();
-                                    System.IO.File.Delete(Path.Combine(_dumpPath, trustedFileNameForFileStorage));
-                                    return BadRequest(ModelState);
-                                }
-
-                                DumpFileInfo entry = new DumpFileInfo
-                                {
-                                    FilePath = Path.Combine(_dumpPath, trustedFileNameForFileStorage),
-                                    FileSize = targetStream.Length,
-                                    UploadDate = DateTime.Now,
-                                    UploadedFromIp = uploadedFromIp,
-                                };
-
-                                DumpCallstack callstack = new DumpCallstack
-                                {
-                                    Callstack = string.Empty,
-                                    ApplicationName = Constants.UnassignedDumpNames,
-                                    ExceptionType = string.Empty,
-                                    ApplicationVersion = string.Empty
-                                };
-                                bool doUpdate = false;
-                                if (_dbContext.DumpCallstacks != null)
-                                {
-                                    var cs = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(
-                                        x => x.ApplicationName == Constants.UnassignedDumpNames);
-                                    if (cs != null)
-                                    {
-                                        callstack = cs;
-                                        callstack.Deleted = false;
-                                        callstack.FixedVersion = string.Empty;
-                                        callstack.Ticket = string.Empty;
-                                        callstack.Comment = string.Empty;
-                                        doUpdate = true;
-                                    }
-                                }
-
-                                callstack.DumpInfos.Add(entry);
-                                if (doUpdate)
-                                    _dbContext.Update(callstack);
-                                else
-                                    _dbContext.Add(callstack);
-
-                                _logger.LogInformation(
-                                    "Uploaded file '{TrustedFileNameForDisplay}' saved to " +
-                                    "'{TargetFilePath}' as {TrustedFileNameForFileStorage}",
-                                    trustedFileNameForDisplay, _dumpPath,
-                                    trustedFileNameForFileStorage);
-                            }
-                            try
+                            if (!ModelState.IsValid || !success)
                             {
-                                await _dbContext.SaveChangesAsync();
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "Error saving file to database");
-                                return BadRequest(ModelState);
-
-                            }
-                            var serviceScope = _provider.GetService<IServiceScopeFactory>()?.CreateScope();
-                            var dbContext = serviceScope?.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                            if (dbContext == null)
-                            {
-                                _logger.LogError("Error getting ApplicationDbContext");
+                                targetStream.Close();
+                                System.IO.File.Delete(Path.Combine(_dumpPath, trustedFileNameForFileStorage));
                                 return BadRequest(ModelState);
                             }
-                            _ = _queue.QueueBackgroundWorkItemAsync(async (token) =>
+
+                            DumpFileInfo entry = new DumpFileInfo
                             {
-                                // use cbg to get a callstack from the dump
-                                // and then update the database with the callstack
-                                string dumpFilePath = Path.Combine(_dumpPath, trustedFileNameForFileStorage);
-                                var dumpAnalyzer = new DumpAnalyzer(_cdbExe, _symbolPath, _logger);
-                                var dumpAnalyzeTask = dumpAnalyzer.AnalyzeDump(dumpFilePath, token);
+                                FilePath = Path.Combine(_dumpPath, trustedFileNameForFileStorage),
+                                FileSize = targetStream.Length,
+                                UploadDate = DateTime.Now,
+                                UploadedFromIp = uploadedFromIp,
+                            };
 
-                                string uploadedFromHostname = "unknown host";
-                                try
+                            DumpCallstack callstack = new DumpCallstack
+                            {
+                                Callstack = string.Empty,
+                                ApplicationName = Constants.UnassignedDumpNames,
+                                ExceptionType = string.Empty,
+                                ApplicationVersion = string.Empty
+                            };
+                            bool doUpdate = false;
+                            if (_dbContext.DumpCallstacks != null)
+                            {
+                                var cs = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(
+                                    x => x.ApplicationName == Constants.UnassignedDumpNames);
+                                if (cs != null)
                                 {
-                                    // while the process analyzes the dump, we fetch the computer name from the ip
-                                    var myIp = IPAddress.Parse(uploadedFromIp);
-                                    var getIpHost = await Dns.GetHostEntryAsync(myIp);
-                                    List<string> compName = [.. getIpHost.HostName.Split('.')];
-                                    uploadedFromHostname = compName.First();
+                                    callstack = cs;
+                                    callstack.Deleted = false;
+                                    callstack.FixedVersion = string.Empty;
+                                    callstack.Ticket = string.Empty;
+                                    callstack.Comment = string.Empty;
+                                    doUpdate = true;
                                 }
-                                catch (Exception)
-                                {
-                                }
-                                var dumpData = await dumpAnalyzeTask;
+                            }
 
-                                await UpdateDumpDataInDatabase(dbContext, dumpFilePath, uploadedFromHostname, dumpData, null, token);
-                            });
+                            callstack.DumpInfos.Add(entry);
+                            if (doUpdate)
+                                _dbContext.Update(callstack);
+                            else
+                                _dbContext.Add(callstack);
+
+                            _logger.LogInformation(
+                                "Uploaded file '{TrustedFileNameForDisplay}' saved to " +
+                                "'{TargetFilePath}' as {TrustedFileNameForFileStorage}",
+                                trustedFileNameForDisplay, _dumpPath,
+                                trustedFileNameForFileStorage);
+                        }
+                        try
+                        {
+                            await _dbContext.SaveChangesAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error saving file to database");
+                            return BadRequest(ModelState);
 
                         }
+                        var serviceScope = _provider.GetService<IServiceScopeFactory>()?.CreateScope();
+                        var dbContext = serviceScope?.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                        if (dbContext == null)
+                        {
+                            _logger.LogError("Error getting ApplicationDbContext");
+                            return BadRequest(ModelState);
+                        }
+                        _ = _queue.QueueBackgroundWorkItemAsync(async (token) =>
+                        {
+                            // use cbg to get a callstack from the dump
+                            // and then update the database with the callstack
+                            string dumpFilePath = Path.Combine(_dumpPath, trustedFileNameForFileStorage);
+                            var dumpAnalyzer = new DumpAnalyzer(_cdbExe, _symbolPath, _logger);
+                            var dumpAnalyzeTask = dumpAnalyzer.AnalyzeDump(dumpFilePath, token);
+
+                            string uploadedFromHostname = "unknown host";
+                            try
+                            {
+                                // while the process analyzes the dump, we fetch the computer name from the ip
+                                var myIp = IPAddress.Parse(uploadedFromIp);
+                                var getIpHost = await Dns.GetHostEntryAsync(myIp);
+                                List<string> compName = [.. getIpHost.HostName.Split('.')];
+                                uploadedFromHostname = compName.First();
+                            }
+                            catch (Exception)
+                            {
+                            }
+                            await CleanupTask(dbContext, token);
+                            var dumpData = await dumpAnalyzeTask;
+                            await UpdateDumpDataInDatabase(dbContext, dumpFilePath, uploadedFromHostname, dumpData, null, token);
+                        });
+
                     }
                 }
                 GC.Collect();
@@ -562,6 +563,37 @@ namespace CrashDumpAnalyzer.Controllers
                     _logger.LogInformation(agestoreOutput);
                 }
             }
+        }
+
+        private async Task CleanupTask(ApplicationDbContext dbContext, CancellationToken token)
+        {
+            // get all callstacks that do have a FixedVersion set and remove all dump files that are older than 30 days
+            if (dbContext.DumpCallstacks == null)
+                return;
+            var callstacks = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).Where(cs => !string.IsNullOrEmpty(cs.FixedVersion)).ToListAsync(token);
+            foreach (var callstack in callstacks)
+            {
+                foreach (var dumpInfo in callstack.DumpInfos)
+                {
+                    if (dumpInfo.UploadDate.AddDays(_deleteDumpsUploadedBeforeDays) < DateTime.Now)
+                    {
+                        try
+                        {
+                            if (!string.IsNullOrEmpty(dumpInfo.FilePath))
+                            {
+                                System.IO.File.Delete(dumpInfo.FilePath);
+                                _logger.LogInformation($"Deleted dump file {dumpInfo.FilePath}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Error deleting dump file {dumpInfo.FilePath}");
+                        }
+                        dumpInfo.FilePath = string.Empty;
+                    }
+                }
+            }
+            await dbContext.SaveChangesAsync(token);
         }
     }
 }
