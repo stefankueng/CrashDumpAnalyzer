@@ -82,16 +82,33 @@
                         if (item.DumpInfos.Count > 0)
                             dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") : @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") + ", uploaded " + @item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).AsTimeAgo();
                         <tr>
+                            <!-- application name -->
                             <td class="@stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">@Html.DisplayFor(modelItem => item.ApplicationName) <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;" class="button-link">◎</a></td>
+                            <!-- application version -->
                             <td class="@stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion)</td>
-                            <td class="@stateClass"><a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank" class="ticket">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></td>
-                            <td class="@stateClass"><p class="version">
-                                @Html.DisplayFor(modelItem => item.FixedVersion)</p>
+                            <!-- ticket -->
+                            <td class="@stateClass">
+                                @if (item.Ticket.Length > 0)
+                                {
+                                    <a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank" class="ticket">@item.Ticket</a>
+                                }
+                                @if (item.ApplicationName != Constants.UnassignedDumpNames)
+                                {
+                                    <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button>
+                                }
+                            </td>
+                            <!-- fixed version -->
+                            <td class="@stateClass">
+                                @if (item.FixedVersion.Length > 0)
+                                {
+                                    <p class="version">@Html.DisplayFor(modelItem => item.FixedVersion)</p>
+                                }
                                 @if (item.ApplicationName != Constants.UnassignedDumpNames)
                                 {
                                     <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
                                 }
                             </td>
+                            <!-- exception type and comment -->
                             <td class="@stateClass" style="max-width: 300px;">
                                 @Html.DisplayFor(modelItem => item.ExceptionType)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">🗨</button>
                                 @if (item.Comment.Length > 0)
@@ -101,6 +118,7 @@
                                 }
                             </td>
 
+                            <!-- dump list -->
                             <td class="collapsed @stateClass">
                                 @if (item.DumpInfos.Count > 0)
                                 {
@@ -126,8 +144,9 @@
                                 }
                             </td>
 
-
+                            <!-- call stack -->
                             <td class="collapsible collapsed callstack @stateClass">@Html.DisplayFor(modelItem => item.Callstack)</td>
+                            <!-- delete and ungroup buttons -->
                             <td class="@stateClass">
                                 @if (item.Callstack.Contains("--------------"))
                                 {
