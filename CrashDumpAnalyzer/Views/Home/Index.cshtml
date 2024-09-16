@@ -99,22 +99,33 @@
                             </td>
                             <!-- fixed version -->
                             <td class="@stateClass">
-                                @if (item.FixedVersion.Length > 0)
-                                {
-                                    <p class="version">@Html.DisplayFor(modelItem => item.FixedVersion)</p>
-                                }
-                                @if (item.ApplicationName != Constants.UnassignedDumpNames)
-                                {
-                                    <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
-                                }
+                                <table style="border: none; margin:0; padding:0;" >
+                                    <tr style="background-color: transparent; margin:0; padding:0;">
+                                        <td style="width: 100%; border: none; margin:0; padding:0;">
+                                            @if (item.FixedVersion.Length > 0)
+                                            {
+                                                <p class="version">@Html.DisplayFor(modelItem => item.FixedVersion)</p>
+                                            }
+                                        </td>
+                                        <td style="border: none;">
+                                            @if (item.ApplicationName != Constants.UnassignedDumpNames)
+                                            {
+                                                <button type="button" style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
+                                            }
+                                        </td>
+                                    </tr>
+                                </table>
                             </td>
                             <!-- exception type and comment -->
-                            <td class="@stateClass" style="max-width: 300px;">
-                                @Html.DisplayFor(modelItem => item.ExceptionType)<button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">🗨</button>
+                            <td class="@stateClass" style="max-width: 300px; white-space: normal; word-break: break-word;">
+                                @Html.DisplayFor(modelItem => item.ExceptionType)
+                                <button type="button" style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">🗨</button>
                                 @if (item.Comment.Length > 0)
                                 {
-                                    <hr />
-                                    <p class="comment" style="white-space: pre;">@item.Comment</p>
+                                    <div style="display: flex; flex-direction: column;">
+                                        <hr />
+                                        <p class="comment" style="max-width: 300px; white-space: normal; word-break: break-word;">@item.Comment</p>
+                                    </div>
                                 }
                             </td>
 
