@@ -18,11 +18,13 @@ namespace CrashDumpAnalyzer.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly ApplicationDbContext _dbContext;
+        private readonly int _daysBack;
 
         public HomeController(IConfiguration configuration, ILogger<HomeController> logger, ApplicationDbContext context)
         {
             _logger = logger;
             _dbContext = context;
+            _daysBack = configuration.GetValue<int>("ShowEntriesForDaysBack") > 0 ? configuration.GetValue<int>("ShowEntriesForDaysBack") : 180;
             Constants.TicketBaseUrl = configuration.GetValue<string>("TicketBaseUrl") ?? string.Empty;
         }
 
@@ -101,16 +103,18 @@ namespace CrashDumpAnalyzer.Controllers
             if (_dbContext.DumpCallstacks != null)
             {
                 List<DumpCallstack>? list = null;
+                DateTime cutoffDate = DateTime.Now.AddDays(-_daysBack);
+
                 if (id == null)
                 {
                     if (string.IsNullOrWhiteSpace(searchString))
                         list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
-                            .Where(dumpCallstack => dumpCallstack.Deleted == (deleted > 0))
+                            .Where(dumpCallstack => dumpCallstack.Deleted == (deleted > 0) &&
+                                                    dumpCallstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= cutoffDate))
                             .ToListAsync();
                     else // with search string, include deleted callstacks
                         list = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
                             .ToListAsync();
-
                 }
                 else
                 {
