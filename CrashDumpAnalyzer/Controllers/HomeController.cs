@@ -10,6 +10,7 @@ using System.Configuration;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace CrashDumpAnalyzer.Controllers
 {
@@ -121,21 +122,24 @@ namespace CrashDumpAnalyzer.Controllers
 
                 if (!string.IsNullOrWhiteSpace(searchString))
                 {
-                    // filter by search string
+                    // Convert wildcard search string to regex pattern
+                    string pattern = ".*" + Regex.Escape(searchString).Replace("\\*", ".*").Replace("\\?", ".") + ".*";
+                    Regex regex = new Regex(pattern, RegexOptions.IgnoreCase);
+
                     list = list.Where(dumpCallstack =>
-                        dumpCallstack.ApplicationName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                        dumpCallstack.ApplicationVersion.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                        dumpCallstack.FixedVersion.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                        dumpCallstack.ExceptionType.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                        dumpCallstack.Ticket.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                        dumpCallstack.Comment.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                        dumpCallstack.Callstack.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                        regex.IsMatch(dumpCallstack.ApplicationName) ||
+                        regex.IsMatch(dumpCallstack.ApplicationVersion) ||
+                        regex.IsMatch(dumpCallstack.FixedVersion) ||
+                        regex.IsMatch(dumpCallstack.ExceptionType) ||
+                        regex.IsMatch(dumpCallstack.Ticket) ||
+                        regex.IsMatch(dumpCallstack.Comment) ||
+                        regex.IsMatch(dumpCallstack.Callstack) ||
                         dumpCallstack.DumpInfos.Any(dumpFileInfo =>
-                            dumpFileInfo.UploadedFromIp.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                            dumpFileInfo.UploadedFromHostname.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                            dumpFileInfo.Environment.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                            dumpFileInfo.ComputerName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                            dumpFileInfo.Domain.Contains(searchString, StringComparison.OrdinalIgnoreCase)))
+                            regex.IsMatch(dumpFileInfo.UploadedFromIp) ||
+                            regex.IsMatch(dumpFileInfo.UploadedFromHostname) ||
+                            regex.IsMatch(dumpFileInfo.Environment) ||
+                            regex.IsMatch(dumpFileInfo.ComputerName) ||
+                            regex.IsMatch(dumpFileInfo.Domain)))
                         .ToList();
                 }
 
