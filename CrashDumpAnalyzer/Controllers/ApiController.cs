@@ -26,8 +26,8 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly string _agestoreExe;
         private readonly string _cachePath;
         private readonly string _symbolPath;
-        private readonly long _maxCacheSize=0;
-        private readonly long _deleteDumpsUploadedBeforeDays=0;
+        private readonly long _maxCacheSize = 0;
+        private readonly long _deleteDumpsUploadedBeforeDays = 0;
 
         public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
                             IServiceProvider provider,
@@ -238,11 +238,12 @@ namespace CrashDumpAnalyzer.Controllers
                         if (!string.IsNullOrEmpty(dumpInfo.FilePath))
                             System.IO.File.Delete(dumpInfo.FilePath);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        _logger.LogError(ex, $"Error deleting dump file {dumpInfo.FilePath}");
                     }
+                    dumpInfo.FilePath = string.Empty;
                 }
-                dumpCallstack.DumpInfos.Clear();
                 await _dbContext.SaveChangesAsync();
                 var dumpCallstacks = _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).Where(cs => cs.LinkedToDumpCallstackId == id);
                 foreach (var callStack in dumpCallstacks)
@@ -255,11 +256,12 @@ namespace CrashDumpAnalyzer.Controllers
                             if (!string.IsNullOrEmpty(dumpInfo.FilePath))
                                 System.IO.File.Delete(dumpInfo.FilePath);
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
+                            _logger.LogError(ex, $"Error deleting dump file {dumpInfo.FilePath}");
                         }
+                        dumpInfo.FilePath = string.Empty;
                     }
-                    callStack.DumpInfos.Clear();
                     await _dbContext.SaveChangesAsync();
                 }
             }
@@ -311,8 +313,9 @@ namespace CrashDumpAnalyzer.Controllers
                         if (!string.IsNullOrEmpty(dumpToRemove.FilePath))
                             System.IO.File.Delete(dumpToRemove.FilePath);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        _logger.LogError(ex, $"Error deleting dump file {dumpToRemove.FilePath}");
                     }
                     dumpToRemove.FilePath = string.Empty;
                     await _dbContext.SaveChangesAsync();
