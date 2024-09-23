@@ -51,11 +51,21 @@ namespace CrashDumpAnalyzer.Controllers
             {
                 var list = await FetchCallStacks(callstackId, null);
                 if (list != null && list.Count == 1)
-                    return View(list[0]);
+                {
+                    if (list[0].LinkedToDumpCallstackId != 0)
+                    {
+                        var linkedList = await FetchCallStacks(list[0].LinkedToDumpCallstackId, null);
+                        if (linkedList != null && linkedList.Count == 1)
+                            return View(linkedList[0]);
+                    }
+                    else
+                    {
+                        return View(list[0]);
+                    }
+                }
             }
             return View();
         }
-
 
         public IActionResult Privacy()
         {
