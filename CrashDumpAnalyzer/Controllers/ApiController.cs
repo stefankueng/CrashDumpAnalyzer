@@ -122,7 +122,7 @@ namespace CrashDumpAnalyzer.Controllers
 
                             DumpFileInfo entry = new DumpFileInfo
                             {
-                                FilePath = Path.Combine(_dumpPath, trustedFileNameForFileStorage),
+                                FilePath = trustedFileNameForFileStorage,
                                 FileSize = targetStream.Length,
                                 UploadDate = DateTime.Now,
                                 UploadedFromIp = uploadedFromIp,
@@ -202,7 +202,7 @@ namespace CrashDumpAnalyzer.Controllers
                             }
                             await CleanupTask(dbContext, token);
                             var dumpData = await dumpAnalyzeTask;
-                            await UpdateDumpDataInDatabase(dbContext, dumpFilePath, uploadedFromHostname, dumpData, null, token);
+                            await UpdateDumpDataInDatabase(dbContext, trustedFileNameForFileStorage, uploadedFromHostname, dumpData, null, token);
                         });
 
                     }
@@ -236,11 +236,11 @@ namespace CrashDumpAnalyzer.Controllers
                     try
                     {
                         if (!string.IsNullOrEmpty(dumpInfo.FilePath))
-                            System.IO.File.Delete(dumpInfo.FilePath);
+                            System.IO.File.Delete(Path.Combine(_dumpPath,dumpInfo.FilePath));
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, $"Error deleting dump file {dumpInfo.FilePath}");
+                        _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, dumpInfo.FilePath)}");
                     }
                     dumpInfo.FilePath = string.Empty;
                 }
@@ -254,11 +254,11 @@ namespace CrashDumpAnalyzer.Controllers
                         try
                         {
                             if (!string.IsNullOrEmpty(dumpInfo.FilePath))
-                                System.IO.File.Delete(dumpInfo.FilePath);
+                                System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, $"Error deleting dump file {dumpInfo.FilePath}");
+                            _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, dumpInfo.FilePath)}");
                         }
                         dumpInfo.FilePath = string.Empty;
                     }
@@ -311,11 +311,11 @@ namespace CrashDumpAnalyzer.Controllers
                     try
                     {
                         if (!string.IsNullOrEmpty(dumpToRemove.FilePath))
-                            System.IO.File.Delete(dumpToRemove.FilePath);
+                            System.IO.File.Delete(Path.Combine(_dumpPath, dumpToRemove.FilePath));
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, $"Error deleting dump file {dumpToRemove.FilePath}");
+                        _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath,dumpToRemove.FilePath)}");
                     }
                     dumpToRemove.FilePath = string.Empty;
                     await _dbContext.SaveChangesAsync();
@@ -336,7 +336,7 @@ namespace CrashDumpAnalyzer.Controllers
             var entry = await _dbContext.DumpFileInfos.FirstOrDefaultAsync(x => x.DumpFileInfoId == id);
             if (entry == null)
                 return NotFound();
-            var fs = new FileStream(entry.FilePath, FileMode.Open);
+            var fs = new FileStream(Path.Combine(_dumpPath, entry.FilePath), FileMode.Open);
 
             // Return the file. A byte array can also be used instead of a stream
             return File(fs, "application/octet-stream", "Dump.dmp");
@@ -443,8 +443,8 @@ namespace CrashDumpAnalyzer.Controllers
                         try
                         {
                             var dumpAnalyzer = new DumpAnalyzer(_cdbExe, _symbolPath, _logger);
-                            var dumpData = await dumpAnalyzer.AnalyzeDump(dumpToAnalyze.FilePath, token);
-                            await UpdateDumpDataInDatabase(dbContext, dumpToAnalyze.FilePath, null, dumpData, dumpCallstack.ApplicationName == Constants.UnassignedDumpNames ? null : callstackId, token);
+                            var dumpData = await dumpAnalyzer.AnalyzeDump(Path.Combine(_dumpPath, dumpToAnalyze.FilePath), token);
+                            await UpdateDumpDataInDatabase(dbContext,  dumpToAnalyze.FilePath, null, dumpData, dumpCallstack.ApplicationName == Constants.UnassignedDumpNames ? null : callstackId, token);
                         }
                         catch (Exception ex)
                         {
@@ -611,13 +611,13 @@ namespace CrashDumpAnalyzer.Controllers
                         {
                             if (!string.IsNullOrEmpty(dumpInfo.FilePath))
                             {
-                                System.IO.File.Delete(dumpInfo.FilePath);
-                                _logger.LogInformation($"Deleted dump file {dumpInfo.FilePath}");
+                                System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
+                                _logger.LogInformation($"Deleted dump file {Path.Combine(_dumpPath, dumpInfo.FilePath)}");
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, $"Error deleting dump file {dumpInfo.FilePath}");
+                            _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, dumpInfo.FilePath)}");
                         }
                         dumpInfo.FilePath = string.Empty;
                     }
