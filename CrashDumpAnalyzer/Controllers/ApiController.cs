@@ -494,7 +494,7 @@ namespace CrashDumpAnalyzer.Controllers
                     try
                     {
                         var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
-                            x => callstackId != null ? (x.DumpCallstackId == callstackId) : (x.CleanCallstack == dumpData.cleanCallstackString && x.ApplicationName == dumpData.processName), token);
+                            x => x.CleanCallstack == dumpData.cleanCallstackString && x.ApplicationName == dumpData.processName, token);
 
                         if (cs != null)
                         {
@@ -505,11 +505,6 @@ namespace CrashDumpAnalyzer.Controllers
                             if (v1 >= v2)
                             {
                                 callstack.ApplicationVersion = dumpData.version;
-                            }
-                            if (callstackId != null)
-                            {
-                                cs.CleanCallstack = dumpData.cleanCallstackString;
-                                cs.Callstack = dumpData.callstackString;
                             }
                             doUpdate = true;
 
@@ -523,17 +518,49 @@ namespace CrashDumpAnalyzer.Controllers
                                     dbContext.Update(linked);
                                 }
                             }
+                            if (callstackId != null && cs.DumpCallstackId != callstackId)
+                            {
+                                // remove the re-checked dump from the original callstack
+                                var origCallstack = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
+                                                                                               x => x.DumpCallstackId == callstackId, token);
+                                if (origCallstack != null)
+                                {
+                                    origCallstack.DumpInfos.Remove(entry);
+                                    if (origCallstack.DumpInfos.Count == 0)
+                                    {
+                                        // no more dump files in this callstack => delete it
+                                        origCallstack.Deleted = true;
+                                        dbContext.Update(origCallstack);
+                                    }
+                                }
+                            }
                         }
+                        else if (callstackId != null)
+                        {
+                            // no existing callstack found for this dump, use the original one and update that
+                            var origCallstack = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
+                                                                                           x => x.DumpCallstackId == callstackId, token);
+                            if (origCallstack != null)
+                            {
+                                callstack = origCallstack;
+                                callstack.Deleted = false;
+                                var v1 = new SemanticVersion(dumpData.version);
+                                var v2 = new SemanticVersion(callstack.ApplicationVersion);
+                                if (v1 >= v2)
+                                    callstack.ApplicationVersion = dumpData.version;
+
+                                origCallstack.CleanCallstack = dumpData.cleanCallstackString;
+                                origCallstack.Callstack = dumpData.callstackString;
+                                doUpdate = true;
+                            }
+                        }
+
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "Error parsing callstack");
                     }
-                    if (callstackId != null)
-                    {
-
-                    }
-                    else
+                    if (callstackId == null)
                     {
                         var unassigned = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
                                                                                        x => x.ApplicationName == Constants.UnassignedDumpNames, token);
