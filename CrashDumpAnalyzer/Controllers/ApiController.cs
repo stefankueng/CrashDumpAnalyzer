@@ -351,6 +351,11 @@ namespace CrashDumpAnalyzer.Controllers
             if (entry != null)
             {
                 entry.FixedVersion = version ?? string.Empty;
+                var linkedList = await _dbContext.DumpCallstacks.Where(x => x.LinkedToDumpCallstackId == id).ToListAsync();
+                foreach (var linked in linkedList)
+                {
+                    linked.FixedVersion = string.Empty;
+                }
                 await _dbContext.SaveChangesAsync();
                 ModelState.Clear();
             }
@@ -365,6 +370,11 @@ namespace CrashDumpAnalyzer.Controllers
             if (entry != null)
             {
                 entry.Ticket = ticket ?? string.Empty;
+                var linkedList = await _dbContext.DumpCallstacks.Where(x => x.LinkedToDumpCallstackId == id).ToListAsync();
+                foreach (var linked in linkedList)
+                {
+                    linked.Ticket = string.Empty;
+                }
                 await _dbContext.SaveChangesAsync();
                 ModelState.Clear();
             }
@@ -380,6 +390,11 @@ namespace CrashDumpAnalyzer.Controllers
             if (entry != null)
             {
                 entry.Comment = comment ?? string.Empty;
+                var linkedList = await _dbContext.DumpCallstacks.Where(x => x.LinkedToDumpCallstackId == id).ToListAsync();
+                foreach (var linked in linkedList)
+                {
+                    linked.Comment = string.Empty;
+                }
                 await _dbContext.SaveChangesAsync();
                 ModelState.Clear();
             }
