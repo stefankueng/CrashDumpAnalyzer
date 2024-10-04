@@ -46,7 +46,7 @@ namespace CrashDumpAnalyzer.Utilities
             using Process process = new();
             process.StartInfo.FileName = _cdbExe;
             process.StartInfo.WorkingDirectory = Path.GetDirectoryName(_cdbExe);
-            process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \"!analyze -v; lm lv; .ecxr; kL; !peb; q\"";
+            process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \"!analyze -v; lm lv; .ecxr; kL; .cxr; kL; !peb; q\"";
             process.StartInfo.EnvironmentVariables["_NT_SYMBOL_PATH"] = _symbolPath;
             process.StartInfo.EnvironmentVariables["_NT_SOURCE_PATH "] = "srv\\*";
             process.StartInfo.RedirectStandardOutput = true;
@@ -61,6 +61,7 @@ namespace CrashDumpAnalyzer.Utilities
             string context = string.Empty;
             string callstackString = string.Empty;
             string alternateCallstackString = string.Empty;
+            string alternateCallstackString2 = string.Empty;
             string processName = string.Empty;
             string exceptionCode = string.Empty;
             string version = string.Empty;
@@ -68,6 +69,7 @@ namespace CrashDumpAnalyzer.Utilities
             string domain = string.Empty;
             string environment = string.Empty;
             DateTime dumpTime = DateTime.Now;
+            int childSpCount = 0;
             foreach (var lineString in output.Split(["\n"], StringSplitOptions.TrimEntries))
             {
                 if (context == "STACK_TEXT")
@@ -97,6 +99,18 @@ namespace CrashDumpAnalyzer.Utilities
                     {
                         // the rightmost part is the 'interesting' part for us
                         alternateCallstackString += lineString.Substring(lineString.LastIndexOf(' ') + 1) + "\n";
+                    }
+                }
+                if (context == "ALTERNATE_STACK_TEXT2")
+                {
+                    if (lineString.Contains("quit:") || lineString.Contains("PEB at"))
+                    {
+                        context = "";
+                    }
+                    else
+                    {
+                        // the rightmost part is the 'interesting' part for us
+                        alternateCallstackString2 += lineString.Substring(lineString.LastIndexOf(' ') + 1) + "\n";
                     }
                 }
                 if (context == "VERSION")
@@ -193,7 +207,11 @@ namespace CrashDumpAnalyzer.Utilities
                 }
                 if (lineString.Contains("Child-SP"))
                 {
+                    if (childSpCount == 0)
                     context = "ALTERNATE_STACK_TEXT";
+                    else
+                        context = "ALTERNATE_STACK_TEXT2";
+                    ++childSpCount;
                 }
                 if (lineString.Contains("PEB at"))
                 {
@@ -212,6 +230,11 @@ namespace CrashDumpAnalyzer.Utilities
             if (csLength < 3 && alternateCsLength > 3)
             {
                 callstackString = alternateCallstackString;
+            }
+            var alternateCsLength2 = alternateCallstackString2.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
+            if (csLength < 3 && alternateCsLength2 > 3)
+            {
+                callstackString = alternateCallstackString2;
             }
             // filter out offsets and lines with no symbols
             string cleanCallstackString = _cleanCallstackRegex.Replace(callstackString, @"$2");
