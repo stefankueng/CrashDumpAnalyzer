@@ -164,42 +164,6 @@ namespace CrashDumpAnalyzer.Controllers
                         dumpCallstack.DumpInfos.Sort((a, b) => b.UploadDate.CompareTo(a.UploadDate));
                 }
 
-                list.Sort((a, b) =>
-                {
-                    // keep "Unassigned" at the very top
-                    if (a.ApplicationName == Constants.UnassignedDumpNames)
-                        return -1;
-                    if (b.ApplicationName == Constants.UnassignedDumpNames)
-                        return 1;
-
-                    // if a callstack is marked as fixed in a specific version
-                    // and there is a dump after that version, it should be shown first,
-                    // because that indicates that the fix doesn't work
-                    var aDumpAfterFixedVersion = !string.IsNullOrEmpty(a.FixedVersion) && HasDumpAfterFixedVersion(a);
-                    var bDumpAfterFixedVersion = !string.IsNullOrEmpty(b.FixedVersion) && HasDumpAfterFixedVersion(b);
-                    if (aDumpAfterFixedVersion && !bDumpAfterFixedVersion)
-                        return -1;
-                    if (!aDumpAfterFixedVersion && bDumpAfterFixedVersion)
-                        return 1;
-
-                    // if a callstack is marked as fixed, move it to the end of the list
-                    if (!string.IsNullOrEmpty(a.FixedVersion) && string.IsNullOrEmpty(b.FixedVersion))
-                        return 1;
-                    if (string.IsNullOrEmpty(a.FixedVersion) && !string.IsNullOrEmpty(b.FixedVersion))
-                        return -1;
-
-                    if (a.DumpInfos.Count > 0 && b.DumpInfos.Count > 0)
-                    {
-                        var uploadA = a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
-                        var uploadB = b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
-                        if (uploadA != uploadB)
-                            return uploadB.CompareTo(uploadA); // sort by date of last upload, so it's easy to find the just uploaded ones
-                    }
-
-                    // sort by number of dumps - the more dumps with the same callstack the more urgent it is to fix
-                    return b.DumpInfos.Count - a.DumpInfos.Count;
-                });
-
                 Dictionary<int, List<DumpCallstack>> groupedCallstacks = new();
                 List<DumpCallstack> resultList = new();
                 foreach (var callstack in list)
@@ -261,6 +225,43 @@ namespace CrashDumpAnalyzer.Controllers
                         resultList.Add(first);
                     }
                 }
+                resultList.Sort((a, b) =>
+                {
+                    // keep "Unassigned" at the very top
+                    if (a.ApplicationName == Constants.UnassignedDumpNames)
+                        return -1;
+                    if (b.ApplicationName == Constants.UnassignedDumpNames)
+                        return 1;
+
+                    // if a callstack is marked as fixed in a specific version
+                    // and there is a dump after that version, it should be shown first,
+                    // because that indicates that the fix doesn't work
+                    var aDumpAfterFixedVersion = !string.IsNullOrEmpty(a.FixedVersion) && HasDumpAfterFixedVersion(a);
+                    var bDumpAfterFixedVersion = !string.IsNullOrEmpty(b.FixedVersion) && HasDumpAfterFixedVersion(b);
+                    if (aDumpAfterFixedVersion && !bDumpAfterFixedVersion)
+                        return -1;
+                    if (!aDumpAfterFixedVersion && bDumpAfterFixedVersion)
+                        return 1;
+
+                    // if a callstack is marked as fixed, move it to the end of the list
+                    if (!string.IsNullOrEmpty(a.FixedVersion) && string.IsNullOrEmpty(b.FixedVersion))
+                        return 1;
+                    if (string.IsNullOrEmpty(a.FixedVersion) && !string.IsNullOrEmpty(b.FixedVersion))
+                        return -1;
+
+                    if (a.DumpInfos.Count > 0 && b.DumpInfos.Count > 0)
+                    {
+                        var uploadA = a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
+                        var uploadB = b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
+                        if (uploadA != uploadB)
+                            return uploadB.CompareTo(uploadA); // sort by date of last upload, so it's easy to find the just uploaded ones
+                    }
+
+                    // sort by number of dumps - the more dumps with the same callstack the more urgent it is to fix
+                    return b.DumpInfos.Count - a.DumpInfos.Count;
+                });
+
+
                 return resultList;
             }
             return new List<DumpCallstack>();
