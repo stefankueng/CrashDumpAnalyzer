@@ -8,7 +8,7 @@ namespace CrashDumpAnalyzer.Services
 		private readonly ILogger _logger;
 
 		private readonly Task[] _executors;
-		private readonly int _executorsCount = 2; //--default value: 2
+		private readonly int _executorsCount = 1; //--default value: 1
 		private CancellationTokenSource? _tokenSource;
 		public IBackgroundTaskQueue TaskQueue { get; }
 
@@ -19,7 +19,7 @@ namespace CrashDumpAnalyzer.Services
 			TaskQueue = taskQueue;
 			_logger = loggerFactory.CreateLogger<QueuedHostedService>();
 
-			if (ushort.TryParse(configuration["App:MaxNumOfParallelOperations"], out var ct))
+			if (ushort.TryParse(configuration["MaxNumOfParallelOperations"], out var ct))
 			{
 				_executorsCount = ct;
 			}
