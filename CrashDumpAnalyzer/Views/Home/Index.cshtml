@@ -8,7 +8,7 @@
     <div>
         <div style="display: flex; width: 100%;">
             <divstyle style="width: 60%;">
-                <h1 class="display-4">@ViewData["Title"]</h1>
+                <h1 class="display-4 title">@ViewData["Title"]</h1>
                 <form action="/Api/UploadFiles" method="post" enctype="multipart/form-data" onsubmit="return submitFilesForm(this);">
                     <input type="file" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
                     <label for="files-field" id="files-label"
