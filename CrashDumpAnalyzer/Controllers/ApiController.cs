@@ -236,7 +236,7 @@ namespace CrashDumpAnalyzer.Controllers
                     try
                     {
                         if (!string.IsNullOrEmpty(dumpInfo.FilePath))
-                            System.IO.File.Delete(Path.Combine(_dumpPath,dumpInfo.FilePath));
+                            System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
                     }
                     catch (Exception ex)
                     {
@@ -315,7 +315,7 @@ namespace CrashDumpAnalyzer.Controllers
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath,dumpToRemove.FilePath)}");
+                        _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, dumpToRemove.FilePath)}");
                     }
                     dumpToRemove.FilePath = string.Empty;
                     await _dbContext.SaveChangesAsync();
@@ -459,7 +459,7 @@ namespace CrashDumpAnalyzer.Controllers
                         {
                             var dumpAnalyzer = new DumpAnalyzer(_cdbExe, _symbolPath, _logger);
                             var dumpData = await dumpAnalyzer.AnalyzeDump(Path.Combine(_dumpPath, dumpToAnalyze.FilePath), token);
-                            await UpdateDumpDataInDatabase(dbContext,  dumpToAnalyze.FilePath, null, dumpData, dumpCallstack.ApplicationName == Constants.UnassignedDumpNames ? null : callstackId, token);
+                            await UpdateDumpDataInDatabase(dbContext, dumpToAnalyze.FilePath, null, dumpData, dumpCallstack.ApplicationName == Constants.UnassignedDumpNames ? null : callstackId, token);
                         }
                         catch (Exception ex)
                         {
@@ -511,7 +511,10 @@ namespace CrashDumpAnalyzer.Controllers
                         var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
                             x => x.CleanCallstack == dumpData.cleanCallstackString && x.ApplicationName == dumpData.processName, token);
 
-                        if (cs != null)
+                        // 80000003 is a breakpoint exception, not a crash.
+                        // This always gives us the callstack of the main thread, which is the same for most dumps that are created because of a hang.
+                        // so we never attempt to assign these to an existing callstack
+                        if (cs != null && !dumpData.exceptionCode.StartsWith("80000003"))
                         {
                             callstack = cs;
                             callstack.Deleted = false;
