@@ -13,7 +13,7 @@
                     <input type="file" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
                     <label for="files-field" id="files-label"
                            ondragover="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
-                           ondragenter="stopDefault(event);dragOver(this, 'Drop the dujp files to upload them.');"
+                           ondragenter="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
                            ondragleave="stopDefault(event);dragLeave(this);"
                            ondrop="stopDefault(event);dragLeave(this);addFilesAndSubmit(event);">Click to choose dump files or drag-n-drop them here</label>
                 </form>
@@ -159,10 +159,11 @@
                             <td class="collapsible collapsed callstack @stateClass">@Html.DisplayFor(modelItem => item.Callstack)</td>
                             <!-- delete and ungroup buttons -->
                             <td class="@stateClass">
+                                <button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)" title="delete callstack">❌</button>
                                 @if (item.Callstack.Contains("--------------"))
                                 {
                                     <button type="button" class="btn btn-primary" onclick="unlinkCallstack(@item.DumpCallstackId)" title="ungroup callstacks">🔗</button>
-                                }<button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)" title="delete callstack">❌</button>
+                                }
                             </td>
                         </tr>
                     }
