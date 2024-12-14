@@ -1,7 +1,4 @@
-﻿using CrashDumpAnalyzer.Controllers;
-using CrashDumpAnalyzer.Models;
-using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -17,6 +14,7 @@ namespace CrashDumpAnalyzer.Utilities
         public string computerName = string.Empty;
         public string domain = string.Empty;
         public string environment = string.Empty;
+        public string versionResource = string.Empty;
         public DateTime dumpTime = DateTime.Now;
     }
     public class DumpAnalyzer
@@ -34,12 +32,13 @@ namespace CrashDumpAnalyzer.Utilities
             string pattern = @"^((.*)\+0x([a-f0-9]+)|0x.*)$";
             RegexOptions options = RegexOptions.Multiline;
             _cleanCallstackRegex = new Regex(pattern, options);
+
         }
         private string RemoveEmptyLines(string lines)
         {
             return Regex.Replace(lines, @"^\s*$\n|\r", string.Empty, RegexOptions.Multiline).TrimEnd();
         }
-        public async Task<DumpData> AnalyzeDump(string dumpFilePath,  CancellationToken token)
+        public async Task<DumpData> AnalyzeDump(string dumpFilePath, CancellationToken token)
         {
             DumpData dumpData = new DumpData();
 
@@ -68,10 +67,14 @@ namespace CrashDumpAnalyzer.Utilities
             string computerName = string.Empty;
             string domain = string.Empty;
             string environment = string.Empty;
+            string versionResource = string.Empty;
             DateTime dumpTime = DateTime.Now;
             int childSpCount = 0;
-            foreach (var lineString in output.Split(["\n"], StringSplitOptions.TrimEntries))
+            foreach (var lineStringOrig in output.Split(["\n"], StringSplitOptions.None))
             {
+                // count whitespaces at start of lineString
+                var whitespaceCount = lineStringOrig.Length - lineStringOrig.TrimStart().Length;
+                var lineString = lineStringOrig.Trim();
                 if (context == "STACK_TEXT")
                 {
                     // the rightmost part is the 'interesting' part for us
@@ -161,6 +164,17 @@ namespace CrashDumpAnalyzer.Utilities
                     else
                         environment += lineString + "\n";
                 }
+                if (context == "VERSION_RESOURCE")
+                {
+                    if (whitespaceCount > 0)
+                    {
+                        versionResource += lineString + "\n";
+                    }
+                    else
+                    {
+                        context = string.Empty;
+                    }
+                }
                 if (lineString.Contains("Could not open dump file"))
                 {
                     callstackString = lineString;
@@ -188,6 +202,15 @@ namespace CrashDumpAnalyzer.Utilities
                     context = string.Empty;
                     exceptionCode = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
                 }
+                if (lineString.Contains($"Loaded symbol image file: {processName}"))
+                {
+                    context = "VERSION_RESOURCE_HEADER";
+                }
+                if (context == "VERSION_RESOURCE_HEADER" && lineString.Contains("Information from resource tables:"))
+                {
+                    context = "VERSION_RESOURCE";
+                    versionResource = string.Empty;
+                }
                 if (lineString.Contains("Debug session time:"))
                 {
                     context = string.Empty;
@@ -208,7 +231,7 @@ namespace CrashDumpAnalyzer.Utilities
                 if (lineString.Contains("Child-SP"))
                 {
                     if (childSpCount == 0)
-                    context = "ALTERNATE_STACK_TEXT";
+                        context = "ALTERNATE_STACK_TEXT";
                     else
                         context = "ALTERNATE_STACK_TEXT2";
                     ++childSpCount;
@@ -253,6 +276,7 @@ namespace CrashDumpAnalyzer.Utilities
             dumpData.processName = processName;
             dumpData.callstackString = callstackString;
             dumpData.cleanCallstackString = cleanCallstackString;
+            dumpData.versionResource = versionResource;
             dumpData.dumpTime = dumpTime;
 
             return dumpData;

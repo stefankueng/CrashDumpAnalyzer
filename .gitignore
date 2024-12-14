@@ -12,3 +12,6 @@
 /CrashDumpAnalyzer/CrashDumpAnalyzer.csproj.user
 /CrashDumpAnalyzer/Properties/PublishProfiles/FolderProfile.pubxml.user
 /CrashDumpAnalyzer/CrashDumpAnalyzer.csproj.DotSettings.user
+/TestProject/bin
+/TestProject/obj
+/CrashDumpAnalyzer.sln.DotSettings.user

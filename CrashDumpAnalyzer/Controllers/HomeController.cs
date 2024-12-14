@@ -198,14 +198,14 @@ namespace CrashDumpAnalyzer.Controllers
                             if (first.ExceptionType != group.Value[i].ExceptionType)
                                 first.ExceptionType += "\n\n" + group.Value[i].ExceptionType;
                             // use the lower 'fixed version' of the linked callstacks
-                            if (first.FixedVersion != group.Value[i].FixedVersion)
+                            if (first.FixedVersion != group.Value[i].FixedVersion || first.FixedBuildType != group.Value[i].FixedBuildType)
                             {
                                 if (first.FixedVersion.Length == 0)
                                     first.FixedVersion = group.Value[i].FixedVersion;
                                 if (group.Value[i].FixedVersion.Length != 0)
                                 {
-                                    var firstVersion = new SemanticVersion(first.FixedVersion);
-                                    var secondVersion = new SemanticVersion(group.Value[i].FixedVersion);
+                                    var firstVersion = new SemanticVersion(first.FixedVersion, first.FixedBuildType);
+                                    var secondVersion = new SemanticVersion(group.Value[i].FixedVersion, group.Value[i].FixedBuildType);
                                     first.FixedVersion = firstVersion < secondVersion ? first.FixedVersion : group.Value[i].FixedVersion;
                                 }
                             }
@@ -216,9 +216,10 @@ namespace CrashDumpAnalyzer.Controllers
                                     first.ApplicationVersion = group.Value[i].ApplicationVersion;
                                 if (group.Value[i].ApplicationVersion.Length != 0)
                                 {
-                                    var firstVersion = new SemanticVersion(first.ApplicationVersion);
-                                    var secondVersion = new SemanticVersion(group.Value[i].ApplicationVersion);
+                                    var firstVersion = new SemanticVersion(first.ApplicationVersion, first.BuildType);
+                                    var secondVersion = new SemanticVersion(group.Value[i].ApplicationVersion, group.Value[i].BuildType);
                                     first.ApplicationVersion = firstVersion > secondVersion ? first.ApplicationVersion : group.Value[i].ApplicationVersion;
+                                    first.BuildType = firstVersion > secondVersion ? first.BuildType : group.Value[i].BuildType;
                                 }
                             }
                         }
@@ -269,8 +270,8 @@ namespace CrashDumpAnalyzer.Controllers
 
         private bool HasDumpAfterFixedVersion(DumpCallstack dumpCallstack)
         {
-            var appVersion = new SemanticVersion(dumpCallstack.ApplicationVersion);
-            var fixedVersion = new SemanticVersion(dumpCallstack.FixedVersion);
+            var appVersion = new SemanticVersion(dumpCallstack.ApplicationVersion, dumpCallstack.BuildType);
+            var fixedVersion = new SemanticVersion(dumpCallstack.FixedVersion, dumpCallstack.FixedBuildType);
             return appVersion > fixedVersion;
         }
     }

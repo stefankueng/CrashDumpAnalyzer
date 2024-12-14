@@ -75,6 +75,7 @@ builder.Configuration.GetSection("StaticFolders").GetChildren().ToList().ForEach
         });
     }
 });
+BuildTypes.Initialize(app.Logger, builder.Configuration);
 
 app.UseRouting();
 

@@ -7,8 +7,6 @@ using CrashDumpAnalyzer.Data;
 using CrashDumpAnalyzer.Models;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
-using System.Globalization;
-using System.Text.RegularExpressions;
 
 namespace CrashDumpAnalyzer.Controllers
 {
@@ -26,8 +24,8 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly string _agestoreExe;
         private readonly string _cachePath;
         private readonly string _symbolPath;
-        private readonly long _maxCacheSize = 0;
-        private readonly long _deleteDumpsUploadedBeforeDays = 0;
+        private readonly long _maxCacheSize;
+        private readonly long _deleteDumpsUploadedBeforeDays;
 
         public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
                             IServiceProvider provider,
@@ -145,6 +143,7 @@ namespace CrashDumpAnalyzer.Controllers
                                     callstack = cs;
                                     callstack.Deleted = false;
                                     callstack.FixedVersion = string.Empty;
+                                    callstack.FixedBuildType = -1;
                                     callstack.Ticket = string.Empty;
                                     callstack.Comment = string.Empty;
                                     doUpdate = true;
@@ -197,9 +196,11 @@ namespace CrashDumpAnalyzer.Controllers
                                 List<string> compName = [.. getIpHost.HostName.Split('.')];
                                 uploadedFromHostname = compName.First();
                             }
-                            catch (Exception)
+                            catch
                             {
+                                // ignored
                             }
+
                             await CleanupTask(dbContext, token);
                             var dumpData = await dumpAnalyzeTask;
                             await UpdateDumpDataInDatabase(dbContext, trustedFileNameForFileStorage, uploadedFromHostname, dumpData, null, token);
@@ -245,24 +246,31 @@ namespace CrashDumpAnalyzer.Controllers
                     dumpInfo.FilePath = string.Empty;
                 }
                 await _dbContext.SaveChangesAsync();
-                var dumpCallstacks = _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).Where(cs => cs.LinkedToDumpCallstackId == id);
-                foreach (var callStack in dumpCallstacks)
+                try
                 {
-                    callStack.Deleted = true;
-                    foreach (var dumpInfo in callStack.DumpInfos)
+                    var dumpCallstacks = _dbContext.DumpCallstacks.Include(dmpCallstack => dmpCallstack.DumpInfos).Where(cs => cs.LinkedToDumpCallstackId == id);
+                    foreach (var callStack in dumpCallstacks)
                     {
-                        try
+                        callStack.Deleted = true;
+                        foreach (var dumpInfo in callStack.DumpInfos)
                         {
-                            if (!string.IsNullOrEmpty(dumpInfo.FilePath))
-                                System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
+                            try
+                            {
+                                if (!string.IsNullOrEmpty(dumpInfo.FilePath))
+                                    System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, dumpInfo.FilePath)}");
+                            }
+                            dumpInfo.FilePath = string.Empty;
                         }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, dumpInfo.FilePath)}");
-                        }
-                        dumpInfo.FilePath = string.Empty;
+                        await _dbContext.SaveChangesAsync();
                     }
-                    await _dbContext.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error deleting callstack from database");
                 }
             }
             catch (Exception ex)
@@ -300,12 +308,12 @@ namespace CrashDumpAnalyzer.Controllers
         {
             if (_dbContext.DumpCallstacks == null)
                 return NotFound();
-            var dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
-                .FirstAsync(cs => (cs.DumpCallstackId == callstackId || cs.LinkedToDumpCallstackId == callstackId) && cs.DumpInfos.First(x => x.DumpFileInfoId == dumpId) != null);
 
             try
             {
-                var dumpToRemove = dumpCallstack.DumpInfos.First(x => x.DumpFileInfoId == dumpId);
+                var dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
+                    .FirstAsync(cs => (cs.DumpCallstackId == callstackId || cs.LinkedToDumpCallstackId == callstackId) && cs.DumpInfos.FirstOrDefault(x => x.DumpFileInfoId == dumpId) != null);
+                var dumpToRemove = dumpCallstack.DumpInfos.FirstOrDefault(x => x.DumpFileInfoId == dumpId);
                 if (dumpToRemove != null)
                 {
                     try
@@ -343,7 +351,7 @@ namespace CrashDumpAnalyzer.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> SetFixedVersion(int id, string? version)
+        public async Task<IActionResult> SetFixedVersion(int id, string? version, string? buildType)
         {
             if (_dbContext.DumpCallstacks == null)
                 return NotFound();
@@ -351,10 +359,12 @@ namespace CrashDumpAnalyzer.Controllers
             if (entry != null)
             {
                 entry.FixedVersion = version ?? string.Empty;
+                entry.FixedBuildType = buildType != null ? BuildTypes.ParseBuildType(buildType) : -1;
                 var linkedList = await _dbContext.DumpCallstacks.Where(x => x.LinkedToDumpCallstackId == id).ToListAsync();
                 foreach (var linked in linkedList)
                 {
                     linked.FixedVersion = string.Empty;
+                    linked.FixedBuildType = -1;
                 }
                 await _dbContext.SaveChangesAsync();
                 ModelState.Clear();
@@ -369,7 +379,7 @@ namespace CrashDumpAnalyzer.Controllers
             var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
             if (entry != null)
             {
-                entry.Ticket = ticket ?? string.Empty;
+                entry.Ticket = ticket;
                 var linkedList = await _dbContext.DumpCallstacks.Where(x => x.LinkedToDumpCallstackId == id).ToListAsync();
                 foreach (var linked in linkedList)
                 {
@@ -389,7 +399,7 @@ namespace CrashDumpAnalyzer.Controllers
             var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
             if (entry != null)
             {
-                entry.Comment = comment ?? string.Empty;
+                entry.Comment = comment;
                 var linkedList = await _dbContext.DumpCallstacks.Where(x => x.LinkedToDumpCallstackId == id).ToListAsync();
                 foreach (var linked in linkedList)
                 {
@@ -434,13 +444,13 @@ namespace CrashDumpAnalyzer.Controllers
         {
             if (_dbContext.DumpCallstacks == null)
                 return NotFound();
-            var dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
-                .FirstAsync(cs => (cs.DumpCallstackId == callstackId || cs.LinkedToDumpCallstackId == callstackId));
+            DumpCallstack? dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
+                .FirstOrDefaultAsync(cs => (cs.DumpCallstackId == callstackId || cs.LinkedToDumpCallstackId == callstackId));
             if (dumpCallstack == null)
                 return NotFound();
             try
             {
-                var dumpToAnalyze = dumpCallstack.DumpInfos.First(x => !string.IsNullOrEmpty(x.FilePath));
+                var dumpToAnalyze = dumpCallstack.DumpInfos.FirstOrDefault(x => !string.IsNullOrEmpty(x.FilePath));
                 if (dumpToAnalyze != null)
                 {
                     if (string.IsNullOrEmpty(dumpToAnalyze.FilePath))
@@ -493,6 +503,7 @@ namespace CrashDumpAnalyzer.Controllers
                 entry.ComputerName = dumpData.computerName;
                 entry.Domain = dumpData.domain;
                 entry.Environment = dumpData.environment;
+                entry.VersionResource = dumpData.versionResource;
 
                 // find out if we already have this callstack
                 DumpCallstack callstack = new DumpCallstack
@@ -518,8 +529,8 @@ namespace CrashDumpAnalyzer.Controllers
                         {
                             callstack = cs;
                             callstack.Deleted = false;
-                            var v1 = new SemanticVersion(dumpData.version);
-                            var v2 = new SemanticVersion(callstack.ApplicationVersion);
+                            var v1 = new SemanticVersion(dumpData.version, BuildTypes.ExtractBuildType(dumpData.versionResource));
+                            var v2 = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
                             if (v1 >= v2)
                             {
                                 callstack.ApplicationVersion = dumpData.version;
@@ -562,11 +573,13 @@ namespace CrashDumpAnalyzer.Controllers
                             {
                                 callstack = origCallstack;
                                 callstack.Deleted = false;
-                                var v1 = new SemanticVersion(dumpData.version);
-                                var v2 = new SemanticVersion(callstack.ApplicationVersion);
+                                var v1 = new SemanticVersion(dumpData.version, BuildTypes.ExtractBuildType(dumpData.versionResource));
+                                var v2 = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
                                 if (v1 >= v2)
+                                {
                                     callstack.ApplicationVersion = dumpData.version;
-
+                                    callstack.BuildType = BuildTypes.ExtractBuildType(dumpData.versionResource);
+                                }
                                 origCallstack.CleanCallstack = dumpData.cleanCallstackString;
                                 origCallstack.Callstack = dumpData.callstackString;
                                 doUpdate = true;

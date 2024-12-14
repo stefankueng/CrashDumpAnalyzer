@@ -1,4 +1,8 @@
-﻿<div class="modal fade" id="setFixedVersionModal" tabindex="-1" role="dialog" aria-labelledby="setFixedVersionModalLabel" aria-hidden="true">
+﻿@using CrashDumpAnalyzer.Models
+@using CrashDumpAnalyzer.Utilities
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+
+<div class="modal fade" id="setFixedVersionModal" tabindex="-1" role="dialog" aria-labelledby="setFixedVersionModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -8,6 +12,15 @@
                 <label for="fixedVersionEdit">fixed as of version:</label>
                 <input class="modalTextInput" type="text" id="fixedVersionEdit" name="fixedVersionEdit" autocomplete='off'>
                 <p id="fixedVersionError" style="color: red;"></p>
+                <div id="filterBuildTypes" data-toggle="buttons">
+                    @foreach (var buildType in BuildTypes.BuildTypeStrings())
+                    {
+                        <div>
+                            <input type="radio" id="@buildType" name="buildType" value="@buildType">
+                            <label for="@buildType">@buildType</label>
+                        </div>
+                    }
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary close" data-bs-dismiss="modal">Close</button>

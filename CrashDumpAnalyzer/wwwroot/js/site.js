@@ -23,8 +23,18 @@ $(function () {
         let btn = $(e.relatedTarget); // e.related here is the element that opened the modal (the button)
         let id = btn.data('id');
         $('.saveEdit').data('id', id); // then pass it to the button inside the modal
-        let version = btn.closest('td').find('.version').text().trim();
+        let version = btn.closest('td').prev().find('.version').text().trim();
+        let buildType = btn.closest('td').prev().find('.buildType').text().trim();
+        if (version.length === 0) {
+            version = btn.closest('td').find('.version').text().trim();
+            buildType = btn.closest('td').find('.buildType').text().trim();
+        }
         $('.modalTextInput').val(version);
+        $('#filterBuildTypes input:radio').each(function () {
+            if ($(this).val() === buildType) {
+                $(this).prop('checked', true);
+            }
+        });
     })
 
     $('.saveEdit').on('click', function () {
@@ -136,9 +146,10 @@ $(function () {
 function saveFixedVersion(id) {
     console.debug("Saving fixed version for " + id);
     let text = $('.modalTextInput').val();
-    console.log(text + ' --> ' + id);
+    let buildType = $('#filterBuildTypes input:radio:checked').val();
+    console.log(text + ' --> ' + buildType + ' --> ' + id);
     $.ajax({
-        url: '/Api/SetFixedVersion?id=' + id + '&version=' + encodeURIComponent(text),
+        url: '/Api/SetFixedVersion?id=' + id + '&version=' + encodeURIComponent(text) +'&buildType=' + buildType,
         processData: false,
         contentType: false,
         type: 'POST',

@@ -6,24 +6,27 @@
         private readonly int _minor;
         private readonly int _micro;
         private readonly int _patch;
+        private readonly int _buildType; // alpha/beta/rc/release, higher number is more stable
         private readonly string _version;
 
-        public SemanticVersion(int major, int minor, int micro, int patch)
+        public SemanticVersion(int major, int minor, int micro, int patch, int buildType)
         {
             this._major = major;
             this._minor = minor;
             this._micro = micro;
             this._patch = patch;
             this._version = $"{major}.{minor}.{micro}.{patch}";
+            _buildType = buildType;
         }
 
-        public SemanticVersion(string version)
+        public SemanticVersion(string version, int buildType)
         {
             this._version = version.StartsWith('v') ? version.Substring(1) : version;
             this._major = 0;
             this._minor = 0;
             this._micro = 0;
             this._patch = 0;
+            this._buildType = buildType;
             try
             {
                 string[] parts = this._version.Split('.');
@@ -64,17 +67,14 @@
         {
             if (obj is SemanticVersion other)
             {
-                return this._major == other._major && this._minor == other._minor && this._micro == other._micro && this._patch == other._patch;
+                return this._major == other._major && this._minor == other._minor && this._micro == other._micro && this._patch == other._patch && this._buildType == other._buildType;
             }
-            else
-            {
-                return false;
-            }
+            return false;
         }
 
         public override int GetHashCode()
         {
-            return this._major.GetHashCode() ^ this._minor.GetHashCode() ^ this._micro.GetHashCode() ^this._patch.GetHashCode();
+            return this._major.GetHashCode() ^ this._minor.GetHashCode() ^ this._micro.GetHashCode() ^ this._patch.GetHashCode() ^ this._buildType.GetHashCode();
         }
 
         /// <summary>
@@ -130,6 +130,10 @@
                 return false;
             if (this._micro > other._micro)
                 return true;
+            if (this._buildType < other._buildType)
+                return false;
+            if (this._buildType > other._buildType)
+                return true;
             if (this._patch < other._patch)
                 return false;
             if (this._patch > other._patch)
@@ -150,6 +154,10 @@
             if (this._micro < other._micro)
                 return true;
             if (this._micro > other._micro)
+                return false;
+            if (this._buildType < other._buildType)
+                return true;
+            if (this._buildType > other._buildType)
                 return false;
             if (this._patch < other._patch)
                 return true;

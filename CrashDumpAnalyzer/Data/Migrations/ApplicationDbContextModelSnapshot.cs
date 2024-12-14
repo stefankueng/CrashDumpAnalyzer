@@ -15,7 +15,7 @@ namespace CrashDumpAnalyzer.Data.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.2");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
 
             modelBuilder.Entity("CrashDumpAnalyzer.Models.DumpCallstack", b =>
                 {
@@ -30,6 +30,9 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.Property<string>("ApplicationVersion")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("BuildType")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Callstack")
                         .IsRequired()
@@ -49,6 +52,9 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.Property<string>("ExceptionType")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("FixedBuildType")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("FixedVersion")
                         .IsRequired()
@@ -121,6 +127,10 @@ namespace CrashDumpAnalyzer.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("UploadedFromIp")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VersionResource")
                         .IsRequired()
                         .HasColumnType("TEXT");
 

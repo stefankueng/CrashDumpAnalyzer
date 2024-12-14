@@ -1,11 +1,15 @@
-﻿namespace CrashDumpAnalyzer.Models
+﻿using System.ComponentModel;
+
+namespace CrashDumpAnalyzer.Models
 {
     public class DumpCallstack
     {
         public int DumpCallstackId { get; set; }
         public string ApplicationName { get; set; } = string.Empty;
         public string ApplicationVersion { get; set; } = string.Empty;
+        public int BuildType { get; set; } = -1;
         public string FixedVersion { get; set; } = string.Empty;
+        public int FixedBuildType { get; set; } = -1;
         public string ExceptionType { get; set; } = string.Empty;
         public string Ticket { get; set; } = string.Empty;
         public string Comment { get; set; } = string.Empty;
