@@ -6,6 +6,7 @@ namespace CrashDumpAnalyzer.Utilities
     {
         private static Regex? _buildTypeRegex;
         private static Dictionary<string, int> _buildTypes = new Dictionary<string, int>();
+        private static string emptybuildtype = "release";
 
 
         public static void Initialize(ILogger logger, IConfiguration configuration)
@@ -19,13 +20,18 @@ namespace CrashDumpAnalyzer.Utilities
             {
                 logger.LogError(e, "Error parsing build type regex");
             }
+
             configuration.GetSection("BuildTypes").GetChildren().ToList().ForEach(type =>
             {
                 if (type.Value != null)
                 {
-                    _buildTypes[type.Key] = int.Parse(type.Value);
+                    if (type.Key == "emptybuildtype")
+                        emptybuildtype = type.Value;
+                    else
+                        _buildTypes[type.Key] = int.Parse(type.Value);
                 }
             });
+
         }
 
         public static bool HasRegex()
@@ -51,7 +57,16 @@ namespace CrashDumpAnalyzer.Utilities
         public static List<string> BuildTypeStrings()
         {
             // create a list of _buildTypes.Keys but sorted according to the values
-            return _buildTypes.OrderBy(kv => kv.Value).Select(kv => kv.Key).ToList();
+            var list = _buildTypes.OrderBy(kv => kv.Value).Select(kv => kv.Key).ToList();
+            // replace the empty string in the list with the emptybuildtype
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].Length == 0)
+                {
+                    list[i] = emptybuildtype;
+                }
+            }
+            return list;
         }
 
         public static int ParseBuildType(string s)

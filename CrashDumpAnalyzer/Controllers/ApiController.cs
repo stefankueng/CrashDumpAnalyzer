@@ -512,7 +512,8 @@ namespace CrashDumpAnalyzer.Controllers
                     CleanCallstack = dumpData.cleanCallstackString,
                     ApplicationName = dumpData.processName,
                     ExceptionType = dumpData.exceptionCode,
-                    ApplicationVersion = dumpData.version
+                    ApplicationVersion = dumpData.version,
+                    BuildType = BuildTypes.ExtractBuildType(dumpData.versionResource)
                 };
                 bool doUpdate = false;
                 if (dbContext.DumpCallstacks != null)
@@ -534,6 +535,7 @@ namespace CrashDumpAnalyzer.Controllers
                             if (v1 >= v2)
                             {
                                 callstack.ApplicationVersion = dumpData.version;
+                                callstack.BuildType = BuildTypes.ExtractBuildType(dumpData.versionResource);
                             }
                             doUpdate = true;
 
