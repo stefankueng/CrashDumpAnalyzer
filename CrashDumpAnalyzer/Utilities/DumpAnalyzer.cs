@@ -4,6 +4,19 @@ using System.Text.RegularExpressions;
 
 namespace CrashDumpAnalyzer.Utilities
 {
+    public enum DumpContext
+    {
+        None,
+        StackText,
+        AlternateStackText,
+        AlternateStackText2,
+        Version,
+        Modules,
+        MainModule,
+        Peb,
+        VersionResource,
+        VersionResourceHeader
+    }
     public class DumpData
     {
         public string callstackString = string.Empty;
@@ -57,7 +70,7 @@ namespace CrashDumpAnalyzer.Utilities
 
             // go through the output and find the important bits
             _logger.LogInformation(output);
-            string context = string.Empty;
+            DumpContext context = DumpContext.None;
             string callstackString = string.Empty;
             string alternateCallstackString = string.Empty;
             string alternateCallstackString2 = string.Empty;
@@ -75,145 +88,160 @@ namespace CrashDumpAnalyzer.Utilities
                 // count whitespaces at start of lineString
                 var whitespaceCount = lineStringOrig.Length - lineStringOrig.TrimStart().Length;
                 var lineString = lineStringOrig.Trim();
-                if (context == "STACK_TEXT")
+                switch (context)
                 {
-                    // the rightmost part is the 'interesting' part for us
-                    var lineParts = lineString.Split([" : "], StringSplitOptions.TrimEntries);
-                    if (lineParts.Length == 3)
-                    {
-                        callstackString += lineParts[2] + "\n";
-                    }
-                    if (lineParts.Length == 2)
-                    {
-                        callstackString += lineParts[1] + "\n";
-                    }
-                    if (lineParts.Length == 1)
-                    {
-                        callstackString += lineParts[0].Substring(lineParts[0].LastIndexOf(' ') + 1) + "\n";
-                    }
-                }
-                if (context == "ALTERNATE_STACK_TEXT")
-                {
-                    if (lineString.Contains("quit:") || lineString.Contains("PEB at"))
-                    {
-                        context = "";
-                    }
-                    else
+                    case DumpContext.StackText:
                     {
                         // the rightmost part is the 'interesting' part for us
-                        alternateCallstackString += lineString.Substring(lineString.LastIndexOf(' ') + 1) + "\n";
+                        var lineParts = lineString.Split([" : "], StringSplitOptions.TrimEntries);
+                        switch (lineParts.Length)
+                        {
+                            case 3:
+                                callstackString += lineParts[2] + "\n";
+                                break;
+                            case 2:
+                                callstackString += lineParts[1] + "\n";
+                                break;
+                            case 1:
+                                callstackString += lineParts[0].Substring(lineParts[0].LastIndexOf(' ') + 1) + "\n";
+                                break;
+                            default:
+                                break;
+                        }
                     }
-                }
-                if (context == "ALTERNATE_STACK_TEXT2")
-                {
-                    if (lineString.Contains("quit:") || lineString.Contains("PEB at"))
+                    break;
+                    case DumpContext.AlternateStackText:
                     {
-                        context = "";
+                        if (lineString.Contains("quit:") || lineString.Contains("PEB at"))
+                        {
+                            context = DumpContext.None;
+                        }
+                        else
+                        {
+                            // the rightmost part is the 'interesting' part for us
+                            alternateCallstackString += lineString.Substring(lineString.LastIndexOf(' ') + 1) + "\n";
+                        }
                     }
-                    else
+                    break;
+                    case DumpContext.AlternateStackText2:
                     {
-                        // the rightmost part is the 'interesting' part for us
-                        alternateCallstackString2 += lineString.Substring(lineString.LastIndexOf(' ') + 1) + "\n";
+                        if (lineString.Contains("quit:") || lineString.Contains("PEB at"))
+                        {
+                            context = DumpContext.None;
+                        }
+                        else
+                        {
+                            // the rightmost part is the 'interesting' part for us
+                            alternateCallstackString2 += lineString.Substring(lineString.LastIndexOf(' ') + 1) + "\n";
+                        }
                     }
-                }
-                if (context == "VERSION")
-                {
-                    context = string.Empty;
-                    version = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
-                }
-                if (context == "MODULES")
-                {
-                    if (lineString.Contains(processName) || (lineString.Length > 0 && processName == "unknown"))
+                    break;
+                    case DumpContext.Version:
                     {
-                        context = "MAIN_MODULE";
-                    }
-                }
-                if (context == "MAIN_MODULE")
-                {
-                    if (lineString.Contains("Image name:") && processName == "unknown" && lineString.Contains(".exe"))
-                    {
-                        processName = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
-                    }
-                    if (lineString.Contains("Product version:") && processName != "unknown")
-                    {
-                        context = string.Empty;
+                        context = DumpContext.None;
                         version = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
                     }
-                }
-                if (context == "PEB")
-                {
-                    if (lineString.Contains("COMPUTERNAME="))
+                    break;
+                    case DumpContext.Modules:
                     {
-                        var parts = lineString.Split(["="], StringSplitOptions.TrimEntries);
-                        if (parts.Length == 2)
+                        if (lineString.Contains(processName) || (lineString.Length > 0 && processName == "unknown"))
                         {
-                            computerName = parts[1];
+                            context = DumpContext.MainModule;
                         }
                     }
-                    if (lineString.Contains("USERDOMAIN="))
+                    break;
+                    case DumpContext.MainModule:
                     {
-                        // USERDOMAIN
-                        var parts = lineString.Split(["="], StringSplitOptions.TrimEntries);
-                        if (parts.Length == 2)
+                        if (lineString.Contains("Image name:") && processName == "unknown" && lineString.Contains(".exe"))
                         {
-                            domain = parts[1];
+                            processName = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
+                        }
+                        if (lineString.Contains("Product version:") && processName != "unknown")
+                        {
+                            context = DumpContext.None;
+                            version = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
                         }
                     }
-                    if (lineString.Contains(":quit"))
-                        context = string.Empty;
-                    else
-                        environment += lineString + "\n";
-                }
-                if (context == "VERSION_RESOURCE")
-                {
-                    if (whitespaceCount > 0)
+                    break;
+                    case DumpContext.Peb:
                     {
-                        versionResource += lineString + "\n";
+                        if (lineString.Contains("COMPUTERNAME="))
+                        {
+                            var parts = lineString.Split(["="], StringSplitOptions.TrimEntries);
+                            if (parts.Length == 2)
+                            {
+                                computerName = parts[1];
+                            }
+                        }
+                        if (lineString.Contains("USERDOMAIN="))
+                        {
+                            // USERDOMAIN
+                            var parts = lineString.Split(["="], StringSplitOptions.TrimEntries);
+                            if (parts.Length == 2)
+                            {
+                                domain = parts[1];
+                            }
+                        }
+                        if (lineString.Contains(":quit"))
+                            context = DumpContext.None;
+                        else
+                            environment += lineString + "\n";
                     }
-                    else
+                    break;
+                    case DumpContext.VersionResourceHeader:
+                        if (lineString.Contains("Information from resource tables:"))
+                        {
+                            context = DumpContext.VersionResource;
+                            versionResource = string.Empty;
+                        }
+                        break;
+                    case DumpContext.VersionResource:
                     {
-                        context = string.Empty;
+                        if (whitespaceCount > 0)
+                        {
+                            versionResource += lineString + "\n";
+                        }
+                        else
+                        {
+                            context = DumpContext.None;
+                        }
                     }
+                    break;
                 }
                 if (lineString.Contains("Could not open dump file"))
                 {
                     callstackString = lineString;
-                    context = "STACK_TEXT";
+                    context = DumpContext.StackText;
                 }
                 if (lineString.Contains("STACK_TEXT:"))
                 {
-                    context = "STACK_TEXT";
+                    context = DumpContext.StackText;
                 }
                 if (lineString.Contains("---------"))
                 {
-                    context = "MODULES";
+                    context = DumpContext.Modules;
                 }
                 if (lineString.Contains("Key  : WER.Process.Version"))
                 {
-                    context = "VERSION";
+                    context = DumpContext.Version;
                 }
                 if (lineString.Contains("PROCESS_NAME:"))
                 {
-                    context = string.Empty;
+                    context = DumpContext.None;
                     processName = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
                 }
                 if (lineString.Contains("ExceptionCode:"))
                 {
-                    context = string.Empty;
+                    context = DumpContext.None;
                     exceptionCode = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
                 }
                 if (lineString.Contains($"Loaded symbol image file: {processName}"))
                 {
-                    context = "VERSION_RESOURCE_HEADER";
-                }
-                if (context == "VERSION_RESOURCE_HEADER" && lineString.Contains("Information from resource tables:"))
-                {
-                    context = "VERSION_RESOURCE";
-                    versionResource = string.Empty;
+                    context = DumpContext.VersionResourceHeader;
                 }
                 if (lineString.Contains("Debug session time:"))
                 {
-                    context = string.Empty;
+                    context = DumpContext.None;
                     var dateString = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
                     dateString = dateString.Replace("UTC + ", "UTC +");
                     dateString = dateString.Replace("UTC - ", "UTC -");
@@ -231,22 +259,21 @@ namespace CrashDumpAnalyzer.Utilities
                 if (lineString.Contains("Child-SP"))
                 {
                     if (childSpCount == 0)
-                        context = "ALTERNATE_STACK_TEXT";
+                        context = DumpContext.AlternateStackText;
                     else
-                        context = "ALTERNATE_STACK_TEXT2";
+                        context = DumpContext.AlternateStackText2;
                     ++childSpCount;
                 }
                 if (lineString.Contains("PEB at"))
                 {
-                    context = "PEB";
+                    context = DumpContext.Peb;
                 }
                 if (lineString.Contains(":quit"))
                 {
-                    context = string.Empty;
+                    context = DumpContext.None;
                 }
-                if (lineString.Length <= 1 && context.Length > 0 && context != "MODULES")
-                    context = string.Empty;
-
+                if (lineString.Length <= 1 && context != DumpContext.None && context != DumpContext.Modules)
+                    context = DumpContext.None;
             }
             var csLength = callstackString.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
             var alternateCsLength = alternateCallstackString.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
