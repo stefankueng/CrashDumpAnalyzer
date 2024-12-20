@@ -68,11 +68,11 @@
                                 <tr style="border-style:none;border-width:0">
                                     @if (dumpInfo.FilePath.Length > 0)
                                     {
-                                        <td style="border-style:none;border-width:0"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a><button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">❌</button></td>
+                                        <td style="border-style:none;border-width:0" data-toggle="tooltip" title="@dumpInfo.VersionResource"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a><button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">❌</button></td>
                                     }
                                     else
                                     {
-                                        <td style="border-style:none;border-width:0">dump file deleted</td>
+                                        <td style="border-style:none;border-width:0" data-toggle="tooltip" title="@dumpInfo.VersionResource">dump file deleted</td>
                                     }
                                     <td style="border-style:none;border-width:0">Dump from @dumpInfo.DumpTime (@dumpInfo.DumpTime.AsTimeAgo())</td>
                                     <td style="border-style:none;border-width:0">Uploaded @dumpInfo.UploadDate (@dumpInfo.UploadDate.AsTimeAgo())</td>
