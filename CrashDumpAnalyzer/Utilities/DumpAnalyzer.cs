@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace CrashDumpAnalyzer.Utilities
@@ -55,18 +56,22 @@ namespace CrashDumpAnalyzer.Utilities
         {
             DumpData dumpData = new DumpData();
 
+            var tmpFilePath = Path.GetTempFileName();
             using Process process = new();
             process.StartInfo.FileName = _cdbExe;
             process.StartInfo.WorkingDirectory = Path.GetDirectoryName(_cdbExe);
-            process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \"!analyze -v; lm lv; .ecxr; kL; .cxr; kL; !peb; q\"";
+            process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \".logopen /u {tmpFilePath}; !analyze -v; lm lv; .ecxr; kL; .cxr; kL; !peb; q\"";
             process.StartInfo.EnvironmentVariables["_NT_SYMBOL_PATH"] = _symbolPath;
             process.StartInfo.EnvironmentVariables["_NT_SOURCE_PATH "] = "srv\\*";
-            process.StartInfo.RedirectStandardOutput = true;
             process.Start();
 
-            StreamReader sr = process.StandardOutput;
-            string output = await sr.ReadToEndAsync(token);
+            //string output = await process.StandardOutput.ReadToEndAsync(token);
             await process.WaitForExitAsync(token);
+
+            // read the unicode text in tmpFilePath into a string
+            string output = await File.ReadAllTextAsync(tmpFilePath, Encoding.Unicode, token);
+            // delete the temp file
+            File.Delete(tmpFilePath);
 
             // go through the output and find the important bits
             _logger.LogInformation(output);
