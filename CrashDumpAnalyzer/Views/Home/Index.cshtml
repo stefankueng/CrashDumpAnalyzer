@@ -38,13 +38,20 @@
                     {
                         <tr>
                             <td>@item.UploadDate (@item.UploadDate.AsTimeAgo()), from @item.UploadedFromIp (@item.UploadedFromHostname)</td>
-                            @if (item.CallStack.Length == 0)
+                            @if (item.CallStack.Length == 0 && item.LogSummary.Length == 0)
                             {
                                 <td>still analyzing...</td>
                             }
                             else
                             {
-                                <td class="text-center"><a href="/Home/Dump?callstackId=@item.DumpCallstackId">analyzed</a></td>
+                                @if (item.LogSummary.Length == 0)
+                                {
+                                    <td class="text-center"><a href="/Home/Dump?callstackId=@item.DumpCallstackId">analyzed</a></td>
+                                }
+                                else
+                                {
+                                    <td class="text-center"><div data-bs-toggle="tooltip" title="@item.LogSummary">log file analyzed</div></td>
+                                }
                             }
                         </tr>
                     }
@@ -65,8 +72,9 @@
                 </tr>
                 @foreach (var item in Model.Callstacks)
                 {
-                    @if (item.DumpInfos.Count == 0 && !item.Deleted)
-                        continue; // skip empty dump callstacks
+                    @if (item.DumpInfos.Count == 0 && item is { Deleted: false, LogFileLines.Count: 0 })
+                        continue;
+                    // skip empty dump callstacks
                     {
                         var fixedVersion = new SemanticVersion(item.FixedVersion, item.FixedBuildType);
                         var appVersion = new SemanticVersion(item.ApplicationVersion, item.BuildType);
@@ -79,8 +87,10 @@
                             stateClass = "grid-item-notdone";
 
                         string dumpCountInfo = string.Empty;
-                        if (item.DumpInfos.Count > 0)
+                        if (item.DumpInfos.Count > 0 && item.LogFileLines.Count == 0)
                             dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") : @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") + ", uploaded " + @item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).AsTimeAgo();
+                        else if (item.LogFileLines.Count > 0)
+                            dumpCountInfo = @item.LogFileLines.Count + " line" + (@item.LogFileLines.Count == 1 ? "" : "s");
                         <tr>
                             <!-- application name -->
                             <td class="@stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">@Html.DisplayFor(modelItem => item.ApplicationName) <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;" class="button-link">◎</a></td>
@@ -99,7 +109,7 @@
                             </td>
                             <!-- fixed version -->
                             <td class="@stateClass">
-                                <table style="border: none; margin:0; padding:0;" >
+                                <table style="border: none; margin:0; padding:0;">
                                     <tr style="background-color: transparent; margin:0; padding:0;">
                                         <td style="width: 100%; border: none; margin:0; padding:0;">
                                             @if (item.FixedVersion.Length > 0)
@@ -132,7 +142,7 @@
 
                             <!-- dump list -->
                             <td class="collapsed @stateClass">
-                                @if (item.DumpInfos.Count > 0)
+                                @if (item.DumpInfos.Count > 0 && item.LogFileLines.Count == 0)
                                 {
                                     <p data-bs-toggle="tooltip" title="@item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate)">@dumpCountInfo</p>
                                     <span>
@@ -150,6 +160,29 @@
                                             if (del > 0)
                                             {
                                                 <p>@del dump files deleted</p>
+                                            }
+                                        }
+                                    </span>
+                                }
+                                @if (item.LogFileLines.Count > 0)
+                                {
+                                    <p data-bs-toggle="tooltip" title="@item.LogFileLines.Max(entry => entry.Time)">@dumpCountInfo</p>
+                                    <span>
+                                        @{
+                                            var del = 0;
+                                            foreach (var dumpInfo in item.LogFileLines)
+                                            {
+                                                if (dumpInfo.DumpFileInfo is { FilePath.Length: > 0 })
+                                                {
+                                                    var lnk = @dumpInfo.DumpFileInfo.DumpFileInfoId + "#" + @dumpInfo.LineNumber;
+                                                    <p data-bs-toggle="tooltip" title="@dumpInfo.Time"><a href="/Api/DownloadFile/@lnk">line @dumpInfo.LineNumber (@SizeFormatter.SizeSuffix(dumpInfo.DumpFileInfo.FileSize))</a><button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfo.DumpFileInfoId)" title="delete log file">❌</button></p>
+                                                }
+                                                else
+                                                    ++del;
+                                            }
+                                            if (del > 0)
+                                            {
+                                                <p>@del entries deleted</p>
                                             }
                                         }
                                     </span>

@@ -118,17 +118,27 @@ namespace CrashDumpAnalyzer.Controllers
                 if (id == null)
                 {
                     if (string.IsNullOrWhiteSpace(searchString))
-                        list = await _dbContext.DumpCallstacks.AsNoTracking().Include(dumpCallstack => dumpCallstack.DumpInfos)
+                        list = await _dbContext.DumpCallstacks.AsNoTracking()
+                            .Include(dumpCallstack => dumpCallstack.DumpInfos)
+                            .Include(dumpCallstack => dumpCallstack.LogFileLines)
+                            .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .Where(dumpCallstack => dumpCallstack.Deleted == (deleted > 0) &&
-                                                    dumpCallstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= cutoffDate))
+                                                    (dumpCallstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= cutoffDate) ||
+                                                    dumpCallstack.LogFileLines.Count != 0))
                             .ToListAsync();
                     else // with search string, include deleted callstacks
-                        list = await _dbContext.DumpCallstacks.AsNoTracking().Include(dumpCallstack => dumpCallstack.DumpInfos)
+                        list = await _dbContext.DumpCallstacks.AsNoTracking()
+                            .Include(dumpCallstack => dumpCallstack.DumpInfos)
+                            .Include(dumpCallstack => dumpCallstack.LogFileLines)
+                            .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .ToListAsync();
                 }
                 else
                 {
-                    list = await _dbContext.DumpCallstacks.AsNoTracking().Include(dumpCallstack => dumpCallstack.DumpInfos)
+                    list = await _dbContext.DumpCallstacks.AsNoTracking()
+                        .Include(dumpCallstack => dumpCallstack.DumpInfos)
+                        .Include(dumpCallstack => dumpCallstack.LogFileLines)
+                        .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                         .Where(dumpCallstack => dumpCallstack.DumpCallstackId == id ||
                                                 dumpCallstack.LinkedToDumpCallstackId == id)
                         .ToListAsync();

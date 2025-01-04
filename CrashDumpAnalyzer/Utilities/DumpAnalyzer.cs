@@ -46,7 +46,6 @@ namespace CrashDumpAnalyzer.Utilities
             string pattern = @"^((.*)\+0x([a-f0-9]+)|0x.*)$";
             RegexOptions options = RegexOptions.Multiline;
             _cleanCallstackRegex = new Regex(pattern, options);
-
         }
         private string RemoveEmptyLines(string lines)
         {

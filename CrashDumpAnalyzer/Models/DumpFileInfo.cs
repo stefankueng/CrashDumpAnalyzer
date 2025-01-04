@@ -2,6 +2,10 @@
 
 namespace CrashDumpAnalyzer.Models
 {
+    /// <summary>
+    /// Represents a dump file with extracted information, or a log file.
+    /// If a log file contains entries for multiple versions, then the highest version is used.
+    /// </summary>
     public class DumpFileInfo
     {
         public int DumpFileInfoId { get; set; }
@@ -19,6 +23,7 @@ namespace CrashDumpAnalyzer.Models
         public string ComputerName { get; set; } = string.Empty;
         public string Domain { get; set; } = string.Empty;
         public string VersionResource { get; set; } = string.Empty;
+        public string LogSummary { get; set; } = string.Empty;
 
         public int DumpCallstackId { get; set; }
         public DumpCallstack? DumpCallstack { get; set; }

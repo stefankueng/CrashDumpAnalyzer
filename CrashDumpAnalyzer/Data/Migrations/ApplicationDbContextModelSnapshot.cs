@@ -119,6 +119,10 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.Property<long>("FileSize")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("LogSummary")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("UploadDate")
                         .HasColumnType("TEXT");
 
@@ -139,6 +143,33 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.HasIndex("DumpCallstackId");
 
                     b.ToTable("DumpFileInfo", (string)null);
+                });
+
+            modelBuilder.Entity("CrashDumpAnalyzer.Models.LogFileLine", b =>
+                {
+                    b.Property<int>("LogFileLineId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("DumpCallstackId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("DumpFileInfoId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("LineNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("LogFileLineId");
+
+                    b.HasIndex("DumpCallstackId");
+
+                    b.HasIndex("DumpFileInfoId");
+
+                    b.ToTable("LogFileLine", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -348,6 +379,19 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.Navigation("DumpCallstack");
                 });
 
+            modelBuilder.Entity("CrashDumpAnalyzer.Models.LogFileLine", b =>
+                {
+                    b.HasOne("CrashDumpAnalyzer.Models.DumpCallstack", null)
+                        .WithMany("LogFileLines")
+                        .HasForeignKey("DumpCallstackId");
+
+                    b.HasOne("CrashDumpAnalyzer.Models.DumpFileInfo", "DumpFileInfo")
+                        .WithMany()
+                        .HasForeignKey("DumpFileInfoId");
+
+                    b.Navigation("DumpFileInfo");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -402,6 +446,8 @@ namespace CrashDumpAnalyzer.Data.Migrations
             modelBuilder.Entity("CrashDumpAnalyzer.Models.DumpCallstack", b =>
                 {
                     b.Navigation("DumpInfos");
+
+                    b.Navigation("LogFileLines");
                 });
 #pragma warning restore 612, 618
         }

@@ -19,6 +19,7 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly ApplicationDbContext _dbContext;
         private readonly IBackgroundTaskQueue _queue;
         private readonly IServiceProvider _provider;
+        private readonly IConfiguration _configuration;
         private readonly string _dumpPath;
         private readonly string _cdbExe;
         private readonly string _agestoreExe;
@@ -26,6 +27,7 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly string _symbolPath;
         private readonly long _maxCacheSize;
         private readonly long _deleteDumpsUploadedBeforeDays;
+        private readonly string[] _logfileFileExts;
 
         public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
                             IServiceProvider provider,
@@ -36,6 +38,7 @@ namespace CrashDumpAnalyzer.Controllers
             this._dbContext = dbContext;
             this._queue = queue;
             this._provider = provider;
+            this._configuration = configuration;
             Debug.Assert(_dbContext != null);
             Debug.Assert(_queue != null);
             Debug.Assert(_logger != null);
@@ -51,6 +54,9 @@ namespace CrashDumpAnalyzer.Controllers
             this._deleteDumpsUploadedBeforeDays = configuration.GetValue<long>("DeleteDumpsUploadedBeforeDays");
             if (this._deleteDumpsUploadedBeforeDays == 0)
                 this._deleteDumpsUploadedBeforeDays = 30;
+
+            _logfileFileExts = _configuration.GetSection("LogFileAnalyzer").GetValue<string>("FileExtensions", ".txt;.log").Split(";");
+            _permittedExtensions = _permittedExtensions.Concat(_logfileFileExts).ToArray();
         }
 
 
@@ -103,7 +109,8 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         string? trustedFileNameForDisplay = WebUtility.HtmlEncode(
                             contentDisposition.FileName.Value);
-                        string trustedFileNameForFileStorage = DateTime.Now.ToString("yyyyMMddHHmmss") + Path.GetRandomFileName() + ".dmp";
+                        var ext = Path.GetExtension(contentDisposition.FileName.Value);
+                        string trustedFileNameForFileStorage = DateTime.Now.ToString("yyyyMMddHHmmss") + Path.GetRandomFileName() + ext;
                         await using (FileStream targetStream = System.IO.File.Create(
                                          Path.Combine(_dumpPath, trustedFileNameForFileStorage), 10_000_000))
                         {
@@ -184,9 +191,19 @@ namespace CrashDumpAnalyzer.Controllers
                             // use cbg to get a callstack from the dump
                             // and then update the database with the callstack
                             string dumpFilePath = Path.Combine(_dumpPath, trustedFileNameForFileStorage);
-                            var dumpAnalyzer = new DumpAnalyzer(_cdbExe, _symbolPath, _logger);
-                            var dumpAnalyzeTask = dumpAnalyzer.AnalyzeDump(dumpFilePath, token);
+                            Task<DumpData>? dumpAnalyzeTask = null;
+                            Task<Dictionary<LogIssue, List<(DateTime date, long lineNumber)>>>? logAnalyzeTask = null;
+                            if (_logfileFileExts.Contains(Path.GetExtension(dumpFilePath), StringComparer.InvariantCultureIgnoreCase))
+                            {
+                                var logAnalyzer = new LogAnalyzer(_logger, _configuration);
+                                logAnalyzeTask = logAnalyzer.Analyze(dumpFilePath, token);
 
+                            }
+                            else
+                            {
+                                var dumpAnalyzer = new DumpAnalyzer(_cdbExe, _symbolPath, _logger);
+                                dumpAnalyzeTask = dumpAnalyzer.AnalyzeDump(dumpFilePath, token);
+                            }
                             string uploadedFromHostname = "unknown host";
                             try
                             {
@@ -202,8 +219,18 @@ namespace CrashDumpAnalyzer.Controllers
                             }
 
                             await CleanupTask(dbContext, token);
-                            var dumpData = await dumpAnalyzeTask;
-                            await UpdateDumpDataInDatabase(dbContext, trustedFileNameForFileStorage, uploadedFromHostname, dumpData, null, token);
+                            if (dumpAnalyzeTask != null)
+                            {
+                                var dumpData = await dumpAnalyzeTask;
+                                await UpdateDumpDataInDatabase(dbContext, trustedFileNameForFileStorage,
+                                    uploadedFromHostname, dumpData, null, token);
+                            }
+                            else if (logAnalyzeTask != null)
+                            {
+                                var logData = await logAnalyzeTask;
+                                await UpdateLogDataInDatabase(dbContext, trustedFileNameForFileStorage,
+                                    uploadedFromHostname, logData, token);
+                            }
                         });
 
                     }
@@ -306,28 +333,24 @@ namespace CrashDumpAnalyzer.Controllers
         [HttpPost]
         public async Task<IActionResult> DeleteDumpFile(int callstackId, int dumpId)
         {
-            if (_dbContext.DumpCallstacks == null)
+            if (_dbContext.DumpFileInfos == null)
                 return NotFound();
-
             try
             {
-                var dumpCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
-                    .FirstAsync(cs => (cs.DumpCallstackId == callstackId || cs.LinkedToDumpCallstackId == callstackId) && cs.DumpInfos.FirstOrDefault(x => x.DumpFileInfoId == dumpId) != null);
-                var dumpToRemove = dumpCallstack.DumpInfos.FirstOrDefault(x => x.DumpFileInfoId == dumpId);
-                if (dumpToRemove != null)
+                var dumpToRemove = await _dbContext.DumpFileInfos.FirstOrDefaultAsync(x => x.DumpFileInfoId == dumpId);
+                if (dumpToRemove == null)
+                    return NotFound();
+                try
                 {
-                    try
-                    {
-                        if (!string.IsNullOrEmpty(dumpToRemove.FilePath))
-                            System.IO.File.Delete(Path.Combine(_dumpPath, dumpToRemove.FilePath));
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, dumpToRemove.FilePath)}");
-                    }
-                    dumpToRemove.FilePath = string.Empty;
-                    await _dbContext.SaveChangesAsync();
+                    if (!string.IsNullOrEmpty(dumpToRemove.FilePath))
+                        System.IO.File.Delete(Path.Combine(_dumpPath, dumpToRemove.FilePath));
                 }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, dumpToRemove.FilePath)}");
+                }
+                dumpToRemove.FilePath = string.Empty;
+                await _dbContext.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -345,8 +368,34 @@ namespace CrashDumpAnalyzer.Controllers
             if (entry == null)
                 return NotFound();
             var fs = new FileStream(Path.Combine(_dumpPath, entry.FilePath), FileMode.Open);
+            if (_logfileFileExts.Contains(Path.GetExtension(entry.FilePath), StringComparer.InvariantCultureIgnoreCase))
+            {
+                // don't make the log files download but show them inline.
+                // to be able to 'jump' to a specific line, we have to convert the text/log
+                // file to html with every line becoming a <p> tag with id of the line number
+                var memoryStream = new MemoryStream();
+                using (var reader = new StreamReader(fs))
+                {
+                    await using (var writer = new StreamWriter(memoryStream, leaveOpen: true))
+                    {
+                        // first write header and style the <p> to have no margin
+                        await writer.WriteLineAsync("<!DOCTYPE html><html><head><style>p { margin: 0; }</style></head><body>");
+                        long lineNumber = 0;
+                        while (await reader.ReadLineAsync() is { } line)
+                        {
+                            ++lineNumber;
+                            await writer.WriteLineAsync($"<p id=\"{lineNumber}\">" + line + "</p>");
+                        }
+                        // close the body and html tags
+                        await writer.WriteLineAsync("</body></html>");
+                        await writer.FlushAsync();
+                        memoryStream.Position = 0; // Reset the position to the beginning of the stream
+                    }
+                }
 
-            // Return the file. A byte array can also be used instead of a stream
+                return File(memoryStream, "text/html");
+            }
+            // Return the file.
             return File(fs, "application/octet-stream", "Dump.dmp");
         }
 
@@ -484,6 +533,126 @@ namespace CrashDumpAnalyzer.Controllers
             }
             return NoContent();
         }
+        private async Task UpdateLogDataInDatabase(ApplicationDbContext dbContext, string dumpFilePath, string uploadedFromHostname, Dictionary<LogIssue, List<(DateTime date, long lineNumber)>> logData, CancellationToken token)
+        {
+            // find the highest version of all the entries in the log file
+            var highestVersion = new SemanticVersion(0, 0, 0, 0, -1);
+            DateTime latestDate = DateTime.MinValue;
+            foreach (var logIssue in logData)
+            {
+                var ver1 = new SemanticVersion(logIssue.Key.ApplicationVersion, logIssue.Key.BuildType);
+                if (ver1 > highestVersion)
+                    highestVersion = ver1;
+                var maxDate = logIssue.Value.Max(item => item.date);
+                if (latestDate < maxDate)
+                    latestDate = maxDate;
+            }
+            DumpFileInfo? entry = null;
+            if (dbContext.DumpFileInfos != null)
+                entry = await dbContext.DumpFileInfos.FirstOrDefaultAsync(x => x.FilePath == dumpFilePath, token);
+
+            if (entry != null)
+            {
+                entry.ApplicationVersion = highestVersion.ToVersionString();
+                entry.DumpTime = latestDate;
+                entry.LogSummary = $"Log contains {logData.Count} issues";
+
+                if (!string.IsNullOrEmpty(uploadedFromHostname))
+                    entry.UploadedFromHostname = uploadedFromHostname;
+
+                if (dbContext.DumpCallstacks != null)
+                {
+                    var unassigned = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
+                        .FirstOrDefaultAsync(
+                            x => x.ApplicationName == Constants.UnassignedDumpNames, token);
+                    unassigned?.DumpInfos.Remove(entry);
+                }
+            }
+            foreach (var logIssue in logData)
+            {
+                var callstack = new DumpCallstack
+                {
+                    Callstack = logIssue.Key.IssueText,
+                    CleanCallstack = logIssue.Key.IssueText,
+                    ExceptionType = logIssue.Key.IssueType,
+                    ApplicationName = logIssue.Key.ApplicationName,
+                    ApplicationVersion = logIssue.Key.ApplicationVersion,
+                    BuildType = logIssue.Key.BuildType,
+                    LogFileLines = new List<LogFileLine>()
+                };
+                foreach (var line in logIssue.Value)
+                {
+                    callstack.LogFileLines.Add(new LogFileLine
+                    {
+                        LineNumber = line.lineNumber,
+                        Time = line.date,
+                        DumpFileInfo = entry,
+                    });
+                }
+                bool doUpdate = false;
+                if (dbContext.DumpCallstacks != null)
+                {
+                    try
+                    {
+                        var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.LogFileLines).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                            .FirstOrDefaultAsync(
+                            x => x.CleanCallstack == logIssue.Key.IssueText && x.ApplicationName == logIssue.Key.ApplicationName, token);
+
+                        if (cs != null)
+                        {
+                            callstack = cs;
+                            callstack.Deleted = false;
+                            var v1 = new SemanticVersion(logIssue.Key.ApplicationVersion, logIssue.Key.BuildType);
+                            var v2 = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
+                            if (v1 >= v2)
+                            {
+                                callstack.ApplicationVersion = logIssue.Key.ApplicationVersion;
+                                callstack.BuildType = logIssue.Key.BuildType;
+                            }
+                            foreach (var line in logIssue.Value)
+                            {
+                                callstack.LogFileLines.Add(new LogFileLine
+                                {
+                                    LineNumber = line.lineNumber,
+                                    Time = line.date,
+                                    DumpFileInfo = entry
+                                });
+                            }
+
+                            doUpdate = true;
+
+                            // if this dump is linked to another callstack, we need to ensure the linked callstack is not deleted
+                            if (cs.LinkedToDumpCallstackId != 0)
+                            {
+                                var linked = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.LogFileLines).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                                    .FirstOrDefaultAsync(x => x.DumpCallstackId == cs.LinkedToDumpCallstackId, token);
+                                if (linked != null)
+                                {
+                                    linked.Deleted = false;
+                                    dbContext.Update(linked);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error parsing logfile");
+                    }
+                }
+                if (entry != null)
+                    callstack.DumpInfos.Add(entry);
+
+                if (doUpdate)
+                    dbContext.Update(callstack);
+                else
+                    dbContext.Add(callstack);
+
+                await dbContext.SaveChangesAsync(token);
+            }
+            await dbContext.DisposeAsync();
+        }
+
+
         private async Task UpdateDumpDataInDatabase(ApplicationDbContext dbContext, string dumpFilePath, string? uploadedFromHostname, DumpData dumpData, int? callstackId, CancellationToken token)
         {
             // we have the call stack, now update the database

@@ -63,22 +63,46 @@
                     <td>Dumps</td>
                     <td style="padding:0">
                         <table style="border-style:none;border-width:0">
-                            @foreach (var dumpInfo in item.DumpInfos)
+                            @if (item.DumpInfos.Count > 0 && item.LogFileLines.Count == 0)
                             {
-                                <tr style="border-style:none;border-width:0">
-                                    @if (dumpInfo.FilePath.Length > 0)
-                                    {
-                                        <td style="border-style:none;border-width:0" data-toggle="tooltip" title="@dumpInfo.VersionResource"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a><button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">❌</button></td>
-                                    }
-                                    else
-                                    {
-                                        <td style="border-style:none;border-width:0" data-toggle="tooltip" title="@dumpInfo.VersionResource">dump file deleted</td>
-                                    }
-                                    <td style="border-style:none;border-width:0">Dump from @dumpInfo.DumpTime (@dumpInfo.DumpTime.AsTimeAgo())</td>
-                                    <td style="border-style:none;border-width:0">Uploaded @dumpInfo.UploadDate (@dumpInfo.UploadDate.AsTimeAgo())</td>
-                                    <td style="border-style:none;border-width:0">Uploaded from ip: @dumpInfo.UploadedFromIp, hostname: @dumpInfo.UploadedFromHostname</td>
-                                    <td style="border-style:none;border-width:0">Hostname: @dumpInfo.ComputerName, domain: @dumpInfo.Domain</td>
-                                </tr>
+                                @foreach (var dumpInfo in item.DumpInfos)
+                                {
+                                    <tr style="border-style:none;border-width:0">
+                                        @if (dumpInfo.FilePath.Length > 0)
+                                        {
+                                            <td style="border-style:none;border-width:0" data-toggle="tooltip" title="@dumpInfo.VersionResource"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a><button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">❌</button></td>
+                                        }
+                                        else
+                                        {
+                                            <td style="border-style:none;border-width:0" data-toggle="tooltip" title="@dumpInfo.VersionResource">dump file deleted</td>
+                                        }
+                                        <td style="border-style:none;border-width:0">Dump from @dumpInfo.DumpTime (@dumpInfo.DumpTime.AsTimeAgo())</td>
+                                        <td style="border-style:none;border-width:0">Uploaded @dumpInfo.UploadDate (@dumpInfo.UploadDate.AsTimeAgo())</td>
+                                        <td style="border-style:none;border-width:0">Uploaded from ip: @dumpInfo.UploadedFromIp, hostname: @dumpInfo.UploadedFromHostname</td>
+                                        <td style="border-style:none;border-width:0">Hostname: @dumpInfo.ComputerName, domain: @dumpInfo.Domain</td>
+                                    </tr>
+                                }
+                            }
+                            @if (item.LogFileLines.Count > 0)
+                            {
+                                @foreach (var dumpInfo in item.LogFileLines)
+                                {
+                                    <tr style="border-style:none;border-width:0">
+                                        @if (dumpInfo.DumpFileInfo != null && dumpInfo.DumpFileInfo.FilePath.Length > 0)
+                                        {
+                                            var lnk = @dumpInfo.DumpFileInfo.DumpFileInfoId + "#" + @dumpInfo.LineNumber;
+                                            <td style="border-style:none;border-width:0"><a href="/Api/DownloadFile/@lnk">line @dumpInfo.LineNumber (@SizeFormatter.SizeSuffix(dumpInfo.DumpFileInfo.FileSize))</a><button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfo.DumpFileInfoId)" title="delete log file">❌</button></td>
+                                        }
+                                        else
+                                        {
+                                            <td style="border-style:none;border-width:0">log file deleted</td>
+                                        }
+                                        <td style="border-style:none;border-width:0">Entry from @dumpInfo.Time (@dumpInfo.Time.AsTimeAgo())</td>
+                                        <td style="border-style:none;border-width:0">Uploaded @dumpInfo.DumpFileInfo.UploadDate (@dumpInfo.DumpFileInfo.UploadDate.AsTimeAgo())</td>
+                                        <td style="border-style:none;border-width:0">Uploaded from ip: @dumpInfo.DumpFileInfo.UploadedFromIp, hostname: @dumpInfo.DumpFileInfo.UploadedFromHostname</td>
+                                        <td style="border-style:none;border-width:0">Hostname: @dumpInfo.DumpFileInfo.ComputerName, domain: @dumpInfo.DumpFileInfo.Domain</td>
+                                    </tr>
+                                }
                             }
                         </table>
                     </td>

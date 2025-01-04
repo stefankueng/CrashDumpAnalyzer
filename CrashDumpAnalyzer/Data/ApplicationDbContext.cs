@@ -6,21 +6,23 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CrashDumpAnalyzer.Data
 {
-	public class ApplicationDbContext : IdentityDbContext
-	{
-		public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-			: base(options)
-		{
-		}
+    public class ApplicationDbContext : IdentityDbContext
+    {
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options)
+        {
+        }
 
-		public DbSet<DumpFileInfo>? DumpFileInfos { get; set; }
-		public DbSet<DumpCallstack>? DumpCallstacks { get; set; }
+        public DbSet<DumpFileInfo>? DumpFileInfos { get; set; }
+        public DbSet<DumpCallstack>? DumpCallstacks { get; set; }
+        public DbSet<LogFileLine>? LogFileLines { get; set; }
 
-		protected override void OnModelCreating(ModelBuilder modelBuilder)
-		{
-			base.OnModelCreating(modelBuilder);
-			modelBuilder.Entity<DumpFileInfo>().ToTable("DumpFileInfo");
-			modelBuilder.Entity<DumpCallstack>().ToTable("DumpCallstack");
-		}
-	}
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<DumpFileInfo>().ToTable("DumpFileInfo");
+            modelBuilder.Entity<DumpCallstack>().ToTable("DumpCallstack");
+            modelBuilder.Entity<LogFileLine>().ToTable("LogFileLine");
+        }
+    }
 }
