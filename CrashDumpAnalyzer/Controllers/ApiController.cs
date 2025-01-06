@@ -379,12 +379,12 @@ namespace CrashDumpAnalyzer.Controllers
                     await using (var writer = new StreamWriter(memoryStream, leaveOpen: true))
                     {
                         // first write header and style the <p> to have no margin
-                        await writer.WriteLineAsync("<!DOCTYPE html><html><head><style>p { margin: 0; }</style></head><body>");
+                        await writer.WriteLineAsync("<!DOCTYPE html><html><head><style>:target { background-color: #ff0 }</style></head><body>");
                         long lineNumber = 0;
                         while (await reader.ReadLineAsync() is { } line)
                         {
                             ++lineNumber;
-                            await writer.WriteLineAsync($"<p id=\"{lineNumber}\">" + line + "</p>");
+                            await writer.WriteLineAsync($"<div id=\"{lineNumber}\">" + line + "</div>");
                         }
                         // close the body and html tags
                         await writer.WriteLineAsync("</body></html>");
