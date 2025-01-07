@@ -567,6 +567,22 @@ namespace CrashDumpAnalyzer.Controllers
                             x => x.ApplicationName == Constants.UnassignedDumpNames, token);
                     unassigned?.DumpInfos.Remove(entry);
                 }
+                if (logData.Count == 0)
+                {
+                    entry.LogSummary = $"Log contains no issues, log file deleted";
+                    // log file contains nothing important: delete the file
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(entry.FilePath))
+                            System.IO.File.Delete(Path.Combine(_dumpPath, entry.FilePath));
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, entry.FilePath)}");
+                    }
+                    entry.FilePath = string.Empty;
+                    await dbContext.SaveChangesAsync(token);
+                }
             }
             foreach (var logIssue in logData)
             {
