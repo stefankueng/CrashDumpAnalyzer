@@ -175,7 +175,7 @@
                                                 if (dumpInfo.DumpFileInfo is { FilePath.Length: > 0 })
                                                 {
                                                     var lnk = @dumpInfo.DumpFileInfo.DumpFileInfoId + "#" + @dumpInfo.LineNumber;
-                                                    <p data-bs-toggle="tooltip" title="@dumpInfo.Time"><a href="/Api/DownloadFile/@lnk">line @dumpInfo.LineNumber (@SizeFormatter.SizeSuffix(dumpInfo.DumpFileInfo.FileSize))</a><button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfo.DumpFileInfoId)" title="delete log file">❌</button></p>
+                                                    <p data-bs-toggle="tooltip" title="@dumpInfo.Time"><a href="/Api/DownloadFile/@lnk" target="_blank">line @dumpInfo.LineNumber (@SizeFormatter.SizeSuffix(dumpInfo.DumpFileInfo.FileSize))</a><button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfo.DumpFileInfoId)" title="delete log file">❌</button></p>
                                                 }
                                                 else
                                                     ++del;

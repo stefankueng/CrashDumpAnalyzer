@@ -91,7 +91,7 @@
                                         @if (dumpInfo.DumpFileInfo != null && dumpInfo.DumpFileInfo.FilePath.Length > 0)
                                         {
                                             var lnk = @dumpInfo.DumpFileInfo.DumpFileInfoId + "#" + @dumpInfo.LineNumber;
-                                            <td style="border-style:none;border-width:0"><a href="/Api/DownloadFile/@lnk">line @dumpInfo.LineNumber (@SizeFormatter.SizeSuffix(dumpInfo.DumpFileInfo.FileSize))</a><button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfo.DumpFileInfoId)" title="delete log file">❌</button></td>
+                                            <td style="border-style:none;border-width:0"><a href="/Api/DownloadFile/@lnk" target="_blank">line @dumpInfo.LineNumber (@SizeFormatter.SizeSuffix(dumpInfo.DumpFileInfo.FileSize))</a><button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfo.DumpFileInfoId)" title="delete log file">❌</button></td>
                                         }
                                         else
                                         {
