@@ -55,10 +55,10 @@ namespace CrashDumpAnalyzer.Utilities
             _configuration = configuration;
 
             var logFileAnalyzerSection = _configuration.GetSection("LogFileAnalyzer");
-            _dateTimeRegex = new Regex(logFileAnalyzerSection.GetValue<string>("DateTimeRegex", @"^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})"), RegexOptions.Compiled);
-            _applicationNameRegex = new Regex(logFileAnalyzerSection.GetValue<string>("ApplicationNameRegex", @"Application: (.*)"), RegexOptions.Compiled);
-            _versionRegex = new Regex(logFileAnalyzerSection.GetValue<string>("VersionRegex", @"Version: (.*)"), RegexOptions.Compiled);
-            _buildTypeRegex = new Regex(logFileAnalyzerSection.GetValue<string>("BuildTypeRegex", @"Build Type: (.*)"), RegexOptions.Compiled);
+            _dateTimeRegex = new Regex(logFileAnalyzerSection.GetValue<string>("DateTimeRegex", @"^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})"), RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            _applicationNameRegex = new Regex(logFileAnalyzerSection.GetValue<string>("ApplicationNameRegex", @"Application: (.*)"), RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            _versionRegex = new Regex(logFileAnalyzerSection.GetValue<string>("VersionRegex", @"Version: (.*)"), RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            _buildTypeRegex = new Regex(logFileAnalyzerSection.GetValue<string>("BuildTypeRegex", @"Build Type: (.*)"), RegexOptions.Compiled | RegexOptions.IgnoreCase);
             _dateTimeFormat = logFileAnalyzerSection.GetValue<string>("DateTimeFormat", "yyyy/MM/dd HH:mm:ss");
             _logIssueTypeRegexes = new Dictionary<string, Regex>();
             logFileAnalyzerSection.GetSection("LogIssueTypes").GetChildren().ToList().ForEach(issueType =>
@@ -67,7 +67,7 @@ namespace CrashDumpAnalyzer.Utilities
                 var regexString = issueType.GetValue<string>("Regex", string.Empty);
                 if (!string.IsNullOrEmpty(regexString))
                 {
-                    _logIssueTypeRegexes.Add(type, new Regex(regexString, RegexOptions.Compiled));
+                    _logIssueTypeRegexes.Add(type, new Regex(regexString, RegexOptions.Compiled | RegexOptions.IgnoreCase));
                 }
             });
 
