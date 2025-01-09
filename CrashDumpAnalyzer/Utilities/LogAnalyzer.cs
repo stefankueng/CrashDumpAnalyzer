@@ -111,7 +111,7 @@ namespace CrashDumpAnalyzer.Utilities
                         }
                         else if (logIssue.LogIssue.BuildType == -1)
                         {
-                            logIssue.LogIssue.BuildType = BuildTypes.ExtractBuildType(buildTypeString);
+                            logIssue.LogIssue.BuildType = BuildTypes.ParseBuildType(buildTypeString);
                         }
                         else
                             break;

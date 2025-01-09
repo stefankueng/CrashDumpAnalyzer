@@ -73,6 +73,9 @@ namespace CrashDumpAnalyzer.Utilities
         {
             if (_buildTypes.TryGetValue(s, out var type))
                 return type;
+            if (s == emptybuildtype)
+                if (_buildTypes.TryGetValue("", out type))
+                    return type;
             return -1;
         }
 
