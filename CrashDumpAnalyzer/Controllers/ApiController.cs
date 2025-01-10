@@ -820,7 +820,13 @@ namespace CrashDumpAnalyzer.Controllers
             // get all callstacks that do have a FixedVersion set and remove all dump files that are older than 30 days
             if (dbContext.DumpCallstacks == null)
                 return;
-            var callstacks = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).Where(cs => !string.IsNullOrEmpty(cs.FixedVersion)).ToListAsync(token);
+            var callstacks = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
+                .Include(dumpCallstack => dumpCallstack.LogFileLines)
+                            .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                .Where(cs => !string.IsNullOrEmpty(cs.FixedVersion) || cs.Deleted).ToListAsync(token);
+
+            SortedSet<int> logFilesToDelete = new();
+            SortedSet<int> logFilesToKeep = new();
             foreach (var callstack in callstacks)
             {
                 foreach (var dumpInfo in callstack.DumpInfos)
@@ -841,6 +847,40 @@ namespace CrashDumpAnalyzer.Controllers
                         }
                         dumpInfo.FilePath = string.Empty;
                     }
+                }
+
+                foreach (var logLine in callstack.LogFileLines)
+                {
+                    if (logLine.DumpFileInfo != null)
+                    {
+                        if (logLine.Time.AddDays(_deleteDumpsUploadedBeforeDays) < DateTime.Now)
+                            logFilesToDelete.Add(logLine.DumpFileInfo.DumpFileInfoId);
+                        else
+                            logFilesToKeep.Add(logLine.DumpFileInfo.DumpFileInfoId);
+                    }
+                }
+            }
+            await dbContext.SaveChangesAsync(token);
+
+            logFilesToDelete.ExceptWith(logFilesToKeep);
+            if (dbContext.DumpFileInfos != null)
+            {
+                var filesToDelete = await dbContext.DumpFileInfos.Where(x => !string.IsNullOrEmpty(x.FilePath) && logFilesToDelete.Contains(x.DumpFileInfoId)).ToListAsync(token);
+                foreach (var file in filesToDelete)
+                {
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(file.FilePath))
+                        {
+                            System.IO.File.Delete(Path.Combine(_dumpPath, file.FilePath));
+                            _logger.LogInformation($"Deleted log file {Path.Combine(_dumpPath, file.FilePath)}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error deleting log file {Path.Combine(_dumpPath, file.FilePath)}");
+                    }
+                    file.FilePath = string.Empty;
                 }
             }
             await dbContext.SaveChangesAsync(token);
