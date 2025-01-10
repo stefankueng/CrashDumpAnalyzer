@@ -421,8 +421,9 @@ namespace CrashDumpAnalyzer.Controllers
             return NoContent();
         }
         [HttpPost]
-        public async Task<IActionResult> SetTicket(int id, string ticket)
+        public async Task<IActionResult> SetTicket(int id, string? ticket)
         {
+            ticket ??= string.Empty;
             if (_dbContext.DumpCallstacks == null)
                 return NotFound();
             var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
@@ -440,8 +441,9 @@ namespace CrashDumpAnalyzer.Controllers
             return NoContent();
         }
         [HttpPost]
-        public async Task<IActionResult> SetComment(int id, string comment)
+        public async Task<IActionResult> SetComment(int id, string? comment)
         {
+            comment ??= string.Empty;
             _logger.LogInformation("Setting comment for {id} to {comment}", id, comment);
             if (_dbContext.DumpCallstacks == null)
                 return NotFound();
