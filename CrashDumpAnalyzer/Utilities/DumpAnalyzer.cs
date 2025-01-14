@@ -59,7 +59,7 @@ namespace CrashDumpAnalyzer.Utilities
             using Process process = new();
             process.StartInfo.FileName = _cdbExe;
             process.StartInfo.WorkingDirectory = Path.GetDirectoryName(_cdbExe);
-            process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \".logopen /u {tmpFilePath}; !analyze -v; lm lv; .ecxr; kL; .cxr; kL; !peb; q\"";
+            process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \".logopen /u {tmpFilePath}; .time; !analyze -v; lm lv; .ecxr; kL; .cxr; kL; !peb; q\"";
             process.StartInfo.EnvironmentVariables["_NT_SYMBOL_PATH"] = _symbolPath;
             process.StartInfo.EnvironmentVariables["_NT_SOURCE_PATH "] = "srv\\*";
             process.Start();
