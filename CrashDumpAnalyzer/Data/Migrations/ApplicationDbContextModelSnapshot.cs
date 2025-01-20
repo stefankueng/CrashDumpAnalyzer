@@ -90,6 +90,10 @@ namespace CrashDumpAnalyzer.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("ComputerName")
                         .IsRequired()
                         .HasColumnType("TEXT");

@@ -7,6 +7,7 @@ using CrashDumpAnalyzer.Data;
 using CrashDumpAnalyzer.Models;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 
 namespace CrashDumpAnalyzer.Controllers
 {
@@ -82,6 +83,29 @@ namespace CrashDumpAnalyzer.Controllers
             if (Request.HttpContext.Connection.RemoteIpAddress != null)
                 uploadedFromIp = Request.HttpContext.Connection.RemoteIpAddress.ToString();
 
+            string fileComment = string.Empty;
+            if (section != null)
+            {
+                bool hasContentDispositionHeader =
+                    ContentDispositionHeaderValue.TryParse(
+                        section.ContentDisposition, out ContentDispositionHeaderValue? contentDisposition);
+                if (hasContentDispositionHeader)
+                {
+                    if (contentDisposition != null && !MultipartRequestHelper
+                            .HasFileContentDisposition(contentDisposition))
+                    {
+                        if (contentDisposition.Name == "fileComment")
+                        {
+                            using (var stringReader = new StreamReader(section.Body))
+                            {
+                                fileComment = await stringReader.ReadToEndAsync();
+                            }
+                            section = await reader.ReadNextSectionAsync();
+                        }
+                    }
+                }
+            }
+
             while (section != null)
             {
                 bool hasContentDispositionHeader =
@@ -131,6 +155,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 FileSize = targetStream.Length,
                                 UploadDate = DateTime.Now,
                                 UploadedFromIp = uploadedFromIp,
+                                Comment = fileComment
                             };
 
                             DumpCallstack callstack = new DumpCallstack

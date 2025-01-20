@@ -131,12 +131,25 @@
                             <td class="@stateClass" style="max-width: 300px; white-space: normal; word-break: break-word;">
                                 @Html.DisplayFor(modelItem => item.ExceptionType)
                                 <button type="button" style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">🗨</button>
-                                @if (item.Comment.Length > 0)
+                                @{
+                                    var comment = item.Comment;
+                                    foreach (var dumpInfo in item.DumpInfos)
                                 {
+                                        if (dumpInfo.Comment.Length > 0)
+                                        {
+                                            if (comment.Length > 0)
+                                                comment += " ";
+                                            comment += dumpInfo.Comment;
+                                            break;
+                                        }
+                                    }
+                                    @if (comment.Length > 0)
+                                    {
                                     <div style="display: flex; flex-direction: column;">
                                         <hr />
-                                        <p class="comment" style="max-width: 300px; max-height: 1.25em; white-space: nowrap; word-break: break-word; overflow: hidden; text-overflow: ellipsis;">@item.Comment</p>
+                                            <p class="comment" style="max-width: 300px; max-height: 1.5em; white-space: nowrap; word-break: break-word; overflow: hidden; text-overflow: ellipsis;">@comment</p>
                                     </div>
+                                }
                                 }
                             </td>
 

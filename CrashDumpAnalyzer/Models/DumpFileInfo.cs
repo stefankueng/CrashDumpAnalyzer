@@ -24,6 +24,7 @@ namespace CrashDumpAnalyzer.Models
         public string Domain { get; set; } = string.Empty;
         public string VersionResource { get; set; } = string.Empty;
         public string LogSummary { get; set; } = string.Empty;
+        public string Comment { get; set; } = string.Empty;
 
         public int DumpCallstackId { get; set; }
         public DumpCallstack? DumpCallstack { get; set; }
