@@ -1,7 +1,12 @@
 ﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
-// Write your JavaScript code.
+function changeTheme() {
+    const theme = document.documentElement.getAttribute('data-bs-theme') === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-bs-theme', theme);
+    localStorage.setItem('theme', theme);
+}
+
 $(document).on('click', '.collapsible', function () {
     $(this).toggleClass('collapsed');
     console.debug($(this).prev);
@@ -14,6 +19,11 @@ $(document).ready(function () {
             $(this).addClass('single-char');
         }
     });
+    const checkbox = document.getElementById('flexSwitchCheckDefault');
+    const theme = localStorage.getItem('theme');
+    if (theme !== null) {
+        checkbox.checked = !(theme === "light");
+    }
 });
 
 $(function () {

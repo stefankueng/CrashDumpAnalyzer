@@ -8,6 +8,7 @@ html {
     }
 }
 
+[data-bs-theme=light]
 .btn {
     background-color: rgba(0, 0, 255, 0.1);
     border: solid;
@@ -17,22 +18,54 @@ html {
     color: black;
 }
 
-    .btn.single-char {
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Add text shadow */
+.btn.single-char {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Add text shadow */
+}
+
+[data-bs-theme=light]
+.btn:hover {
+    background-color: rgba(0, 0, 255, 0.2);
+    color: black;
+}
+
+[data-bs-theme=light]
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 0, 255, 0.5);
+    background-color: rgba(0, 0, 255, 0.5);
+    color: black;
+}
+
+[data-bs-theme=dark]
+.btn {
+    background-color: rgba(0, 0, 255, 0.1);
+    border: solid;
+    border-color: rgba(255,255,255,0.5);
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+}
+
+[data-bs-theme=dark]
+.btn.single-char {
+        text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5); /* Add text shadow */
     }
 
-    .btn:hover {
+[data-bs-theme=dark]
+.btn:hover {
         background-color: rgba(0, 0, 255, 0.2);
-        color: black;
+        color: gray;
     }
 
-    .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+[data-bs-theme=dark]
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
         outline: none;
         box-shadow: 0 0 5px rgba(0, 0, 255, 0.5);
         background-color: rgba(0, 0, 255, 0.5);
-        color: black;
+        color: gray;
     }
 
+[data-bs-theme=light]
 a.button-link {
     background-color: transparent;
     border: none;
@@ -48,10 +81,33 @@ a.button-link {
     cursor: pointer; /* Pointer cursor on hover */
 }
 
-    a.button-link:hover {
-        background-color: rgba(0, 0, 255, 0.1); /* Slightly less transparent on hover */
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Add text shadow */
-    }
+[data-bs-theme=dark]
+a.button-link {
+    background-color: transparent;
+    border: none;
+    border-color: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    color: blue;
+    display: inline-block;
+    padding: 5px 10px; /* Padding for button-like appearance */
+    text-decoration: none; /* Remove underline */
+    font-size: 17px; /* Adjust font size as needed */
+    text-align: center; /* Center text */
+    cursor: pointer; /* Pointer cursor on hover */
+}
+
+[data-bs-theme=light]
+a.button-link:hover {
+    background-color: rgba(0, 0, 255, 0.1); /* Slightly less transparent on hover */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Add text shadow */
+}
+
+[data-bs-theme=dark]
+a.button-link:hover {
+    background-color: rgba(0, 0, 255, 0.1); /* Slightly less transparent on hover */
+    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5); /* Add text shadow */
+}
 
 html {
     position: relative;
@@ -142,8 +198,16 @@ body {
     padding: 2px;
 }
 
+[data-bs-theme=light]
 .grid-item {
     border: 1px solid rgba(0, 0, 0, 0.8);
+    padding: 2px;
+    white-space: pre;
+    text-align: left;
+}
+[data-bs-theme=dark]
+.grid-item {
+    border: 1px solid rgba(255, 255, 255, 0.8);
     padding: 2px;
     white-space: pre;
     text-align: left;
@@ -159,13 +223,25 @@ body {
         white-space: pre-wrap;
     }
 
+[data-bs-theme=light]
 .grid-item-done {
     background-color: rgba(200,200,200,0.8);
     color: gray;
 }
+[data-bs-theme=dark]
+.grid-item-done {
+    background-color: rgba(80,80,80,0.8);
+    color: darkgray;
+}
 
+[data-bs-theme=light]
 .grid-item-notdone {
     background-color: rgba(255,120,120,0.3);
+    color: red;
+}
+[data-bs-theme=dark]
+.grid-item-notdone {
+    background-color: rgba(180,60,60,0.3);
     color: red;
 }
 
@@ -176,12 +252,20 @@ body {
     border-collapse: collapse;
 }
 
-    .flowTable td, th {
-        display: table-cell;
-        border: 1px solid black;
-        text-align: left;
-        padding: 2px;
-    }
+[data-bs-theme=light]
+.flowTable td, th {
+    display: table-cell;
+    border: 1px solid black;
+    text-align: left;
+    padding: 2px;
+}
+[data-bs-theme=dark]
+.flowTable td, th {
+    display: table-cell;
+    border: 1px solid gray;
+    text-align: left;
+    padding: 2px;
+}
 
 .callstack {
     min-width: 0;
@@ -213,13 +297,24 @@ body {
     cursor: move;
 }
 
-    .draggable.over {
-        border: 3px #000;
-        background-color: gray;
-    }
+[data-bs-theme=light]
+.draggable.over {
+    border: 3px #000;
+    background-color: gray;
+}
+[data-bs-theme=dark]
+.draggable.over {
+    border: 3px #fff;
+    background-color: darkgray;
+}
 
+[data-bs-theme=light]
 .comment {
     color: rgb(0, 120, 0);
+}
+[data-bs-theme=dark]
+.comment {
+    color: rgb(0, 180, 0);
 }
 
 table {
@@ -227,6 +322,7 @@ table {
     width: 100%;
 }
 
+[data-bs-theme=light]
 table, th, td {
     border: 1px solid black;
     text-align: left;
@@ -235,9 +331,23 @@ table, th, td {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+[data-bs-theme=dark]
+table, th, td {
+    border: 1px solid gray;
+    text-align: left;
+    padding: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
+[data-bs-theme=light]
 tr:hover {
     background-color: #f5f5f5;
+}
+[data-bs-theme=dark]
+tr:hover {
+    background-color: #353535;
 }
 
 form.nosubmit {
@@ -253,7 +363,13 @@ input.nosubmit {
     background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' class='bi bi-search' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'%3E%3C/path%3E%3C/svg%3E") no-repeat 13px center;
 }
 
+[data-bs-theme=light]
 .title {
     text-shadow: 0px 0.05em 0.1em #555;
+    font-weight: bold;
+}
+[data-bs-theme=dark]
+.title {
+    text-shadow: 0px 0.05em 0.1em #999;
     font-weight: bold;
 }
