@@ -40,7 +40,7 @@ html {
 .btn {
     background-color: rgba(0, 0, 255, 0.1);
     border: solid;
-    border-color: rgba(255,255,255,0.5);
+    border-color: rgba(150,150,150,0.5);
     border-radius: 4px;
     cursor: pointer;
     color: white;
@@ -48,7 +48,7 @@ html {
 
 [data-bs-theme=dark]
 .btn.single-char {
-        text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5); /* Add text shadow */
+        text-shadow: 2px 2px 4px rgba(190, 190, 190, 0.5); /* Add text shadow */
     }
 
 [data-bs-theme=dark]
@@ -60,8 +60,8 @@ html {
 [data-bs-theme=dark]
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
         outline: none;
-        box-shadow: 0 0 5px rgba(0, 0, 255, 0.5);
-        background-color: rgba(0, 0, 255, 0.5);
+        box-shadow: 0 0 5px rgba(0, 0, 200, 0.5);
+        background-color: rgba(0, 0, 200, 0.5);
         color: gray;
     }
 
@@ -85,10 +85,10 @@ a.button-link {
 a.button-link {
     background-color: transparent;
     border: none;
-    border-color: rgba(255,255,255,0.1);
+    border-color: rgba(150,150,150,0.1);
     border-radius: 4px;
     cursor: pointer;
-    color: blue;
+    color: lightblue;
     display: inline-block;
     padding: 5px 10px; /* Padding for button-like appearance */
     text-decoration: none; /* Remove underline */
@@ -105,8 +105,8 @@ a.button-link:hover {
 
 [data-bs-theme=dark]
 a.button-link:hover {
-    background-color: rgba(0, 0, 255, 0.1); /* Slightly less transparent on hover */
-    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5); /* Add text shadow */
+    background-color: rgba(0, 0, 150, 0.1); /* Slightly less transparent on hover */
+    text-shadow: 2px 2px 4px rgba(150, 150, 150, 0.5); /* Add text shadow */
 }
 
 html {
@@ -207,7 +207,7 @@ body {
 }
 [data-bs-theme=dark]
 .grid-item {
-    border: 1px solid rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(180, 180, 180, 0.8);
     padding: 2px;
     white-space: pre;
     text-align: left;
@@ -304,7 +304,7 @@ body {
 }
 [data-bs-theme=dark]
 .draggable.over {
-    border: 3px #fff;
+    border: 3px #aaa;
     background-color: darkgray;
 }
 
@@ -355,12 +355,21 @@ form.nosubmit {
     padding: 0;
 }
 
+[data-bs-theme=light]
 input.nosubmit {
     width: 100%;
     border: 1px solid #555;
     display: block;
     padding: 9px 4px 9px 40px;
-    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' class='bi bi-search' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'%3E%3C/path%3E%3C/svg%3E") no-repeat 13px center;
+    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='black' width='16' height='16' class='bi bi-search' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'%3E%3C/path%3E%3C/svg%3E") no-repeat 13px center;
+}
+[data-bs-theme=dark]
+input.nosubmit {
+    width: 100%;
+    border: 1px solid #555;
+    display: block;
+    padding: 9px 4px 9px 40px;
+    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='lightgray' width='16' height='16' class='bi bi-search' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'%3E%3C/path%3E%3C/svg%3E") no-repeat 13px center;
 }
 
 [data-bs-theme=light]
