@@ -7,7 +7,7 @@ namespace CrashDumpAnalyzer.Utilities
         public static string GetAssemblyVersion()
         {
             var infoVersion = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute), false).FirstOrDefault() as AssemblyInformationalVersionAttribute;
-            return infoVersion.InformationalVersion;
+            return infoVersion?.InformationalVersion ?? string.Empty;
         }
     }
 }

@@ -106,8 +106,11 @@
                                             <td style="border-style:none;border-width:0"></td>
                                         }
                                         <td style="border-style:none;border-width:0">Entry from @dumpInfo.Time (@dumpInfo.Time.AsTimeAgo())</td>
-                                        <td style="border-style:none;border-width:0">Uploaded @dumpInfo.DumpFileInfo.UploadDate (@dumpInfo.DumpFileInfo.UploadDate.AsTimeAgo())<br />from ip: @dumpInfo.DumpFileInfo.UploadedFromIp, hotstname: @dumpInfo.DumpFileInfo.UploadedFromHostname</td>
-                                        <td style="border-style:none;border-width:0">Hostname: @dumpInfo.DumpFileInfo.ComputerName, domain: @dumpInfo.DumpFileInfo.Domain</td>
+                                        @if (dumpInfo.DumpFileInfo != null)
+                                        {
+                                            <td style="border-style:none;border-width:0">Uploaded @dumpInfo.DumpFileInfo.UploadDate (@dumpInfo.DumpFileInfo.UploadDate.AsTimeAgo())<br />from ip: @dumpInfo.DumpFileInfo.UploadedFromIp, hotstname: @dumpInfo.DumpFileInfo.UploadedFromHostname</td>
+                                            <td style="border-style:none;border-width:0">Hostname: @dumpInfo.DumpFileInfo.ComputerName, domain: @dumpInfo.DumpFileInfo.Domain</td>
+                                        }
                                     </tr>
                                 }
                             }
