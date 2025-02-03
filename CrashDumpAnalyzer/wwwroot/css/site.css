@@ -118,6 +118,7 @@ body {
     margin-bottom: 60px;
 }
 
+[data-bs-theme=light]
 #files-label {
     display: flex;
     align-items: center;
@@ -129,6 +130,25 @@ body {
     font-weight: bold;
     font-size: 25px;
     border: 2px solid black;
+    margin: 0;
+    text-align: center;
+    transition: .5s;
+    animation-duration: 1s;
+    animation-fill-mode: forwards;
+    animation-iteration-count: infinite;
+}
+[data-bs-theme=dark]
+#files-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 10vh;
+    width: 100%;
+    background-color: #411;
+    color: white;
+    font-weight: bold;
+    font-size: 25px;
+    border: 2px solid gray;
     margin: 0;
     text-align: center;
     transition: .5s;
@@ -230,7 +250,7 @@ body {
 }
 [data-bs-theme=dark]
 .grid-item-done {
-    background-color: rgba(80,80,80,0.8);
+    background-color: rgba(50,50,50,0.8);
     color: darkgray;
 }
 
@@ -241,7 +261,7 @@ body {
 }
 [data-bs-theme=dark]
 .grid-item-notdone {
-    background-color: rgba(180,60,60,0.3);
+    background-color: rgba(100,20,20,0.3);
     color: red;
 }
 
