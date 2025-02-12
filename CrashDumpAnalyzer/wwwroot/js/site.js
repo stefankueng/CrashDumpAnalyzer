@@ -26,6 +26,19 @@ $(document).ready(function () {
     }
 });
 
+const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]')
+const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl, { html: true, sanitize: false, container: 'body' }))
+$('[data-bs-toggle="popover"]').click(function (e) {
+    e.preventDefault();
+    $('[data-bs-toggle="popover"]').not(this).popover('hide');
+    $(this).popover('toggle');
+});
+
+$(document).click(function (e) {
+    if ($(e.target).parent().find('[data-bs-toggle="popover"]').length > 0) {
+        $('[data-bs-toggle="popover"]').popover('hide');
+    }
+});
 $(function () {
     $('#setFixedVersionModal').on('show.bs.modal', function (e) {
         $('.modalTextInput').val('');

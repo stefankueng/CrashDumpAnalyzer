@@ -316,6 +316,9 @@ body {
 .draggable {
     cursor: move;
 }
+.popover{
+    max-width: 100%;
+}
 
 [data-bs-theme=light]
 .draggable.over {
