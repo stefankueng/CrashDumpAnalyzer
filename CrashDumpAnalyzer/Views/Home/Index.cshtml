@@ -173,7 +173,7 @@
                                         content.AppendLine($"<p>{del} dump files deleted</p>");
                                     }
                                     var contentS = content.ToString();
-                                    <a style="display:block;" tabindex="0" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS' style="max-width: 600px;">@dumpCountInfo</a>
+                                    <a style="display:block; max-width: 600px;" tabindex="0" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS'>@dumpCountInfo</a>
                                 }
                                 @if (item.LogFileLines.Count > 0)
                                 {
@@ -194,12 +194,12 @@
                                         content.AppendLine($"<p>{del} entries deleted</p>");
                                     }
                                     var contentS = content.ToString();
-                                    <a style="display:block;" tabindex="0" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS'>@dumpCountInfo</a>
+                                    <a style="display:block;" tabindex="0" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS'>@dumpCountInfo</a>
                                 }
                             </td>
 
                             <!-- call stack -->
-                            <td class="collapsed callstack @stateClass"><a style="display:block;" tabindex="0" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-trigger="click" title="Callstack" data-bs-content="<span class='callstack'>@Html.DisplayFor(modelItem => item.Callstack)</span>">@Html.DisplayFor(modelItem => item.Callstack)</a></td>
+                            <td class="collapsed callstack @stateClass"><a style="display:block;" tabindex="0" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Callstack" data-bs-content="<span class='callstack'>@Html.DisplayFor(modelItem => item.Callstack)</span>">@Html.DisplayFor(modelItem => item.Callstack)</a></td>
                             <!-- delete and ungroup buttons -->
                             <td class="@stateClass">
                                 <button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)" title="delete callstack">❌</button>

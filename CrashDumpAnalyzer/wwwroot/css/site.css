@@ -319,7 +319,11 @@ body {
 .popover{
     max-width: 100%;
 }
-
+.popover-body {
+    max-height: 800px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
 [data-bs-theme=light]
 .draggable.over {
     border: 3px #000;
