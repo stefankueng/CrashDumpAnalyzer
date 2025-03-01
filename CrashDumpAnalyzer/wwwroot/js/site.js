@@ -33,11 +33,9 @@ $('[data-bs-toggle="popover"]').click(function (e) {
     $('[data-bs-toggle="popover"]').not(this).popover('hide');
     $(this).popover('toggle');
 });
-
 $(document).click(function (e) {
-    if ($(e.target).parent().find('[data-bs-toggle="popover"]').length > 0) {
-        $('[data-bs-toggle="popover"]').popover('hide');
-    }
+    $('[data-bs-toggle="popover"]').popover('hide');
+
 });
 $(function () {
     $('#setFixedVersionModal').on('show.bs.modal', function (e) {
