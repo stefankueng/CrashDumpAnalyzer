@@ -11,18 +11,30 @@ using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Net;
 using System.Text.RegularExpressions;
+using CrashDumpAnalyzer.IssueTrackers.Interfaces;
+using CrashDumpAnalyzer.IssueTrackers.Data;
 
 namespace CrashDumpAnalyzer.Controllers
 {
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly IConfiguration _configuration;
+        private readonly IIssueTracker _issueTracker;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly ApplicationDbContext _dbContext;
         private readonly int _daysBack;
 
-        public HomeController(IConfiguration configuration, ILogger<HomeController> logger, ApplicationDbContext context)
+        public HomeController(IConfiguration configuration,
+            ILogger<HomeController> logger,
+            IIssueTracker issueTracker,
+            IHttpClientFactory httpClientFactory,
+            ApplicationDbContext context)
         {
             _logger = logger;
+            _configuration = configuration;
+            _issueTracker = issueTracker;
+            _httpClientFactory = httpClientFactory;
             _dbContext = context;
             _daysBack = configuration.GetValue<int>("ShowEntriesForDaysBack") > 0 ? configuration.GetValue<int>("ShowEntriesForDaysBack") : 180;
             Constants.TicketBaseUrl = configuration.GetValue<string>("TicketBaseUrl") ?? string.Empty;
@@ -34,11 +46,13 @@ namespace CrashDumpAnalyzer.Controllers
             {
                 var resultList = await FetchCallStacks(null, deleted, searchString);
                 var dumpList = await FetchLastDumpFileInfos();
+                var issueData = await GetIssueData(resultList);
                 var data = new IndexPageData
                 {
                     Callstacks = resultList,
                     UploadedDumps = dumpList,
-                    ActiveFilterString = searchString
+                    ActiveFilterString = searchString,
+                    IssueData = issueData
                 };
                 return View(data);
             }
@@ -76,6 +90,20 @@ namespace CrashDumpAnalyzer.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        private async Task<Dictionary<string, IssueData>> GetIssueData(List<DumpCallstack> callstacks)
+        {
+            if (_issueTracker != null)
+            {
+                var issueIds = callstacks.Select(callstack => callstack.Ticket).Distinct().ToList();
+                issueIds.RemoveAll(string.IsNullOrEmpty);
+                issueIds = issueIds.Distinct().ToList();
+
+                var httpClient = _httpClientFactory.CreateClient();
+                return await _issueTracker.GetIssueDataAsync(httpClient, issueIds, CancellationToken.None);
+            }
+            return new Dictionary<string, IssueData>();
         }
 
         private async Task<List<DumpFileInfo>> FetchLastDumpFileInfos()

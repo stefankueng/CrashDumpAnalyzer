@@ -1,10 +1,13 @@
 using CrashDumpAnalyzer.Data;
+using CrashDumpAnalyzer.IssueTrackers;
+using CrashDumpAnalyzer.IssueTrackers.Interfaces;
 using CrashDumpAnalyzer.Services;
 using CrashDumpAnalyzer.Utilities;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,6 +42,11 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = long.MaxValue; // if don't set default value is: 128 MB
     options.MultipartHeadersLengthLimit = int.MaxValue;
 });
+builder.Services.AddHttpClient();
+
+var issueTracker = IssueTrackerFactory.GetIssueTracker(builder.Configuration);
+builder.Services.AddSingleton(issueTracker);
+
 var app = builder.Build();
 
 using (var serviceScope = app.Services.GetService<IServiceScopeFactory>()?.CreateScope())

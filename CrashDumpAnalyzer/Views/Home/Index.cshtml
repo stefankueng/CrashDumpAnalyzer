@@ -101,6 +101,11 @@
                                 @if (item.Ticket.Length > 0)
                                 {
                                     <a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank" class="ticket">@item.Ticket</a>
+                                    @if (Model.IssueData.ContainsKey(item.Ticket))
+                                    {
+                                        var issue = Model.IssueData[item.Ticket];
+                                        <div data-bs-toggle="tooltip" title="@issue.Title" style="background-color: @issue.StateColor">@issue.State</div>
+                                    }
                                 }
                                 @if (item.ApplicationName != Constants.UnassignedDumpNames)
                                 {
