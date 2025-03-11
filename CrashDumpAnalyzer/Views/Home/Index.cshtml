@@ -12,10 +12,10 @@
                 <form action="/Api/UploadFiles" method="post" enctype="multipart/form-data" onsubmit="return submitFilesForm(this);">
                     <input type="file" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
                     <label for="files-field" id="files-label"
-                           ondragover="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
-                           ondragenter="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
-                           ondragleave="stopDefault(event);dragLeave(this);"
-                           ondrop="stopDefault(event);dragLeave(this);addFilesAndSubmit(event);">Click to choose dump files or drag-n-drop them here</label>
+                    ondragover="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
+                    ondragenter="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
+                    ondragleave="stopDefault(event);dragLeave(this);"
+                    ondrop="stopDefault(event);dragLeave(this);addFilesAndSubmit(event);">Click to choose dump files or drag-n-drop them here</label>
                 </form>
                 <div style="text-align: left;"><div id="files-progress"></div></div>
                 <div style="text-align: left; padding-bottom: 10px; padding-top: 5px">
@@ -104,7 +104,8 @@
                                     @if (Model.IssueData.ContainsKey(item.Ticket))
                                     {
                                         var issue = Model.IssueData[item.Ticket];
-                                        <div data-bs-toggle="tooltip" title="@issue.Title" style="background-color: @issue.StateColor">@issue.State</div>
+                                        var className = "issue-" + @issue.StateColor;
+                                        <div data-bs-toggle="tooltip" title="@issue.Title" class="@className" style="background-color: @issue.StateColor">@issue.State</div>
                                     }
                                 }
                                 @if (item.ApplicationName != Constants.UnassignedDumpNames)

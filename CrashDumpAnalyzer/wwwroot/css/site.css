@@ -409,3 +409,13 @@ input.nosubmit {
     text-shadow: 0px 0.05em 0.1em #999;
     font-weight: bold;
 }
+
+.issue-todo{
+    background-color: grey
+}
+.issue-inprogress{
+    background-color: blue
+}
+.issue-success{
+    background-color: green
+}
