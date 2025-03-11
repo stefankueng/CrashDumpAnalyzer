@@ -10,6 +10,7 @@ namespace CrashDumpAnalyzer.IssueTrackers.Integrations
         private readonly string? _jiraUrl;
         private readonly string? _jiraUsername;
         private readonly string? _jiraPassword;
+        private readonly string? _bearerToken;
 
         public Jira(IConfiguration configuration)
         {
@@ -18,19 +19,27 @@ namespace CrashDumpAnalyzer.IssueTrackers.Integrations
             _jiraUrl = jiraSection.GetValue<string>("Url");
             _jiraUsername = jiraSection.GetValue<string>("Username");
             _jiraPassword = jiraSection.GetValue<string>("Password");
+            _bearerToken = jiraSection.GetValue<string>("BearerToken");
         }
         public async Task<Dictionary<string, IssueData>> GetIssueDataAsync(HttpClient httpClient, List<string> issueIds, CancellationToken token)
         {
             Dictionary<string, IssueData> issueDataList = new Dictionary<string, IssueData>();
             string issueListString = string.Join(", ", issueIds);
             string jiraUrl = $"{_jiraUrl}search?maxResults=10000&jql=key in ({issueListString})&fields=key,title,status,summary";
- 
+
             using (var request = new HttpRequestMessage(HttpMethod.Get, jiraUrl))
             {
                 request.Headers.TryAddWithoutValidation("Accept", "application/json");
-                var base64authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_jiraUsername}:{_jiraPassword}"));
-                request.Headers.TryAddWithoutValidation("Authorization", $"Basic {base64authorization}");
-
+                if (string.IsNullOrEmpty(_jiraUsername) && !string.IsNullOrEmpty(_bearerToken))
+                {
+                    // set the bearer token
+                    request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {_bearerToken}");
+                }
+                else
+                {
+                    var base64authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_jiraUsername}:{_jiraPassword}"));
+                    request.Headers.TryAddWithoutValidation("Authorization", $"Basic {base64authorization}");
+                }
                 var response = await httpClient.SendAsync(request, token);
 
                 if (response.IsSuccessStatusCode)
