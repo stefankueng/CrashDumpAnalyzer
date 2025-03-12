@@ -410,12 +410,33 @@ input.nosubmit {
     font-weight: bold;
 }
 
-.issue-todo{
-    background-color: grey
+[data-bs-theme=light]
+.issue-default {
+    background-color: lightgrey;
+    color: black;
 }
-.issue-inprogress{
-    background-color: blue
+[data-bs-theme=dark]
+.issue-default {
+    background-color: black;
+    color: lightgrey;
 }
-.issue-success{
-    background-color: green
+[data-bs-theme=light]
+.issue-inprogress {
+    background-color: lightblue;
+    color: darkblue;
+}
+[data-bs-theme=dark]
+.issue-inprogress {
+    background-color: darkblue;
+    color: lightblue;
+}
+[data-bs-theme=light]
+.issue-success {
+    background-color: lightgreen;
+    color: darkgreen;
+}
+[data-bs-theme=dark]
+.issue-success {
+    background-color: darkgreen;
+    color: lightgreen;
 }
