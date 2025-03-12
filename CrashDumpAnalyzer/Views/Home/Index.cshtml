@@ -72,7 +72,7 @@
                 </tr>
                 @foreach (var item in Model.Callstacks)
                 {
-                    @if (item.DumpInfos.Count == 0 && item is { Deleted: false, LogFileLines.Count: 0 })
+                    @if (item.DumpInfos.Count == 0 && item is { Deleted: false, LogFileDatas.Count: 0 })
                         continue;
                     // skip empty dump callstacks
                     {
@@ -87,10 +87,19 @@
                             stateClass = "grid-item-notdone";
 
                         string dumpCountInfo = string.Empty;
-                        if (item.DumpInfos.Count > 0 && item.LogFileLines.Count == 0)
+                        if (item.DumpInfos.Count > 0 && item.LogFileDatas.Count == 0)
                             dumpCountInfo = item.ApplicationName == "Unassigned" ? @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") : @item.DumpInfos.Count + " dump" + (@item.DumpInfos.Count == 1 ? "" : "s") + ", uploaded " + @item.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate).AsTimeAgo();
-                        else if (item.LogFileLines.Count > 0)
-                            dumpCountInfo = @item.LogFileLines.Count + " line" + (@item.LogFileLines.Count == 1 ? "" : "s");
+                        else if (item.LogFileDatas.Count > 0)
+                        {
+                            long lineCount = 0;
+                            foreach (var data in item.LogFileDatas)
+                            {
+                                if (data.LineNumbers != null)
+                                    lineCount += data.LineNumbers.Count;
+                            }
+                            dumpCountInfo = @lineCount + " line" + (@lineCount == 1 ? "" : "s");
+                            dumpCountInfo += " in " + item.LogFileDatas.Count + " file" + (@item.LogFileDatas.Count == 1 ? "" : "s");
+                        }
                         <tr>
                             <!-- application name -->
                             <td class="@stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">@Html.DisplayFor(modelItem => item.ApplicationName) <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;" class="button-link">◎</a></td>
@@ -100,12 +109,15 @@
                             <td class="@stateClass">
                                 @if (item.Ticket.Length > 0)
                                 {
-                                    @if (Model.IssueData.ContainsKey(item.Ticket))
+                                    @if (Model.IssueData != null && Model.IssueData.ContainsKey(item.Ticket))
                                     {
                                         var issue = Model.IssueData[item.Ticket];
-                                        var className = "issue-" + @issue.StateColor;
-                                        <a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank" data-bs-toggle="tooltip" title="@issue.Title" class="ticket">@item.Ticket</a>
-                                        <div data-bs-toggle="tooltip" title="@issue.Title" class="@className" style="background-color: @issue.StateColor">@issue.State</div>
+                                        if (issue != null)
+                                        {
+                                            var className = "issue-" + @issue.StateColor;
+                                            <a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank" data-bs-toggle="tooltip" title="@issue.Title" class="ticket">@item.Ticket</a>
+                                            <div data-bs-toggle="tooltip" title="@issue.Title" class="@className" style="background-color: @issue.StateColor">@issue.State</div>
+                                        }
                                     }
                                     else
                                     {
@@ -165,7 +177,7 @@
 
                             <!-- dump list -->
                             <td class="collapsed @stateClass">
-                                @if (item.DumpInfos.Count > 0 && item.LogFileLines.Count == 0)
+                                @if (item.DumpInfos.Count > 0 && item.LogFileDatas.Count == 0)
                                 {
                                     var content = new System.Text.StringBuilder();
                                     var del = 0;
@@ -185,16 +197,16 @@
                                     var contentS = content.ToString();
                                     <a style="display:block; max-width: 600px;" tabindex="0" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS'>@dumpCountInfo</a>
                                 }
-                                @if (item.LogFileLines.Count > 0)
+                                @if (item.LogFileDatas.Count > 0)
                                 {
                                     var content = new System.Text.StringBuilder();
                                     var del = 0;
-                                    foreach (var dumpInfo in item.LogFileLines)
+                                    foreach (var dumpInfo in item.LogFileDatas)
                                     {
-                                        if (dumpInfo.DumpFileInfo is { FilePath.Length: > 0 })
+                                        if (dumpInfo.DumpFileInfo is { FilePath.Length: > 0 } && dumpInfo.LineNumbers != null)
                                         {
-                                            var lnk = @dumpInfo.DumpFileInfo.DumpFileInfoId + "#" + @dumpInfo.LineNumber;
-                                            content.AppendLine($@"<span><p data-bs-toggle=""tooltip"" title=""{@dumpInfo.Time}""><a href=""/Api/DownloadFile/{@lnk}"" target=""_blank"">line {@dumpInfo.LineNumber} ({@SizeFormatter.SizeSuffix(dumpInfo.DumpFileInfo.FileSize)})</a></p></span>");
+                                            var lnk = @dumpInfo.DumpFileInfo.DumpFileInfoId + "#" + @dumpInfo.LineNumbers[0];
+                                            content.AppendLine($@"<span><p data-bs-toggle=""tooltip"" title=""{@dumpInfo.LatestTime}""><a href=""/Api/DownloadFile/{@lnk}"" target=""_blank"">{@dumpInfo.LineNumbers.Count} lines ({@SizeFormatter.SizeSuffix(dumpInfo.DumpFileInfo.FileSize)})</a></p></span>");
                                         }
                                         else
                                             ++del;

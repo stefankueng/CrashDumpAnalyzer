@@ -8,6 +8,7 @@ using CrashDumpAnalyzer.Models;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
+using System.Text;
 
 namespace CrashDumpAnalyzer.Controllers
 {
@@ -276,7 +277,7 @@ namespace CrashDumpAnalyzer.Controllers
                 return NotFound();
             var dumpCallstack = await _dbContext.DumpCallstacks
                 .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                .Include(dumpCallstack => dumpCallstack.LogFileLines).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                 .FirstAsync(cs => cs.DumpCallstackId == id);
             if (dumpCallstack.DumpCallstackId != id)
                 return NotFound();
@@ -295,10 +296,10 @@ namespace CrashDumpAnalyzer.Controllers
                         // check if the dumpInfo is referenced by another callstack
                         var otherCallstacks = await _dbContext.DumpCallstacks
                             .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                            .Include(dumpCallstack => dumpCallstack.LogFileLines).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                            .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .AnyAsync(cs => cs.DumpCallstackId != dumpInfo.DumpCallstackId && cs.Deleted == false &&
                             (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
-                            cs.LogFileLines.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath)));
+                            cs.LogFileDatas.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath)));
                         if (otherCallstacks)
                             deleteFile = false;
                         if (deleteFile && !string.IsNullOrEmpty(dumpInfo.FilePath))
@@ -311,7 +312,7 @@ namespace CrashDumpAnalyzer.Controllers
                     if (deleteFile)
                         dumpInfo.FilePath = string.Empty;
                 }
-                foreach (var logFileLine in dumpCallstack.LogFileLines)
+                foreach (var logFileLine in dumpCallstack.LogFileDatas)
                 {
                     var dumpInfo = logFileLine.DumpFileInfo;
                     if (dumpInfo == null)
@@ -320,11 +321,11 @@ namespace CrashDumpAnalyzer.Controllers
                         continue;
                     var otherCallstacks = await _dbContext.DumpCallstacks
                         .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                        .Include(dumpCallstack => dumpCallstack.LogFileLines).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                        .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                         .Where(cs => cs.DumpCallstackId != id && cs.Deleted == false &&
                         (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
-                        cs.LogFileLines.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath))).ToListAsync();
-                    if (otherCallstacks.Count==0 && !string.IsNullOrEmpty(dumpInfo.FilePath))
+                        cs.LogFileDatas.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath))).ToListAsync();
+                    if (otherCallstacks.Count == 0 && !string.IsNullOrEmpty(dumpInfo.FilePath))
                     {
                         System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
                         dumpInfo.FilePath = string.Empty;
@@ -345,10 +346,10 @@ namespace CrashDumpAnalyzer.Controllers
                             {
                                 var otherCallstacks = await _dbContext.DumpCallstacks
                                     .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                                    .Include(dumpCallstack => dumpCallstack.LogFileLines).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                                    .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                                     .AnyAsync(cs => cs.DumpCallstackId != dumpInfo.DumpCallstackId && cs.Deleted == false &&
                                     (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
-                                    cs.LogFileLines.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath)));
+                                    cs.LogFileDatas.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath)));
                                 if (otherCallstacks)
                                     deleteFile = false;
                                 if (deleteFile && !string.IsNullOrEmpty(dumpInfo.FilePath))
@@ -361,17 +362,17 @@ namespace CrashDumpAnalyzer.Controllers
                             if (deleteFile)
                                 dumpInfo.FilePath = string.Empty;
                         }
-                        foreach (var logFileLine in callStack.LogFileLines)
+                        foreach (var logFileLine in callStack.LogFileDatas)
                         {
                             var dumpInfo = logFileLine.DumpFileInfo;
                             if (dumpInfo == null)
                                 continue;
                             var otherCallstacks = await _dbContext.DumpCallstacks
                                 .Include(callStack => callStack.DumpInfos)
-                                .Include(callStack => callStack.LogFileLines).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                                .Include(callStack => callStack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                                 .AnyAsync(cs => cs.DumpCallstackId != callStack.DumpCallstackId && cs.Deleted == false &&
                                 (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
-                                cs.LogFileLines.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath)));
+                                cs.LogFileDatas.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath)));
                             if (!otherCallstacks && !string.IsNullOrEmpty(dumpInfo.FilePath))
                             {
                                 System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
@@ -685,23 +686,32 @@ namespace CrashDumpAnalyzer.Controllers
                     ApplicationName = logIssue.Key.ApplicationName,
                     ApplicationVersion = logIssue.Key.ApplicationVersion,
                     BuildType = logIssue.Key.BuildType,
-                    LogFileLines = new List<LogFileLine>()
+                    LogFileDatas = new List<LogFileData>()
                 };
-                foreach (var line in logIssue.Value)
+                if (logIssue.Value.Count > 0)
                 {
-                    callstack.LogFileLines.Add(new LogFileLine
+                    var logFileLine = new LogFileData
                     {
-                        LineNumber = line.lineNumber,
-                        Time = line.date,
                         DumpFileInfo = entry,
-                    });
+                        LatestTime = DateTime.MinValue,
+                        LineNumberString = string.Empty,
+                        LineNumbers = []
+                    };
+                    callstack.LogFileDatas.Add(logFileLine);
+
+                    foreach (var line in logIssue.Value)
+                    {
+                        logFileLine.LineNumbers.Add(line.lineNumber);
+                        logFileLine.LatestTime = logFileLine.LatestTime < line.date ? line.date : logFileLine.LatestTime;
+                    }
+                    logFileLine.LineNumberString = string.Join(",", logFileLine.LineNumbers);
                 }
                 bool doUpdate = false;
                 if (dbContext.DumpCallstacks != null)
                 {
                     try
                     {
-                        var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.LogFileLines).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                        var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .FirstOrDefaultAsync(
                             x => x.CleanCallstack == logIssue.Key.IssueText && x.ApplicationName == logIssue.Key.ApplicationName, token);
 
@@ -716,14 +726,24 @@ namespace CrashDumpAnalyzer.Controllers
                                 callstack.ApplicationVersion = logIssue.Key.ApplicationVersion;
                                 callstack.BuildType = logIssue.Key.BuildType;
                             }
-                            foreach (var line in logIssue.Value)
+
+                            if (logIssue.Value.Count > 0)
                             {
-                                callstack.LogFileLines.Add(new LogFileLine
+                                var logFileLine = new LogFileData
                                 {
-                                    LineNumber = line.lineNumber,
-                                    Time = line.date,
-                                    DumpFileInfo = entry
-                                });
+                                    DumpFileInfo = entry,
+                                    LatestTime = DateTime.MinValue,
+                                    LineNumberString = string.Empty,
+                                    LineNumbers = []
+                                };
+                                callstack.LogFileDatas.Add(logFileLine);
+
+                                foreach (var line in logIssue.Value)
+                                {
+                                    logFileLine.LineNumbers.Add(line.lineNumber);
+                                    logFileLine.LatestTime = logFileLine.LatestTime < line.date ? line.date : logFileLine.LatestTime;
+                                }
+                                logFileLine.LineNumberString = string.Join(",", logFileLine.LineNumbers);
                             }
 
                             doUpdate = true;
@@ -731,7 +751,7 @@ namespace CrashDumpAnalyzer.Controllers
                             // if this dump is linked to another callstack, we need to ensure the linked callstack is not deleted
                             if (cs.LinkedToDumpCallstackId != 0)
                             {
-                                var linked = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.LogFileLines).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                                var linked = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                                     .FirstOrDefaultAsync(x => x.DumpCallstackId == cs.LinkedToDumpCallstackId, token);
                                 if (linked != null)
                                 {
@@ -910,7 +930,7 @@ namespace CrashDumpAnalyzer.Controllers
             if (dbContext.DumpCallstacks == null)
                 return;
             var callstacks = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
-                .Include(dumpCallstack => dumpCallstack.LogFileLines)
+                .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                             .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                 .Where(cs => !string.IsNullOrEmpty(cs.FixedVersion) || cs.Deleted).ToListAsync(token);
 
@@ -938,11 +958,11 @@ namespace CrashDumpAnalyzer.Controllers
                     }
                 }
 
-                foreach (var logLine in callstack.LogFileLines)
+                foreach (var logLine in callstack.LogFileDatas)
                 {
                     if (logLine.DumpFileInfo != null)
                     {
-                        if (logLine.Time.AddDays(_deleteDumpsUploadedBeforeDays) < DateTime.Now)
+                        if (logLine.LatestTime.AddDays(_deleteDumpsUploadedBeforeDays) < DateTime.Now)
                             logFilesToDelete.Add(logLine.DumpFileInfo.DumpFileInfoId);
                         else
                             logFilesToKeep.Add(logLine.DumpFileInfo.DumpFileInfoId);

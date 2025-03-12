@@ -15,14 +15,14 @@ namespace CrashDumpAnalyzer.Data
 
         public DbSet<DumpFileInfo>? DumpFileInfos { get; set; }
         public DbSet<DumpCallstack>? DumpCallstacks { get; set; }
-        public DbSet<LogFileLine>? LogFileLines { get; set; }
+        public DbSet<LogFileData>? LogFileDatas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<DumpFileInfo>().ToTable("DumpFileInfo");
             modelBuilder.Entity<DumpCallstack>().ToTable("DumpCallstack");
-            modelBuilder.Entity<LogFileLine>().ToTable("LogFileLine");
+            modelBuilder.Entity<LogFileData>().ToTable("LogFileData");
         }
     }
 }

@@ -70,7 +70,7 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         var linkedList = await FetchCallStacks(list[0].LinkedToDumpCallstackId, null);
                         if (linkedList != null && linkedList.Count == 1)
-{
+                        {
                             var issueData = await GetIssueData(linkedList);
                             var data = new DumpPageData
                             {
@@ -78,7 +78,8 @@ namespace CrashDumpAnalyzer.Controllers
                                 IssueData = issueData.FirstOrDefault().Value
                             };
                             return View(data);
-}                    }
+                        }
+                    }
                     else
                     {
                         var issueData = await GetIssueData(list);
@@ -161,16 +162,16 @@ namespace CrashDumpAnalyzer.Controllers
                     if (string.IsNullOrWhiteSpace(searchString))
                         list = await _dbContext.DumpCallstacks.AsNoTracking()
                             .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                            .Include(dumpCallstack => dumpCallstack.LogFileLines)
+                            .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                             .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .Where(dumpCallstack => dumpCallstack.Deleted == (deleted > 0) &&
                                                     (dumpCallstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= cutoffDate) ||
-                                                    dumpCallstack.LogFileLines.Count != 0))
+                                                    dumpCallstack.LogFileDatas.Count != 0))
                             .ToListAsync();
                     else // with search string, include deleted callstacks
                         list = await _dbContext.DumpCallstacks.AsNoTracking()
                             .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                            .Include(dumpCallstack => dumpCallstack.LogFileLines)
+                            .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                             .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .ToListAsync();
                 }
@@ -178,7 +179,7 @@ namespace CrashDumpAnalyzer.Controllers
                 {
                     list = await _dbContext.DumpCallstacks.AsNoTracking()
                         .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                        .Include(dumpCallstack => dumpCallstack.LogFileLines)
+                        .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                         .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                         .Where(dumpCallstack => dumpCallstack.DumpCallstackId == id ||
                                                 dumpCallstack.LinkedToDumpCallstackId == id)
@@ -208,11 +209,20 @@ namespace CrashDumpAnalyzer.Controllers
                         .ToList();
                 }
 
-                // sort individual dumps by upload date
                 foreach (var dumpCallstack in list)
                 {
+                    // sort individual dumps by upload date
                     if (dumpCallstack.DumpInfos.Count > 0)
                         dumpCallstack.DumpInfos.Sort((a, b) => b.UploadDate.CompareTo(a.UploadDate));
+                    // convert the line number string to a list of longs
+                    if (dumpCallstack.LogFileDatas.Count > 0)
+                    {
+                        foreach (var logFileData in dumpCallstack.LogFileDatas)
+                        {
+                            if (logFileData.LineNumberString != null)
+                                logFileData.LineNumbers = logFileData.LineNumberString.Split(',').Select(long.Parse).ToList();
+                        }
+                    }
                 }
 
                 Dictionary<int, List<DumpCallstack>> groupedCallstacks = new();

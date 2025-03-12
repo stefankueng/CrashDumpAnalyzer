@@ -15,7 +15,7 @@ namespace CrashDumpAnalyzer.Data.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.1");
 
             modelBuilder.Entity("CrashDumpAnalyzer.Models.DumpCallstack", b =>
                 {
@@ -149,9 +149,9 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.ToTable("DumpFileInfo", (string)null);
                 });
 
-            modelBuilder.Entity("CrashDumpAnalyzer.Models.LogFileLine", b =>
+            modelBuilder.Entity("CrashDumpAnalyzer.Models.LogFileData", b =>
                 {
-                    b.Property<int>("LogFileLineId")
+                    b.Property<int>("LogFileDataId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
@@ -161,19 +161,19 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.Property<int?>("DumpFileInfoId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<long>("LineNumber")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("Time")
+                    b.Property<DateTime>("LatestTime")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("LogFileLineId");
+                    b.Property<string>("LineNumberString")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("LogFileDataId");
 
                     b.HasIndex("DumpCallstackId");
 
                     b.HasIndex("DumpFileInfoId");
 
-                    b.ToTable("LogFileLine", (string)null);
+                    b.ToTable("LogFileData", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -383,10 +383,10 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.Navigation("DumpCallstack");
                 });
 
-            modelBuilder.Entity("CrashDumpAnalyzer.Models.LogFileLine", b =>
+            modelBuilder.Entity("CrashDumpAnalyzer.Models.LogFileData", b =>
                 {
                     b.HasOne("CrashDumpAnalyzer.Models.DumpCallstack", null)
-                        .WithMany("LogFileLines")
+                        .WithMany("LogFileDatas")
                         .HasForeignKey("DumpCallstackId");
 
                     b.HasOne("CrashDumpAnalyzer.Models.DumpFileInfo", "DumpFileInfo")
@@ -451,7 +451,7 @@ namespace CrashDumpAnalyzer.Data.Migrations
                 {
                     b.Navigation("DumpInfos");
 
-                    b.Navigation("LogFileLines");
+                    b.Navigation("LogFileDatas");
                 });
 #pragma warning restore 612, 618
         }

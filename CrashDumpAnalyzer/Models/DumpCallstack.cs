@@ -23,6 +23,6 @@ namespace CrashDumpAnalyzer.Models
         public int LinkedToDumpCallstackId { get; set; } = 0;
         public bool Deleted { get; set; } = false;
         public List<DumpFileInfo> DumpInfos { get; set; } = new ();
-        public List<LogFileLine> LogFileLines { get; set; } = new();
+        public List<LogFileData> LogFileDatas { get; set; } = new();
     }
 }
