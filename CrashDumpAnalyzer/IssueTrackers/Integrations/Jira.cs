@@ -52,10 +52,10 @@ namespace CrashDumpAnalyzer.IssueTrackers.Integrations
                     {
                         var data = new IssueData
                         {
-                            Id = issue.GetProperty("key").GetString(),
-                            Title = issue.GetProperty("fields").GetProperty("summary").GetString(),
-                            State = issue.GetProperty("fields").GetProperty("status").GetProperty("name").GetString(),
-                            StateColor = issue.GetProperty("fields").GetProperty("status").GetProperty("statusCategory").GetProperty("colorName").GetString()
+                            Id = issue.GetProperty("key").GetString() ?? string.Empty,
+                            Title = issue.GetProperty("fields").GetProperty("summary").GetString() ?? string.Empty,
+                            State = issue.GetProperty("fields").GetProperty("status").GetProperty("name").GetString() ?? string.Empty,
+                            StateColor = issue.GetProperty("fields").GetProperty("status").GetProperty("statusCategory").GetProperty("colorName").GetString() ?? string.Empty
                         };
                         issueDataList.Add(data.Id, data);
                     }

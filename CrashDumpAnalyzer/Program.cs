@@ -45,7 +45,8 @@ builder.Services.Configure<FormOptions>(options =>
 builder.Services.AddHttpClient();
 
 var issueTracker = IssueTrackerFactory.GetIssueTracker(builder.Configuration);
-builder.Services.AddSingleton(issueTracker);
+if (issueTracker != null)
+    builder.Services.AddSingleton(issueTracker);
 
 var app = builder.Build();
 
