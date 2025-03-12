@@ -1,5 +1,5 @@
 ﻿@using CrashDumpAnalyzer.Utilities
-@model CrashDumpAnalyzer.Models.DumpCallstack
+@model DumpPageData
 @{
     ViewData["Title"] = "Crash Dump Analyzer - Dump";
 }
@@ -9,7 +9,7 @@
     <div>
         @if (Model != null)
         {
-            var item = Model;
+            var item = Model.Callstack;
             var fixedVersion = new SemanticVersion(item.FixedVersion, item.FixedBuildType);
             var appVersion = new SemanticVersion(item.ApplicationVersion, item.BuildType);
             var isFixed = item.FixedVersion.Length > 0 && appVersion <= fixedVersion;
@@ -20,6 +20,8 @@
                 stateClass = "grid-item-done";
             else if (isNotFixed)
                 stateClass = "grid-item-notdone";
+            var issue = Model.IssueData;
+            var className = "issue-" + @issue.StateColor;
 
             if (item.Deleted)
             {
@@ -42,7 +44,10 @@
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Ticket)</td>
-                    <td><a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank" class="ticket">@item.Ticket</a><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></td>
+                    <td>
+                        <a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank" data-bs-toggle="tooltip" title="@issue.Title" class="ticket">@item.Ticket</a> : @issue.Title
+                        <div data-bs-toggle="tooltip" title="@issue.Title" class="@className" style="background-color: @issue.StateColor; display: flex; width: fit-content;">@issue.State</div>
+                        <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button></td>
                 </tr>
                 <tr>
                     <td class="@stateClass">@Html.DisplayNameFor(modelItem => item.FixedVersion)</td>

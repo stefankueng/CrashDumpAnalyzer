@@ -70,11 +70,24 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         var linkedList = await FetchCallStacks(list[0].LinkedToDumpCallstackId, null);
                         if (linkedList != null && linkedList.Count == 1)
-                            return View(linkedList[0]);
-                    }
+{
+                            var issueData = await GetIssueData(linkedList);
+                            var data = new DumpPageData
+                            {
+                                Callstack = linkedList[0],
+                                IssueData = issueData.FirstOrDefault().Value
+                            };
+                            return View(data);
+}                    }
                     else
                     {
-                        return View(list[0]);
+                        var issueData = await GetIssueData(list);
+                        var data = new DumpPageData
+                        {
+                            Callstack = list[0],
+                            IssueData = issueData.FirstOrDefault().Value
+                        };
+                        return View(data);
                     }
                 }
             }
