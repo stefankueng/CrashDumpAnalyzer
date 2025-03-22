@@ -45,6 +45,10 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartHeadersLengthLimit = int.MaxValue;
 });
 builder.Services.AddHttpClient();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
 
 var issueTracker = IssueTrackerFactory.GetIssueTracker(builder.Configuration);
 if (issueTracker != null)
@@ -77,6 +81,7 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseResponseCompression();
 builder.Configuration.GetSection("StaticFolders").GetChildren().ToList().ForEach(folder =>
 {
     if (folder.Value != null)
