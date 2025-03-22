@@ -12,9 +12,10 @@ namespace CrashDumpAnalyzer.Utilities
         public int BuildType { get; set; } = -1;
         public string IssueType { get; set; } = string.Empty;
         public string IssueText { get; set; } = string.Empty;
+        public string IssueTextClean { get; set; } = string.Empty;
         public override int GetHashCode()
         {
-            return (ApplicationName + ApplicationVersion + BuildType + IssueType + IssueText).GetHashCode();
+            return (ApplicationName + ApplicationVersion + BuildType + IssueType + IssueText + IssueTextClean).GetHashCode();
         }
         public override bool Equals(object? obj)
         {
@@ -27,7 +28,8 @@ namespace CrashDumpAnalyzer.Utilities
                 ApplicationVersion == other.ApplicationVersion &&
                 BuildType == other.BuildType &&
                 IssueType == other.IssueType &&
-                IssueText == other.IssueText;
+                IssueText == other.IssueText &&
+                IssueTextClean == other.IssueTextClean;
         }
     }
 
@@ -159,16 +161,23 @@ namespace CrashDumpAnalyzer.Utilities
                     var logIssueMatch = logIssueRegex.Match(lineString);
                     if (logIssueMatch.Success)
                     {
+                        var logIssue = new LogIssue
+                        {
+                            ApplicationName = applicationName,
+                            ApplicationVersion = versionString,
+                            BuildType = BuildTypes.ParseBuildType(buildTypeString),
+                            IssueType = logIssueType,
+                            IssueText = logIssueMatch.Groups[1].Value
+                        };
+                        logIssue.IssueTextClean = logIssue.IssueText;
+                        for (int i = 2; i < logIssueMatch.Groups.Count; i++)
+                        {
+                            logIssue.IssueTextClean = logIssue.IssueTextClean.Replace(logIssueMatch.Groups[i].Value, string.Empty);
+                        }
+
                         issues.Add(new SpecificLogIssue
                         {
-                            LogIssue = new LogIssue
-                            {
-                                ApplicationName = applicationName,
-                                ApplicationVersion = versionString,
-                                BuildType = BuildTypes.ParseBuildType(buildTypeString),
-                                IssueType = logIssueType,
-                                IssueText = logIssueMatch.Groups[1].Value
-                            },
+                            LogIssue = logIssue,
                             LineNumber = lineCount,
                             Time = dateTime ?? DateTime.MinValue
                         });
