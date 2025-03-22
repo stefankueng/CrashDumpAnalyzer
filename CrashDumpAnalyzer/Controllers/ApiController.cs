@@ -277,7 +277,7 @@ namespace CrashDumpAnalyzer.Controllers
         }
 
         [EndpointSummary("Delete the callstack with the specified id")]
-        [HttpPost]
+        [HttpPost("{id}")]
         public async Task<IActionResult> DeleteDumpCallstack(int id)
         {
             if (_dbContext.DumpCallstacks == null)
@@ -405,7 +405,7 @@ namespace CrashDumpAnalyzer.Controllers
         }
 
         [EndpointSummary("Unlink the callstack with the specified id")]
-        [HttpPost]
+        [HttpPost("{id}")]
         public async Task<IActionResult> UnlinkDumpCallstack(int id)
         {
             if (_dbContext.DumpCallstacks == null)
@@ -460,7 +460,7 @@ namespace CrashDumpAnalyzer.Controllers
         }
 
         [EndpointSummary("Download the dump/log file with the specified id")]
-        [HttpGet]
+        [HttpGet("{id}")]
         public async Task<IActionResult> DownloadFile(int id)
         {
             if (_dbContext.DumpFileInfos == null)
@@ -480,7 +480,7 @@ namespace CrashDumpAnalyzer.Controllers
                     await using (var writer = new StreamWriter(memoryStream, leaveOpen: true))
                     {
                         // first write header and style the <p> to have no margin
-                        await writer.WriteLineAsync("<!DOCTYPE html><html><head><style>:target { background-color: #ff0 }</style></head><body>");
+                        await writer.WriteLineAsync("<!DOCTYPE html><html><head><style>:target { background-color: #ff0 }</style></head><body style=\"font-family: monospace; text-wrap: nowrap; white-space: nowrap;\">");
                         long lineNumber = 0;
                         while (await reader.ReadLineAsync() is { } line)
                         {
@@ -698,7 +698,7 @@ namespace CrashDumpAnalyzer.Controllers
                 var callstack = new DumpCallstack
                 {
                     Callstack = logIssue.Key.IssueText,
-                    CleanCallstack = logIssue.Key.IssueText,
+                    CleanCallstack = logIssue.Key.IssueTextClean,
                     ExceptionType = logIssue.Key.IssueType,
                     ApplicationName = logIssue.Key.ApplicationName,
                     ApplicationVersion = logIssue.Key.ApplicationVersion,
@@ -730,7 +730,7 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .FirstOrDefaultAsync(
-                            x => x.CleanCallstack == logIssue.Key.IssueText, token);
+                            x => x.CleanCallstack == logIssue.Key.IssueTextClean, token);
 
                         if (cs != null)
                         {
