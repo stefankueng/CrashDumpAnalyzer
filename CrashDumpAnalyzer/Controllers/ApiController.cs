@@ -730,7 +730,7 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .FirstOrDefaultAsync(
-                            x => x.CleanCallstack == logIssue.Key.IssueText && x.ApplicationName == logIssue.Key.ApplicationName, token);
+                            x => x.CleanCallstack == logIssue.Key.IssueText, token);
 
                         if (cs != null)
                         {
@@ -834,7 +834,7 @@ namespace CrashDumpAnalyzer.Controllers
                     try
                     {
                         var cs = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
-                            x => x.CleanCallstack == dumpData.cleanCallstackString && x.ApplicationName == dumpData.processName, token);
+                            x => x.CleanCallstack == dumpData.cleanCallstackString, token);
 
                         // 80000003 is a breakpoint exception, not a crash.
                         // This always gives us the callstack of the main thread, which is the same for most dumps that are created because of a hang.
