@@ -130,7 +130,9 @@ $(function () {
         {
             e.dataTransfer = e.originalEvent.dataTransfer;
             e.dataTransfer.dropEffect = 'none';
-            if (e.dataTransfer.types[0] === this.textContent.toLowerCase()) {
+            let draggedText = e.dataTransfer.types[0].trim().toLowerCase();
+            let targetText = this.textContent.trim().toLowerCase();
+            if (draggedText === targetText || draggedText.replace(/\.[^/.]+$/, "") === targetText.replace(/\.[^/.]+$/, "") || draggedText === "@" || targetText === "@") {
                 e.dataTransfer.dropEffect = 'move';
             }
             e.preventDefault();
@@ -143,7 +145,9 @@ $(function () {
             this.classList.remove('over');
             e.dataTransfer = e.originalEvent.dataTransfer;
             e.dataTransfer.dropEffect = 'none';
-            if (e.dataTransfer.types[0] === this.textContent.toLowerCase()) {
+            let draggedText = e.dataTransfer.types[0].trim().toLowerCase();
+            let targetText = this.textContent.trim().toLowerCase();
+            if (draggedText === targetText || draggedText.replace(/\.[^/.]+$/, "") === targetText.replace(/\.[^/.]+$/, "") || draggedText === "@" || targetText === "@") {
                 let toId = $(this).data('id'); // the rest is just the same
                 let id = Number(e.dataTransfer.getData(e.dataTransfer.types[0]));
                 if (id !== toId) {
