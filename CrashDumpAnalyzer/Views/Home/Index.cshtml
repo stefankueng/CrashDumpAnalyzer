@@ -12,10 +12,10 @@
                 <form action="/Api/UploadFiles" method="post" enctype="multipart/form-data" onsubmit="return submitFilesForm(this);">
                     <input type="file" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
                     <label for="files-field" id="files-label"
-                           ondragover="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
-                           ondragenter="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
-                           ondragleave="stopDefault(event);dragLeave(this);"
-                           ondrop="stopDefault(event);dragLeave(this);addFilesAndSubmit(event);">Click to choose dump files or drag-n-drop them here</label>
+                    ondragover="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
+                    ondragenter="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
+                    ondragleave="stopDefault(event);dragLeave(this);"
+                    ondrop="stopDefault(event);dragLeave(this);addFilesAndSubmit(event);">Click to choose dump files or drag-n-drop them here</label>
                 </form>
                 <div style="text-align: left;"><div id="files-progress"></div></div>
                 <div style="text-align: left; padding-bottom: 10px; padding-top: 5px">
@@ -85,6 +85,8 @@
                             stateClass = "grid-item-done";
                         else if (isNotFixed)
                             stateClass = "grid-item-notdone";
+                        else if (item.Deleted)
+                            stateClass = "grid-item-done";
 
                         string dumpCountInfo = string.Empty;
                         if (item.DumpInfos.Count > 0 && item.LogFileDatas.Count == 0)
