@@ -12,7 +12,8 @@ using System.Text;
 
 namespace CrashDumpAnalyzer.Controllers
 {
-
+    [ApiController]
+    [Route("Api/[Action]")]
     public class ApiController : Controller
     {
         private const long MaxFileSize = long.MaxValue;
@@ -62,6 +63,11 @@ namespace CrashDumpAnalyzer.Controllers
         }
 
 
+        [EndpointSummary("Dump and log file upload")]
+        [EndpointDescription("Upload the dump and log files to analyze")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [HttpPost]
         [DisableRequestSizeLimit]
         [RequestFormLimits(MultipartBodyLengthLimit = MaxFileSize)]
@@ -270,6 +276,7 @@ namespace CrashDumpAnalyzer.Controllers
             return Created(nameof(ApiController), null);
         }
 
+        [EndpointSummary("Delete the callstack with the specified id")]
         [HttpPost]
         public async Task<IActionResult> DeleteDumpCallstack(int id)
         {
@@ -396,6 +403,8 @@ namespace CrashDumpAnalyzer.Controllers
             }
             return NoContent();
         }
+
+        [EndpointSummary("Unlink the callstack with the specified id")]
         [HttpPost]
         public async Task<IActionResult> UnlinkDumpCallstack(int id)
         {
@@ -420,6 +429,7 @@ namespace CrashDumpAnalyzer.Controllers
             return NoContent();
         }
 
+        [EndpointSummary("Deletes the dump or log file for the specified callstackId and the dumpId")]
         [HttpPost]
         public async Task<IActionResult> DeleteDumpFile(int callstackId, int dumpId)
         {
@@ -449,6 +459,7 @@ namespace CrashDumpAnalyzer.Controllers
             return NoContent();
         }
 
+        [EndpointSummary("Download the dump/log file with the specified id")]
         [HttpGet]
         public async Task<IActionResult> DownloadFile(int id)
         {
@@ -489,6 +500,7 @@ namespace CrashDumpAnalyzer.Controllers
             return File(fs, "application/octet-stream", "Dump.dmp");
         }
 
+        [EndpointSummary("Set the 'version' number where the problem of the callstack with 'id' is fixed")]
         [HttpPost]
         public async Task<IActionResult> SetFixedVersion(int id, string? version, string? buildType)
         {
@@ -510,6 +522,8 @@ namespace CrashDumpAnalyzer.Controllers
             }
             return NoContent();
         }
+
+        [EndpointSummary("Set the ticket assigned to the callstack with id")]
         [HttpPost]
         public async Task<IActionResult> SetTicket(int id, string? ticket)
         {
@@ -530,6 +544,8 @@ namespace CrashDumpAnalyzer.Controllers
             }
             return NoContent();
         }
+
+        [EndpointSummary("Set the comment for the callstack with id")]
         [HttpPost]
         public async Task<IActionResult> SetComment(int id, string? comment)
         {
@@ -552,6 +568,7 @@ namespace CrashDumpAnalyzer.Controllers
             return NoContent();
         }
 
+        [EndpointSummary("Link the callstack with 'id' to the callstack with 'toId'")]
         [HttpPost]
         public async Task<IActionResult> LinkCallstack(int id, int toId)
         {
@@ -581,7 +598,7 @@ namespace CrashDumpAnalyzer.Controllers
             return NoContent();
         }
 
-        public async Task<IActionResult> ReAnalyzeDumpFile(int callstackId)
+        private async Task<IActionResult> ReAnalyzeDumpFile(int callstackId)
         {
             if (_dbContext.DumpCallstacks == null)
                 return NotFound();

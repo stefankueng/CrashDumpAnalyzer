@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +32,7 @@ builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
 builder.Services.AddWindowsService();
 builder.Services.AddHostedService<QueuedHostedService>();
 builder.Logging.AddLog4Net();
+builder.Services.AddOpenApi();
 
 builder.Services.Configure<KestrelServerOptions>(options =>
 {
@@ -60,6 +62,11 @@ using (var serviceScope = app.Services.GetService<IServiceScopeFactory>()?.Creat
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
+    app.MapOpenApi();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/openapi/v1.json", "v1");
+    });
 }
 else
 {
