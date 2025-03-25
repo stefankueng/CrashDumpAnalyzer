@@ -277,7 +277,7 @@ namespace CrashDumpAnalyzer.Controllers
         }
 
         [EndpointSummary("Delete the callstack with the specified id")]
-        [HttpPost("{id}")]
+        [HttpPost]
         public async Task<IActionResult> DeleteDumpCallstack(int id)
         {
             if (_dbContext.DumpCallstacks == null)
@@ -405,7 +405,7 @@ namespace CrashDumpAnalyzer.Controllers
         }
 
         [EndpointSummary("Unlink the callstack with the specified id")]
-        [HttpPost("{id}")]
+        [HttpPost]
         public async Task<IActionResult> UnlinkDumpCallstack(int id)
         {
             if (_dbContext.DumpCallstacks == null)
