@@ -533,7 +533,7 @@ namespace CrashDumpAnalyzer.Controllers
             var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
             if (entry != null)
             {
-                entry.Ticket = ticket;
+                entry.Ticket = ticket.Trim();
                 var linkedList = await _dbContext.DumpCallstacks.Where(x => x.LinkedToDumpCallstackId == id).ToListAsync();
                 foreach (var linked in linkedList)
                 {

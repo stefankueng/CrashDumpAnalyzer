@@ -110,7 +110,7 @@ namespace CrashDumpAnalyzer.Controllers
         {
             if (_issueTracker != null)
             {
-                var issueIds = callstacks.Select(callstack => callstack.Ticket).Distinct().ToList();
+                var issueIds = callstacks.Select(callstack => callstack.Ticket.Trim()).Distinct().ToList();
                 issueIds.RemoveAll(string.IsNullOrEmpty);
                 issueIds = issueIds.Distinct().ToList();
 
