@@ -128,7 +128,7 @@ namespace CrashDumpAnalyzer.Controllers
                             .HasFileContentDisposition(contentDisposition))
                     {
                         ModelState.AddModelError("File",
-                            "The request couldn't be processed (Error 2).");
+                            "The request couldn't be processed. If you provide a comment field, make sure it's first in the header order and the file byte arrays come after. (Error 2).");
                         // Log error
 
                         return BadRequest(ModelState);
