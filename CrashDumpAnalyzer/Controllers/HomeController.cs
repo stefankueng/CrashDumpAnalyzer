@@ -311,13 +311,17 @@ namespace CrashDumpAnalyzer.Controllers
                     if (string.IsNullOrEmpty(a.FixedVersion) && !string.IsNullOrEmpty(b.FixedVersion))
                         return -1;
 
-                    if (a.DumpInfos.Count > 0 && b.DumpInfos.Count > 0)
-                    {
-                        var uploadA = a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
-                        var uploadB = b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate);
-                        if (uploadA != uploadB)
-                            return uploadB.CompareTo(uploadA); // sort by date of last upload, so it's easy to find the just uploaded ones
-                    }
+                    // show callstacks which don't have a ticket assigned first
+                    if (string.IsNullOrEmpty(a.Ticket) && !string.IsNullOrEmpty(b.Ticket))
+                        return -1;
+                    if (!string.IsNullOrEmpty(a.Ticket) && string.IsNullOrEmpty(b.Ticket))
+                        return 1;
+
+                    var aUploadDate = a.DumpInfos.Count > 0 ? a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate) : a.LogFileDatas.Max(logFileData => logFileData.DumpFileInfo != null ? logFileData.DumpFileInfo.UploadDate : logFileData.LatestTime);
+                    var bUploadDate = b.DumpInfos.Count > 0 ? b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate) : b.LogFileDatas.Max(logFileData => logFileData.DumpFileInfo != null ? logFileData.DumpFileInfo.UploadDate : logFileData.LatestTime);
+
+                    if (aUploadDate != bUploadDate)
+                        return bUploadDate.CompareTo(aUploadDate); // sort by date of last upload, so it's easy to find the just uploaded ones
 
                     // sort by number of dumps - the more dumps with the same callstack the more urgent it is to fix
                     return b.DumpInfos.Count - a.DumpInfos.Count;
