@@ -252,6 +252,7 @@ namespace CrashDumpAnalyzer.Controllers
                     else
                     {
                         var first = group.Value[0];
+                        var tickets = new Dictionary<string, int>();
                         for (int i = 1; i < group.Value.Count; i++)
                         {
                             first.DumpInfos.AddRange(group.Value[i].DumpInfos);
@@ -283,7 +284,16 @@ namespace CrashDumpAnalyzer.Controllers
                                     first.BuildType = firstVersion > secondVersion ? first.BuildType : group.Value[i].BuildType;
                                 }
                             }
+                            // use tickets
+                            if (group.Value[i].Ticket.Length > 0)
+                            {
+                                if (tickets.ContainsKey(group.Value[i].Ticket))
+                                    tickets[group.Value[i].Ticket] += 1;
+                                else
+                                    tickets[group.Value[i].Ticket] = 1;
+                            }
                         }
+                        first.Ticket = string.Join(", ", tickets.Keys);
                         resultList.Add(first);
                     }
                 }
