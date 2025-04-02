@@ -239,7 +239,7 @@ namespace CrashDumpAnalyzer.Controllers
                         continue;
                     if (groupedCallstacks.ContainsKey(callstack.LinkedToDumpCallstackId))
                         groupedCallstacks[callstack.LinkedToDumpCallstackId].Add(callstack);
-                    else
+                    else if (!string.IsNullOrWhiteSpace(searchString))
                         groupedCallstacks[callstack.DumpCallstackId] = new List<DumpCallstack> { callstack };
                 }
 
