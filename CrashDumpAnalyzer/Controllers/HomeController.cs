@@ -253,6 +253,7 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         var first = group.Value[0];
                         var tickets = new Dictionary<string, int>();
+                        tickets[group.Value[0].Ticket] = 1;
                         for (int i = 1; i < group.Value.Count; i++)
                         {
                             first.DumpInfos.AddRange(group.Value[i].DumpInfos);
