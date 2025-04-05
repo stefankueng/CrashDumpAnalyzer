@@ -239,7 +239,7 @@ namespace CrashDumpAnalyzer.Controllers
                         continue;
                     if (groupedCallstacks.ContainsKey(callstack.LinkedToDumpCallstackId))
                         groupedCallstacks[callstack.LinkedToDumpCallstackId].Add(callstack);
-                    else
+                    else if (!string.IsNullOrWhiteSpace(searchString))
                         groupedCallstacks[callstack.DumpCallstackId] = new List<DumpCallstack> { callstack };
                 }
 
@@ -252,6 +252,8 @@ namespace CrashDumpAnalyzer.Controllers
                     else
                     {
                         var first = group.Value[0];
+                        var tickets = new Dictionary<string, int>();
+                        tickets[group.Value[0].Ticket] = 1;
                         for (int i = 1; i < group.Value.Count; i++)
                         {
                             first.DumpInfos.AddRange(group.Value[i].DumpInfos);
@@ -283,7 +285,16 @@ namespace CrashDumpAnalyzer.Controllers
                                     first.BuildType = firstVersion > secondVersion ? first.BuildType : group.Value[i].BuildType;
                                 }
                             }
+                            // use tickets
+                            if (group.Value[i].Ticket.Length > 0)
+                            {
+                                if (tickets.ContainsKey(group.Value[i].Ticket))
+                                    tickets[group.Value[i].Ticket] += 1;
+                                else
+                                    tickets[group.Value[i].Ticket] = 1;
+                            }
                         }
+                        first.Ticket = string.Join(", ", tickets.Keys);
                         resultList.Add(first);
                     }
                 }
@@ -317,11 +328,18 @@ namespace CrashDumpAnalyzer.Controllers
                     if (!string.IsNullOrEmpty(a.Ticket) && string.IsNullOrEmpty(b.Ticket))
                         return 1;
 
-                    var aUploadDate = a.DumpInfos.Count > 0 ? a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate) : a.LogFileDatas.Max(logFileData => logFileData.DumpFileInfo != null ? logFileData.DumpFileInfo.UploadDate : logFileData.LatestTime);
-                    var bUploadDate = b.DumpInfos.Count > 0 ? b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate) : b.LogFileDatas.Max(logFileData => logFileData.DumpFileInfo != null ? logFileData.DumpFileInfo.UploadDate : logFileData.LatestTime);
+                    try
+                    {
+                        var aUploadDate = a.DumpInfos.Count > 0 ? a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate) : (a.LogFileDatas.Count > 0 ? a.LogFileDatas.Max(logFileData => logFileData.DumpFileInfo != null ? logFileData.DumpFileInfo.UploadDate : logFileData.LatestTime) : DateTime.MinValue);
+                        var bUploadDate = b.DumpInfos.Count > 0 ? b.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate) : (b.LogFileDatas.Count > 0 ? b.LogFileDatas.Max(logFileData => logFileData.DumpFileInfo != null ? logFileData.DumpFileInfo.UploadDate : logFileData.LatestTime) : DateTime.MinValue);
 
-                    if (aUploadDate != bUploadDate)
-                        return bUploadDate.CompareTo(aUploadDate); // sort by date of last upload, so it's easy to find the just uploaded ones
+                        if (aUploadDate != bUploadDate)
+                            return bUploadDate.CompareTo(aUploadDate); // sort by date of last upload, so it's easy to find the just uploaded ones
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error sorting list");
+                    }
 
                     // sort by number of dumps - the more dumps with the same callstack the more urgent it is to fix
                     return b.DumpInfos.Count - a.DumpInfos.Count;
