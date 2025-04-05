@@ -24,6 +24,7 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ApplicationDbContext _dbContext;
         private readonly int _daysBack;
+        private readonly int _maxFixedEntriesToShow;
 
         public HomeController(IConfiguration configuration,
             ILogger<HomeController> logger,
@@ -37,6 +38,7 @@ namespace CrashDumpAnalyzer.Controllers
             _httpClientFactory = httpClientFactory;
             _dbContext = context;
             _daysBack = configuration.GetValue<int>("ShowEntriesForDaysBack") > 0 ? configuration.GetValue<int>("ShowEntriesForDaysBack") : 180;
+            _maxFixedEntriesToShow = configuration.GetValue<int>("ShowMaxFixedEntries") > 0 ? configuration.GetValue<int>("ShowMaxFixedEntries") : 20;
             Constants.TicketBaseUrl = configuration.GetValue<string>("TicketBaseUrl") ?? string.Empty;
         }
 
@@ -322,12 +324,14 @@ namespace CrashDumpAnalyzer.Controllers
                     if (string.IsNullOrEmpty(a.FixedVersion) && !string.IsNullOrEmpty(b.FixedVersion))
                         return -1;
 
-                    // show callstacks which don't have a ticket assigned first
-                    if (string.IsNullOrEmpty(a.Ticket) && !string.IsNullOrEmpty(b.Ticket))
-                        return -1;
-                    if (!string.IsNullOrEmpty(a.Ticket) && string.IsNullOrEmpty(b.Ticket))
-                        return 1;
-
+                    if (string.IsNullOrEmpty(a.FixedVersion) && string.IsNullOrEmpty(b.FixedVersion))
+                    {
+                        // show callstacks which don't have a ticket assigned first
+                        if (string.IsNullOrEmpty(a.Ticket) && !string.IsNullOrEmpty(b.Ticket))
+                            return -1;
+                        if (!string.IsNullOrEmpty(a.Ticket) && string.IsNullOrEmpty(b.Ticket))
+                            return 1;
+                    }
                     try
                     {
                         var aUploadDate = a.DumpInfos.Count > 0 ? a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate) : (a.LogFileDatas.Count > 0 ? a.LogFileDatas.Max(logFileData => logFileData.DumpFileInfo != null ? logFileData.DumpFileInfo.UploadDate : logFileData.LatestTime) : DateTime.MinValue);
@@ -345,8 +349,10 @@ namespace CrashDumpAnalyzer.Controllers
                     return b.DumpInfos.Count - a.DumpInfos.Count;
                 });
 
-
-                return resultList;
+                // find the index where the fixed callstacks start
+                int fixedIndex = resultList.FindIndex(callstack => !string.IsNullOrEmpty(callstack.FixedVersion) &&
+                new SemanticVersion(callstack.FixedVersion, callstack.FixedBuildType) > new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType));
+                return resultList.Take(fixedIndex + _maxFixedEntriesToShow).ToList();
             }
             return new List<DumpCallstack>();
         }
