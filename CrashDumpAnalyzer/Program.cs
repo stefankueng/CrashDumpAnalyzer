@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.OpenApi;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +24,72 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews();
+
+IConfigurationSection googleAuthNSection =
+builder.Configuration.GetSection("Authentication:Google");
+if (googleAuthNSection["ClientId"] != null)
+{
+    builder.Services.AddAuthentication()
+        .AddGoogleOpenIdConnect(options =>
+        {
+            options.ClientId = googleAuthNSection["ClientId"] ?? "";
+            options.ClientSecret = googleAuthNSection["ClientSecret"] ?? "";
+        }).AddCookie(options =>
+        {
+            options.Events.OnSigningIn = ctx =>
+            {
+                ctx.Properties.IsPersistent = true;
+                return Task.CompletedTask;
+            };
+        });
+}
+IConfigurationSection FBAuthNSection =
+builder.Configuration.GetSection("Authentication:Facebook");
+if (FBAuthNSection["ClientId"] != null)
+{
+    builder.Services.AddAuthentication()
+        .AddFacebook(options =>
+        {
+            options.ClientId = FBAuthNSection["ClientId"] ?? "";
+            options.ClientSecret = FBAuthNSection["ClientSecret"] ?? "";
+        }).AddCookie(options =>
+        {
+            options.Events.OnSigningIn = ctx =>
+            {
+                ctx.Properties.IsPersistent = true;
+                return Task.CompletedTask;
+            };
+        });
+}
+IConfiguration MSAuthNSection = builder.Configuration.GetSection("Authentication:Microsoft");
+if (MSAuthNSection["ClientId"] != null)
+{
+    builder.Services.AddAuthentication()
+        .AddMicrosoftAccount(options =>
+        {
+            options.ClientId = MSAuthNSection["ClientId"] ?? "";
+            options.ClientSecret = MSAuthNSection["ClientSecret"] ?? "";
+        }).AddCookie(options =>
+        {
+            options.Events.OnSigningIn = ctx =>
+            {
+                ctx.Properties.IsPersistent = true;
+                return Task.CompletedTask;
+            };
+        });
+}
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.HttpOnly = true;
+    options.ExpireTimeSpan = TimeSpan.FromDays(360);
+    options.ReturnUrlParameter = CookieAuthenticationDefaults.ReturnUrlParameter;
+    options.SlidingExpiration = true;
+});
+builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
+       o.TokenLifespan = TimeSpan.FromDays(360));
+
+builder.Services.AddTransient<IEmailSender, EmailSender>();
+
 builder.Services.AddAntiforgery(options =>
 {
     options.FormFieldName = "AntiforgeryFieldname";

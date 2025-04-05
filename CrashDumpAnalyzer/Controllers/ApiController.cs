@@ -9,6 +9,7 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
 using System.Text;
+using System.Security.Claims;
 
 namespace CrashDumpAnalyzer.Controllers
 {
@@ -155,14 +156,16 @@ namespace CrashDumpAnalyzer.Controllers
                                 System.IO.File.Delete(Path.Combine(_dumpPath, trustedFileNameForFileStorage));
                                 return BadRequest(ModelState);
                             }
-
+                            //User.FindFirstValue(ClaimTypes.Name);
                             DumpFileInfo entry = new DumpFileInfo
                             {
                                 FilePath = trustedFileNameForFileStorage,
                                 FileSize = targetStream.Length,
                                 UploadDate = DateTime.Now,
                                 UploadedFromIp = uploadedFromIp,
-                                Comment = fileComment
+                                Comment = fileComment,
+                                UploadedFromUsername = User.FindFirstValue(ClaimTypes.Name) ?? string.Empty,
+                                UploadedFromUserEmail = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty
                             };
 
                             DumpCallstack callstack = new DumpCallstack

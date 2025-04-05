@@ -1,4 +1,7 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+
+<!DOCTYPE html>
 <html lang="en" translate="no" data-bs-theme="light">
 <head>
     <meta charset="utf-8" />
@@ -33,7 +36,10 @@
                             <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
                     </ul>
-                    <partial name="_LoginPartial" />
+                    @if (Configuration.GetValue<bool>("UserAuthEnabled"))
+                    {
+                        <partial name="_LoginPartial" />
+                    }
                 </div>
                 <div class="p-2 rounded">
                     <li class="nav-item align-items-center d-flex" >
