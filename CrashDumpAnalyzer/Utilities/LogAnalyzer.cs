@@ -72,8 +72,8 @@ namespace CrashDumpAnalyzer.Utilities
                     _logIssueTypeRegexes.Add(type, new Regex(regexString, RegexOptions.Compiled | RegexOptions.IgnoreCase));
                 }
             });
-
         }
+        public List<string> IssueTypes => _logIssueTypeRegexes.Keys.ToList();
         public async Task<Dictionary<LogIssue, List<(DateTime date, long lineNumber)>>> Analyze(string logFilePath, CancellationToken token)
         {
             string output = await File.ReadAllTextAsync(logFilePath, Encoding.Default, token);

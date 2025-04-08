@@ -4,6 +4,7 @@
     ViewData["Title"] = "Crash Dump Analyzer";
 }
 
+
 <div class="text-center">
     <div>
         <div style="display: flex; width: 100%;">
@@ -12,16 +13,17 @@
                 <form action="/Api/UploadFiles" method="post" enctype="multipart/form-data" onsubmit="return submitFilesForm(this);">
                     <input type="file" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
                     <label for="files-field" id="files-label"
-                    ondragover="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
-                    ondragenter="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
-                    ondragleave="stopDefault(event);dragLeave(this);"
-                    ondrop="stopDefault(event);dragLeave(this);addFilesAndSubmit(event);">Click to choose dump files or drag-n-drop them here</label>
+                           ondragover="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
+                           ondragenter="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
+                           ondragleave="stopDefault(event);dragLeave(this);"
+                           ondrop="stopDefault(event);dragLeave(this);addFilesAndSubmit(event);">Click to choose dump files or drag-n-drop them here</label>
                 </form>
                 <div style="text-align: left;"><div id="files-progress"></div></div>
                 <div style="text-align: left; padding-bottom: 10px; padding-top: 5px">
                     <form action="/" method="get" class="nosubmit">
                         <div style="display: flex;">
                             <input type="text" class="nosubmit" name="searchstring" placeholder="Search..." value="@Model.ActiveFilterString" autocomplete='off' />
+                            <input type="hidden" name="activeTab" value="@Model.ActiveTab" />
                         </div>
                     </form>
                 </div>
@@ -59,6 +61,23 @@
             </div>
         </div>
         <div>
+            @if (Model.Tabs.Count > 1)
+            {
+                @if (Model.ActiveTab == -1)
+                {
+                    Model.ActiveTab = 0;
+                }
+                <ul class="nav nav-tabs">
+                    @for (int i = 0; i < Model.Tabs.Count; ++i)
+                    {
+                        var isActive = Model.ActiveTab == i ? "active" : "";
+                        <li class="nav-item">
+                            <a class="nav-link @isActive" href="@Url.Action(null, new { activeTab = i, searchstring = Model.ActiveFilterString })">@Model.Tabs[i]</a>
+                        </li>
+                    }
+                </ul>
+            })
+
             <table class="flowTable">
                 <tr>
                     <th>@Html.DisplayNameFor(model => model.Callstacks.First().ApplicationName)</th>
@@ -121,13 +140,13 @@
                                             if (issue != null)
                                             {
                                                 var className = "issue-" + @issue.StateColor;
-                                            <a href="@Constants.TicketBaseUrl@itemTicket" target="_blank" data-bs-toggle="tooltip" title="@issue.Title" class="ticket">@itemTicket</a>
+                                                <a href="@Constants.TicketBaseUrl@itemTicket" target="_blank" data-bs-toggle="tooltip" title="@issue.Title" class="ticket">@itemTicket</a>
                                                 <div data-bs-toggle="tooltip" title="@issue.Title" class="@className" style="background-color: @issue.StateColor">@issue.State</div>
                                             }
                                         }
                                         else
                                         {
-                                        <a href="@Constants.TicketBaseUrl@itemTicket" target="_blank" class="ticket">@itemTicket</a>
+                                            <a href="@Constants.TicketBaseUrl@itemTicket" target="_blank" class="ticket">@itemTicket</a>
                                         }
                                     }
                                 }

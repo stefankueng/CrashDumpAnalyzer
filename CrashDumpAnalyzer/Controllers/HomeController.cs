@@ -25,6 +25,7 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly ApplicationDbContext _dbContext;
         private readonly int _daysBack;
         private readonly int _maxFixedEntriesToShow;
+        private readonly List<string> _issueTypes;
 
         public HomeController(IConfiguration configuration,
             ILogger<HomeController> logger,
@@ -40,13 +41,17 @@ namespace CrashDumpAnalyzer.Controllers
             _daysBack = configuration.GetValue<int>("ShowEntriesForDaysBack") > 0 ? configuration.GetValue<int>("ShowEntriesForDaysBack") : 180;
             _maxFixedEntriesToShow = configuration.GetValue<int>("ShowMaxFixedEntries") > 0 ? configuration.GetValue<int>("ShowMaxFixedEntries") : 20;
             Constants.TicketBaseUrl = configuration.GetValue<string>("TicketBaseUrl") ?? string.Empty;
+            var logAnalyzer = new LogAnalyzer(_logger, _configuration);
+            _issueTypes = new List<string>();
+            _issueTypes.Add("CrashDumps");
+            _issueTypes.AddRange(logAnalyzer.IssueTypes);
         }
 
-        public async Task<IActionResult> Index(int? deleted, string searchString)
+        public async Task<IActionResult> Index(int? deleted, string searchString, int activeTab)
         {
             if (_dbContext.DumpCallstacks != null)
             {
-                var resultList = await FetchCallStacks(null, deleted, searchString);
+                var resultList = await FetchCallStacks(null, deleted, searchString, activeTab);
                 var dumpList = await FetchLastDumpFileInfos();
                 var issueData = await GetIssueData(resultList);
                 var data = new IndexPageData
@@ -54,7 +59,9 @@ namespace CrashDumpAnalyzer.Controllers
                     Callstacks = resultList,
                     UploadedDumps = dumpList,
                     ActiveFilterString = searchString,
-                    IssueData = issueData
+                    IssueData = issueData,
+                    ActiveTab = activeTab,
+                    Tabs = _issueTypes
                 };
                 return View(data);
             }
@@ -159,13 +166,15 @@ namespace CrashDumpAnalyzer.Controllers
             return [];
         }
 
-        private async Task<List<DumpCallstack>> FetchCallStacks(int? id, int? deleted, string searchString = "")
+        private async Task<List<DumpCallstack>> FetchCallStacks(int? id, int? deleted, string searchString = "", int activeTab = -1)
         {
             if (_dbContext.DumpCallstacks != null)
             {
                 List<DumpCallstack>? list = null;
                 DateTime cutoffDate = DateTime.Now.AddDays(-_daysBack);
-
+                string? issueType = null;
+                if (activeTab >= 0 && _issueTypes.Count > 1)
+                    issueType = _issueTypes[activeTab];
                 if (id == null)
                 {
                     if (string.IsNullOrWhiteSpace(searchString))
@@ -173,7 +182,8 @@ namespace CrashDumpAnalyzer.Controllers
                             .Include(dumpCallstack => dumpCallstack.DumpInfos)
                             .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                             .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
-                            .Where(dumpCallstack => dumpCallstack.Deleted == (deleted > 0) &&
+                            .Where(dumpCallstack => (issueType == null || dumpCallstack.ExceptionType == issueType || (activeTab == 0 && dumpCallstack.LogFileDatas.Count == 0)) &&
+                                                    dumpCallstack.Deleted == (deleted > 0) &&
                                                     (dumpCallstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= cutoffDate) ||
                                                     dumpCallstack.LogFileDatas.Count != 0))
                             .ToListAsync();
@@ -182,6 +192,7 @@ namespace CrashDumpAnalyzer.Controllers
                             .Include(dumpCallstack => dumpCallstack.DumpInfos)
                             .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                             .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                            .Where(dumpCallstack => (issueType == null || dumpCallstack.ExceptionType == issueType || (activeTab == 0 && dumpCallstack.LogFileDatas.Count == 0)))
                             .ToListAsync();
                 }
                 else
@@ -190,7 +201,8 @@ namespace CrashDumpAnalyzer.Controllers
                         .Include(dumpCallstack => dumpCallstack.DumpInfos)
                         .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                         .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
-                        .Where(dumpCallstack => dumpCallstack.DumpCallstackId == id ||
+                        .Where(dumpCallstack => (issueType == null || dumpCallstack.ExceptionType == issueType || (activeTab == 0 && dumpCallstack.LogFileDatas.Count == 0)) &&
+                                                dumpCallstack.DumpCallstackId == id ||
                                                 dumpCallstack.LinkedToDumpCallstackId == id)
                         .ToListAsync();
                 }
