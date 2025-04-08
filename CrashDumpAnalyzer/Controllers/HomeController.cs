@@ -113,7 +113,14 @@ namespace CrashDumpAnalyzer.Controllers
             if (_issueTracker != null)
             {
                 var issueIds = callstacks.Select(callstack => callstack.Ticket.Trim()).Distinct().ToList();
-                issueIds.RemoveAll(string.IsNullOrEmpty);
+                // split issueIds that are separated by space or comma
+                var updatedIssueIds = new List<string>();
+                foreach (var issueId in issueIds)
+                {
+                    var splitIds = issueId.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    updatedIssueIds.AddRange(splitIds);
+                }
+                issueIds = updatedIssueIds.Distinct().Where(id => !string.IsNullOrEmpty(id)).ToList();
                 issueIds = issueIds.Distinct().ToList();
 
                 var httpClient = _httpClientFactory.CreateClient();
@@ -235,6 +242,10 @@ namespace CrashDumpAnalyzer.Controllers
                         continue;
                     groupedCallstacks[callstack.DumpCallstackId] = new List<DumpCallstack> { callstack };
                 }
+                if (list.Count == 1 && groupedCallstacks.Count == 0)
+                {
+                    groupedCallstacks[list.ElementAt(0).DumpCallstackId] = new List<DumpCallstack> { list.ElementAt(0) };
+                }
                 foreach (var callstack in list)
                 {
                     if (callstack.LinkedToDumpCallstackId == 0 || callstack.DumpCallstackId == callstack.LinkedToDumpCallstackId)
@@ -255,7 +266,14 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         var first = group.Value[0];
                         var tickets = new Dictionary<string, int>();
-                        tickets[group.Value[0].Ticket] = 1;
+                        var splitIds = group.Value[0].Ticket.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                        foreach (var ticket in splitIds)
+                        {
+                            if (tickets.ContainsKey(ticket))
+                                tickets[ticket] += 1;
+                            else
+                                tickets[ticket] = 1;
+                        }
                         for (int i = 1; i < group.Value.Count; i++)
                         {
                             first.DumpInfos.AddRange(group.Value[i].DumpInfos);
@@ -288,13 +306,18 @@ namespace CrashDumpAnalyzer.Controllers
                                 }
                             }
                             // use tickets
-                            if (group.Value[i].Ticket.Length > 0)
+                            splitIds = group.Value[i].Ticket.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            foreach (var ticket in splitIds)
                             {
-                                if (tickets.ContainsKey(group.Value[i].Ticket))
-                                    tickets[group.Value[i].Ticket] += 1;
-                                else
-                                    tickets[group.Value[i].Ticket] = 1;
+                                if (ticket.Length > 0)
+                                {
+                                    if (tickets.ContainsKey(ticket))
+                                        tickets[ticket] += 1;
+                                    else
+                                        tickets[ticket] = 1;
+                                }
                             }
+
                         }
                         first.Ticket = string.Join(", ", tickets.Keys);
                         resultList.Add(first);
@@ -352,6 +375,13 @@ namespace CrashDumpAnalyzer.Controllers
                 // find the index where the fixed callstacks start
                 int fixedIndex = resultList.FindIndex(callstack => !string.IsNullOrEmpty(callstack.FixedVersion) &&
                 new SemanticVersion(callstack.FixedVersion, callstack.FixedBuildType) > new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType));
+                foreach (var callstack in resultList)
+                {
+                    if (callstack.Ticket.Length > 10)
+                    {
+                        //callstack.Ticket = string.Empty;
+                    }
+                }
                 return resultList.Take(fixedIndex + _maxFixedEntriesToShow).ToList();
             }
             return new List<DumpCallstack>();

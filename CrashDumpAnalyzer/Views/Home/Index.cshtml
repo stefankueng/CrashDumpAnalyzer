@@ -111,19 +111,24 @@
                             <td class="@stateClass">
                                 @if (item.Ticket.Length > 0)
                                 {
-                                    @if (Model.IssueData != null && Model.IssueData.ContainsKey(item.Ticket))
+                                    // split item.Ticket into multiple tickets separated by space or comma
+                                    var tickets = item.Ticket.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                                    @foreach (var itemTicket in tickets)
                                     {
-                                        var issue = Model.IssueData[item.Ticket];
-                                        if (issue != null)
+                                        @if (Model.IssueData != null && Model.IssueData.ContainsKey(itemTicket))
                                         {
-                                            var className = "issue-" + @issue.StateColor;
-                                            <a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank" data-bs-toggle="tooltip" title="@issue.Title" class="ticket">@item.Ticket</a>
-                                            <div data-bs-toggle="tooltip" title="@issue.Title" class="@className" style="background-color: @issue.StateColor">@issue.State</div>
+                                            var issue = Model.IssueData[itemTicket];
+                                            if (issue != null)
+                                            {
+                                                var className = "issue-" + @issue.StateColor;
+                                            <a href="@Constants.TicketBaseUrl@itemTicket" target="_blank" data-bs-toggle="tooltip" title="@issue.Title" class="ticket">@itemTicket</a>
+                                                <div data-bs-toggle="tooltip" title="@issue.Title" class="@className" style="background-color: @issue.StateColor">@issue.State</div>
+                                            }
                                         }
-                                    }
-                                    else
-                                    {
-                                        <a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank" class="ticket">@item.Ticket</a>
+                                        else
+                                        {
+                                        <a href="@Constants.TicketBaseUrl@itemTicket" target="_blank" class="ticket">@itemTicket</a>
+                                        }
                                     }
                                 }
                                 @if (item.ApplicationName != Constants.UnassignedDumpNames)
