@@ -399,6 +399,19 @@ namespace CrashDumpAnalyzer.Controllers
                 {
                     _logger.LogError(ex, "Error deleting callstack from database");
                 }
+                if (dumpCallstack.ApplicationName == Constants.UnassignedDumpNames)
+                {
+                    try
+                    {
+                        _dbContext.Remove(dumpCallstack);
+                        await _dbContext.SaveChangesAsync();
+
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error deleting 'unassigned' callstack from database");
+                    }
+                }
             }
             catch (Exception ex)
             {
