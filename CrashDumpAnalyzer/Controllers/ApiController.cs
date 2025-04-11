@@ -339,8 +339,8 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
                         dumpInfo.FilePath = string.Empty;
+                        logFileLine.DumpFileInfo = null;
                     }
-                    logFileLine.DumpFileInfo = null;
                 }
                 await _dbContext.SaveChangesAsync();
                 try
