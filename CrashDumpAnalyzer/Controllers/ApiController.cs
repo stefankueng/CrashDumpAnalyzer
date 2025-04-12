@@ -289,6 +289,8 @@ namespace CrashDumpAnalyzer.Controllers
                 .Include(dumpCallstack => dumpCallstack.DumpInfos)
                 .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                 .FirstAsync(cs => cs.DumpCallstackId == id);
+            if (dumpCallstack == null)
+                return NotFound();
             if (dumpCallstack.DumpCallstackId != id)
                 return NotFound();
 
@@ -305,9 +307,9 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         // check if the dumpInfo is referenced by another callstack
                         var otherCallstacks = await _dbContext.DumpCallstacks
-                            .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                            .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
-                            .AnyAsync(cs => cs.DumpCallstackId != dumpInfo.DumpCallstackId && cs.Deleted == false &&
+                            .Include(dumpCallStack => dumpCallStack.DumpInfos)
+                            .Include(dumpCallStack => dumpCallStack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                            .AnyAsync(cs => cs.DumpCallstackId != dumpCallstack.DumpCallstackId && cs.Deleted == false &&
                             (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
                             cs.LogFileDatas.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath)));
                         if (otherCallstacks)
