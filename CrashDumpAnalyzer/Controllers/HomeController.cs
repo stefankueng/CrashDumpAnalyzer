@@ -198,6 +198,7 @@ namespace CrashDumpAnalyzer.Controllers
                     if (string.IsNullOrWhiteSpace(searchString))
                         list = await _dbContext.DumpCallstacks.AsNoTracking()
                             .Include(dumpCallstack => dumpCallstack.DumpInfos)
+                            .AsSplitQuery()
                             .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                             .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .Where(dumpCallstack => (issueType == null || dumpCallstack.ExceptionType == issueType || (activeTab == 0 && dumpCallstack.LogFileDatas.Count == 0)) &&
@@ -208,6 +209,7 @@ namespace CrashDumpAnalyzer.Controllers
                     else // with search string, include deleted callstacks
                         list = await _dbContext.DumpCallstacks.AsNoTracking()
                             .Include(dumpCallstack => dumpCallstack.DumpInfos)
+                            .AsSplitQuery()
                             .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                             .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .Where(dumpCallstack => (issueType == null || dumpCallstack.ExceptionType == issueType || (activeTab == 0 && dumpCallstack.LogFileDatas.Count == 0)))
@@ -217,6 +219,7 @@ namespace CrashDumpAnalyzer.Controllers
                 {
                     list = await _dbContext.DumpCallstacks.AsNoTracking()
                         .Include(dumpCallstack => dumpCallstack.DumpInfos)
+                        .AsSplitQuery()
                         .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                         .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                         .Where(dumpCallstack => (issueType == null || dumpCallstack.ExceptionType == issueType || (activeTab == 0 && dumpCallstack.LogFileDatas.Count == 0)) &&
