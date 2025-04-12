@@ -385,6 +385,15 @@ namespace CrashDumpAnalyzer.Controllers
                         if (!string.IsNullOrEmpty(a.Ticket) && string.IsNullOrEmpty(b.Ticket))
                             return 1;
                     }
+                    if (activeTab > 0)
+                    {
+                        // calculate the number of issues found in the callstack
+                        // and sort by that number
+                        var aIssues = a.LogFileDatas.Sum(logFileData => logFileData.LineNumbers.Count);
+                        var bIssues = b.LogFileDatas.Sum(logFileData => logFileData.LineNumbers.Count);
+                        if (aIssues != bIssues)
+                            return bIssues - aIssues; // sort by number of issues found
+                    }
                     try
                     {
                         var aUploadDate = a.DumpInfos.Count > 0 ? a.DumpInfos.Max(dumpInfo => dumpInfo.UploadDate) : (a.LogFileDatas.Count > 0 ? a.LogFileDatas.Max(logFileData => logFileData.DumpFileInfo != null ? logFileData.DumpFileInfo.UploadDate : logFileData.LatestTime) : DateTime.MinValue);
