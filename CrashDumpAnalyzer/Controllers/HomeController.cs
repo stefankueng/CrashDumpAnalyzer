@@ -45,6 +45,24 @@ namespace CrashDumpAnalyzer.Controllers
             _issueTypes = new List<string>();
             _issueTypes.Add("CrashDumps");
             _issueTypes.AddRange(logAnalyzer.IssueTypes);
+
+            // check the db if we have more issue types than the ones in the config
+            // but only for those using log files
+            if (_dbContext.DumpCallstacks != null)
+            {
+                var issueTypesInDb = _dbContext.DumpCallstacks.AsNoTracking()
+                    .Include(callstack => callstack.LogFileDatas)
+                    .Where(callstack => callstack.LogFileDatas.Count > 0 && !callstack.Deleted)
+                    .Select(callstack => callstack.ExceptionType)
+                    .Distinct()
+                    .ToList();
+                foreach (var issueType in issueTypesInDb)
+                {
+                    if (!_issueTypes.Contains(issueType))
+                        _issueTypes.Add(issueType);
+                }
+            }
+
         }
 
         public async Task<IActionResult> Index(int? deleted, string searchString, int activeTab)

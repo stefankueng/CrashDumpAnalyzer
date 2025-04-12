@@ -15,3 +15,5 @@
 /TestProject/bin
 /TestProject/obj
 /CrashDumpAnalyzer.sln.DotSettings.user
+/testfiles
+/CrashDumpAnalyzer/CrashDumpAnalyzer.json
