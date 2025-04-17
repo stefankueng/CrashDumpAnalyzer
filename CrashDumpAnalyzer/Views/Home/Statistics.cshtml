@@ -1,0 +1,96 @@
+﻿@using CrashDumpAnalyzer.Utilities
+@model StatisticsData
+@{
+    ViewData["Title"] = "Crash Dump Analyzer - Statistics";
+}
+
+<div class="text-center">
+    <h1 class="display-4 title">@ViewData["Title"]</h1>
+    <div>
+        @if (Model != null)
+        {
+            <table style="width:100%">
+                <tr>
+                    <th></th>
+                    @foreach (var issueType in Model.IssueTypes)
+                    {
+                        <th>@issueType</th>
+                    }
+                </tr>
+                <tr>
+                    <td>Open callstacks</td>
+                    @foreach (var issueType in Model.IssueTypes)
+                    {
+                        if (Model.OpenCallstacks.ContainsKey(issueType))
+                        {
+                            <td>@Model.OpenCallstacks[issueType]</td>
+                        }
+                        else
+                        {
+                            <td>0</td>
+                        }
+                    }
+                </tr>
+                <tr>
+                    <td>Closed callstacks</td>
+                    @foreach (var issueType in Model.IssueTypes)
+                    {
+                        if (Model.ClosedCallstacks.ContainsKey(issueType))
+                        {
+                            <td>@Model.ClosedCallstacks[issueType]</td>
+                        }
+                        else
+                        {
+                            <td>0</td>
+                        }
+                    }
+                </tr>
+                <tr>
+                    <td>Open callstacks without assigned tickets</td>
+                    @foreach (var issueType in Model.IssueTypes)
+                    {
+                        if (Model.OpenCallstacksWithoutTickets.ContainsKey(issueType))
+                        {
+                            <td>@Model.OpenCallstacksWithoutTickets[issueType]</td>
+                        }
+                        else
+                        {
+                            <td>0</td>
+                        }
+                    }
+                </tr>
+                <tr>
+                    <td>Callstacks that were automatically assigned to existing ones</td>
+                    @foreach (var issueType in Model.IssueTypes)
+                    {
+                        if (Model.CallstacksAssignedToExistingCallstacks.ContainsKey(issueType))
+                        {
+                            <td>@Model.CallstacksAssignedToExistingCallstacks[issueType]</td>
+                        }
+                        else
+                        {
+                            <td>0</td>
+                        }
+                    }
+                </tr>
+                <tr>
+                    <td>Kept dump/log files</td>
+                    @foreach (var issueType in Model.IssueTypes)
+                    {
+                        if (Model.NumberOfFiles.ContainsKey(issueType))
+                        {
+                            <td>@Model.NumberOfFiles[issueType] files, @SizeFormatter.SizeSuffix(@Model.TotalFileSize[issueType])</td>
+                        }
+                        else
+                        {
+                            <td>0</td>
+                        }
+                    }
+                </tr>
+            </table>
+        }
+
+    </div>
+</div>
+
+<partial name="_CallStackHelpers" />

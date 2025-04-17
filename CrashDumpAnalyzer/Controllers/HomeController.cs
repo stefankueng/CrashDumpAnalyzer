@@ -13,6 +13,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using CrashDumpAnalyzer.IssueTrackers.Interfaces;
 using CrashDumpAnalyzer.IssueTrackers.Data;
+using System.Globalization;
 
 namespace CrashDumpAnalyzer.Controllers
 {
@@ -26,6 +27,7 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly int _daysBack;
         private readonly int _maxFixedEntriesToShow;
         private readonly List<string> _issueTypes;
+        private readonly string DumpType = "CrashDumps";
 
         public HomeController(IConfiguration configuration,
             ILogger<HomeController> logger,
@@ -43,7 +45,7 @@ namespace CrashDumpAnalyzer.Controllers
             Constants.TicketBaseUrl = configuration.GetValue<string>("TicketBaseUrl") ?? string.Empty;
             var logAnalyzer = new LogAnalyzer(_logger, _configuration);
             _issueTypes = new List<string>();
-            _issueTypes.Add("CrashDumps");
+            _issueTypes.Add(DumpType);
             _issueTypes.AddRange(logAnalyzer.IssueTypes);
 
             // check the db if we have more issue types than the ones in the config
@@ -122,6 +124,105 @@ namespace CrashDumpAnalyzer.Controllers
             return View();
         }
 
+        public async Task<IActionResult> Statistics()
+        {
+            if (_dbContext.DumpCallstacks != null)
+            {
+                // get all statistics from the db
+                var callStacks = await _dbContext.DumpCallstacks.AsNoTracking()
+                    .Include(callstack => callstack.DumpInfos)
+                    .AsSplitQuery()
+                    .Include(callstack => callstack.LogFileDatas)
+                    .ToListAsync();
+
+                var openCallstacksList = callStacks
+                    .Where(callstack => !callstack.Deleted && string.IsNullOrEmpty(callstack.FixedVersion) && callstack.LinkedToDumpCallstackId == 0)
+                    .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
+                    .ToDictionary(group => group.Key, group => group.ToList());
+                var openCallstacks = callStacks
+                    .Where(callstack => !callstack.Deleted && string.IsNullOrEmpty(callstack.FixedVersion) && callstack.LinkedToDumpCallstackId == 0)
+                    .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
+                    .ToDictionary(group => group.Key, group => group.Count());
+                var openCallstacksWithoutTickets = callStacks
+                    .Where(callstack => !callstack.Deleted && string.IsNullOrEmpty(callstack.FixedVersion) && callstack.LinkedToDumpCallstackId == 0 && string.IsNullOrEmpty(callstack.Ticket))
+                    .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
+                    .ToDictionary(group => group.Key, group => group.Count());
+                var closedCallstacks = callStacks
+                    .Where(callstack => callstack.Deleted || !string.IsNullOrEmpty(callstack.FixedVersion) && callstack.LinkedToDumpCallstackId == 0)
+                    .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
+                    .ToDictionary(group => group.Key, group => group.Count());
+
+
+                var callstacksAssignedToExistingCallstacks = callStacks
+                    .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group
+                            .Select(callstack => new
+                            {
+                                AdjustedDumpCount = Math.Max((callstack.DumpInfos?.Count ?? 0) - 1, 0),
+                                AdjustedLineCount = Math.Max((callstack.LogFileDatas?.Sum(logFileData => logFileData.LineNumbers?.Count ?? 0) ?? 0) - 1, 0)
+                            })
+                            .Where(adjusted => adjusted.AdjustedDumpCount > 0 || adjusted.AdjustedLineCount > 0)
+                            .Aggregate(0, (total, adjusted) => total + adjusted.AdjustedDumpCount + adjusted.AdjustedLineCount)
+                    );
+
+
+
+                var newCallstacksPerWeek = callStacks
+                    .Where(callstack => callstack.DumpInfos != null && callstack.DumpInfos.Any())
+                    .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group
+                            .SelectMany(callstack => callstack.DumpInfos.Select(dumpInfo => new
+                            {
+                                Week = CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
+                                    dumpInfo.UploadDate, CalendarWeekRule.FirstDay, DayOfWeek.Monday) + dumpInfo.UploadDate.Year * 1000,
+                                Count = 1
+                            }))
+                            .GroupBy(x => x.Week)
+                            .Select(g => Tuple.Create(g.Key, g.Count()))
+                            .ToList()
+                    );
+                var numberOfFiles = callStacks
+                    .Where(callstack => !callstack.Deleted)
+                    .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.Sum(callstack =>
+                            (callstack.DumpInfos?.Count(dumpInfo => !string.IsNullOrEmpty(dumpInfo.FilePath)) ?? 0) +
+                            (callstack.LogFileDatas?.Count(logFileData => logFileData.DumpFileInfo != null && !string.IsNullOrEmpty(logFileData.DumpFileInfo.FilePath)) ?? 0)
+                        )
+                    );
+
+                var totalFileSize = callStacks
+                    .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.Sum(callstack =>
+                            (callstack.DumpInfos?.Where(dumpInfo => !string.IsNullOrEmpty(dumpInfo.FilePath)).Sum(dumpInfo => dumpInfo.FileSize) ?? 0) +
+                            (callstack.LogFileDatas?.Where(logFileData => logFileData.DumpFileInfo != null && !string.IsNullOrEmpty(logFileData.DumpFileInfo.FilePath)).Sum(logFileData => logFileData.DumpFileInfo!.FileSize) ?? 0)
+                        )
+                    );
+
+
+
+                var statisticsData = new StatisticsData
+                {
+                    IssueTypes = _issueTypes,
+                    OpenCallstacks = openCallstacks,
+                    OpenCallstacksWithoutTickets = openCallstacksWithoutTickets,
+                    ClosedCallstacks = closedCallstacks,
+                    CallstacksAssignedToExistingCallstacks = callstacksAssignedToExistingCallstacks,
+                    NewCallstacksPerWeek = newCallstacksPerWeek,
+                    NumberOfFiles = numberOfFiles,
+                    TotalFileSize = totalFileSize,
+                };
+                return View(statisticsData);
+            }
+            return View();
+        }
         public IActionResult Privacy()
         {
             return View();
