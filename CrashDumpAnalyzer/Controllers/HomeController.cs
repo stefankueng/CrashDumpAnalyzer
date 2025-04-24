@@ -128,6 +128,8 @@ namespace CrashDumpAnalyzer.Controllers
         {
             if (_dbContext.DumpCallstacks != null)
             {
+                DateTime cutoffDate = DateTime.Now.AddDays(-_daysBack);
+
                 // get all statistics from the db
                 var callStacks = await _dbContext.DumpCallstacks.AsNoTracking()
                     .Where(callstack => callstack.ApplicationName != Constants.UnassignedDumpNames && callstack.LinkedToDumpCallstackId == 0)
@@ -135,6 +137,7 @@ namespace CrashDumpAnalyzer.Controllers
                     .AsSplitQuery()
                     .Include(callstack => callstack.LogFileDatas)
                     .ToListAsync();
+
 
                 var openCallstacksList = callStacks
                     .Where(callstack => !callstack.Deleted && string.IsNullOrEmpty(callstack.FixedVersion))
@@ -526,6 +529,8 @@ namespace CrashDumpAnalyzer.Controllers
                         //callstack.Ticket = string.Empty;
                     }
                 }
+                if (fixedIndex == -1)
+                    fixedIndex = resultList.Count;
                 return resultList.Take(fixedIndex + _maxFixedEntriesToShow).ToList();
             }
             return new List<DumpCallstack>();
