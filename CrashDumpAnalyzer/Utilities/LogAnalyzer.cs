@@ -172,6 +172,8 @@ namespace CrashDumpAnalyzer.Utilities
                         logIssue.IssueTextClean = logIssue.IssueText;
                         for (int i = 2; i < logIssueMatch.Groups.Count; i++)
                         {
+                            if (string.IsNullOrEmpty(logIssueMatch.Groups[i].Value))
+                                continue;
                             logIssue.IssueTextClean = logIssue.IssueTextClean.Replace(logIssueMatch.Groups[i].Value, string.Empty);
                         }
 
