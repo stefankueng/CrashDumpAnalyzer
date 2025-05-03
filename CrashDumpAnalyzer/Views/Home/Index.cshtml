@@ -60,6 +60,13 @@
                 </table>
             </div>
         </div>
+        @if (!string.IsNullOrEmpty(Model.ActiveFilterString))
+        {
+            <div style="float: right; margin-top: 10px;">
+                <button type="button" class="btn btn-primary" title="delete all selected callstacks" onclick="deleteAllSelectedEntries()">❌</button>
+                <button type="button" class="btn btn-primary" title="combine all selected callstacks" onclick="combineAllSelectedEntries()">⅄</button>
+            </div>
+        }
         <div>
             @if (Model.Tabs.Count > 1)
             {
@@ -77,6 +84,7 @@
                     }
                 </ul>
             }
+
 
             <table class="flowTable">
                 <tr>

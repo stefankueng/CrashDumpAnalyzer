@@ -41,6 +41,83 @@ function toggleAllRows(checkbox) {
     var checkboxes = document.querySelectorAll('.row-checkbox');
     checkboxes.forEach(cb => cb.checked = checkbox.checked);
 }
+function deleteAllSelectedEntries() {
+    let checkedIds = [];
+    document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+        checkedIds.push(cb.getAttribute('data-id'));
+    });
+
+    const itemCount = checkedIds.length;
+    if (itemCount === 0) {
+        return;
+    }
+
+    // Ask the user to enter the number of selected items
+    const userInput = prompt(`You have checked ${itemCount} items to delete.\nPlease enter that number below to confirm the deletion:`);
+
+    if (parseInt(userInput) !== itemCount) {
+        alert("The number you entered does not match the number of checked items. Deletion canceled.");
+        return;
+    }
+
+    let ajaxCalls = [];
+    checkedIds.forEach(function (checkedId) {
+        ajaxCalls.push(
+            $.ajax({
+                url: '/Api/DeleteDumpCallstack?id=' + checkedId,
+                processData: false,
+                contentType: false,
+                type: 'POST',
+            })
+        );
+    });
+
+    // Wait for all AJAX calls to complete before reloading
+    $.when(...ajaxCalls).done(function () {
+        location.reload();
+    });
+}
+function combineAllSelectedEntries() {
+    let checkedIds = [];
+    document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+        checkedIds.push(cb.getAttribute('data-id'));
+    });
+
+    const itemCount = checkedIds.length;
+    if (itemCount < 2) {
+        return;
+    }
+
+    // Ask the user to enter the number of selected items
+    const userInput = prompt(`You have checked ${itemCount} items to link together.\nPlease enter that number below to confirm:`);
+
+    if (parseInt(userInput) !== itemCount) {
+        alert("The number you entered does not match the number of checked items. Linking items canceled.");
+        return;
+    }
+
+    let toId = -1;
+    let ajaxCalls = [];
+    checkedIds.forEach(function (checkedId) {
+        if (toId === -1) {
+            toId = checkedId;
+        } else if (checkedId !== toId) {
+            ajaxCalls.push(
+                $.ajax({
+                    url: '/Api/LinkCallstack?id=' + checkedId + '&toId=' + toId,
+                    processData: false,
+                    contentType: false,
+                    type: 'POST',
+                })
+            );
+        }
+    });
+
+    // Wait for all AJAX calls to complete before reloading
+    $.when(...ajaxCalls).done(function () {
+        location.reload();
+    });
+}
 
 $(function () {
     $('#setFixedVersionModal').on('show.bs.modal', function (e) {
@@ -162,26 +239,30 @@ $(function () {
                     if (checkedText === targetText || checkedText.replace(/\.[^/.]+$/, "") === targetText.replace(/\.[^/.]+$/, "") || checkedText === "◎" || targetText === "◎")
                         checkedIds.push($(this).data('id'));
                 });
-                console.debug("Checked IDs: ", checkedIds);
                 let id = Number(e.dataTransfer.getData(e.dataTransfer.types[0]));
                 // Add id to checkedIds only if it's not already in the list
                 if (!checkedIds.includes(id)) {
                     checkedIds.push(id);
                 }
                 
-                // Loop through all checkedIds
+                // Collect all AJAX calls
+                let ajaxCalls = [];
                 checkedIds.forEach(function (checkedId) {
                     if (checkedId !== toId) {
-                        $.ajax({
-                            url: '/Api/LinkCallstack?id=' + checkedId + '&toId=' + toId,
-                            processData: false,
-                            contentType: false,
-                            type: 'POST',
-                            complete: function (data) {
-                                location.reload();
-                            },
-                        });
+                        ajaxCalls.push(
+                            $.ajax({
+                                url: '/Api/LinkCallstack?id=' + checkedId + '&toId=' + toId,
+                                processData: false,
+                                contentType: false,
+                                type: 'POST',
+                            })
+                        );
                     }
+                });
+
+                // Wait for all AJAX calls to complete before reloading
+                $.when(...ajaxCalls).done(function () {
+                    location.reload();
                 });
             }
 
