@@ -80,15 +80,17 @@
 
             <table class="flowTable">
                 <tr>
-                    <th>@Html.DisplayNameFor(model => model.Callstacks.First().ApplicationName)</th>
-                    <th>@Html.DisplayNameFor(model => model.Callstacks.First().ApplicationVersion)</th>
-                    <th>@Html.DisplayNameFor(model => model.Callstacks.First().Ticket)</th>
-                    <th>@Html.DisplayNameFor(model => model.Callstacks.First().FixedVersion)</th>
-                    <th>@Html.DisplayNameFor(model => model.Callstacks.First().ExceptionType)</th>
-                    <th>Dumps</th>
-                    <th>@Html.DisplayNameFor(model => model.Callstacks.First().Callstack)</th>
-                    <th></th>
+                   <th><input type="checkbox" id="select-all" onclick="toggleAllRows(this)" /></th>
+                   <th>@Html.DisplayNameFor(model => model.Callstacks.First().ApplicationName)</th>
+                   <th>@Html.DisplayNameFor(model => model.Callstacks.First().ApplicationVersion)</th>
+                   <th>@Html.DisplayNameFor(model => model.Callstacks.First().Ticket)</th>
+                   <th>@Html.DisplayNameFor(model => model.Callstacks.First().FixedVersion)</th>
+                   <th>@Html.DisplayNameFor(model => model.Callstacks.First().ExceptionType)</th>
+                   <th>Dumps</th>
+                   <th>@Html.DisplayNameFor(model => model.Callstacks.First().Callstack)</th>
+                   <th></th>
                 </tr>
+
                 @foreach (var item in Model.Callstacks)
                 {
                     @if (item.DumpInfos.Count == 0 && item is { Deleted: false, LogFileDatas.Count: 0 })
@@ -122,6 +124,7 @@
                             dumpCountInfo += " in " + item.LogFileDatas.Count + " file" + (@item.LogFileDatas.Count == 1 ? "" : "s");
                         }
                         <tr>
+                            <td style="text-align: center; vertical-align: middle;"><input type="checkbox" class="row-checkbox" data-id="@item.DumpCallstackId"/></td>
                             <!-- application name -->
                             <td class="@stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">@Html.DisplayFor(modelItem => item.ApplicationName) <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;" class="button-link">◎</a></td>
                             <!-- application version -->

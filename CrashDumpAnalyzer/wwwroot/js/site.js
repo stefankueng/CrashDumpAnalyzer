@@ -37,6 +37,11 @@ $(document).click(function (e) {
     $('[data-bs-toggle="popover"]').popover('hide');
 
 });
+function toggleAllRows(checkbox) {
+    var checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+}
+
 $(function () {
     $('#setFixedVersionModal').on('show.bs.modal', function (e) {
         $('.modalTextInput').val('');
@@ -149,18 +154,35 @@ $(function () {
             let targetText = this.textContent.trim().toLowerCase();
             if (draggedText === targetText || draggedText.replace(/\.[^/.]+$/, "") === targetText.replace(/\.[^/.]+$/, "") || draggedText === "◎" || targetText === "◎") {
                 let toId = $(this).data('id'); // the rest is just the same
+                
+                // Get a list of IDs of every checked row in the table
+                let checkedIds = [];
+                $(this).closest('table').find('input[type="checkbox"]:checked').each(function () {
+                    let checkedText = $(this).closest('tr').find('.draggable').text().trim().toLowerCase();
+                    if (checkedText === targetText || checkedText.replace(/\.[^/.]+$/, "") === targetText.replace(/\.[^/.]+$/, "") || checkedText === "◎" || targetText === "◎")
+                        checkedIds.push($(this).data('id'));
+                });
+                console.debug("Checked IDs: ", checkedIds);
                 let id = Number(e.dataTransfer.getData(e.dataTransfer.types[0]));
-                if (id !== toId) {
-                    $.ajax({
-                        url: '/Api/LinkCallstack?id=' + id + '&toId=' + toId,
-                        processData: false,
-                        contentType: false,
-                        type: 'POST',
-                        complete: function (data) {
-                            location.reload();
-                        },
-                    });
+                // Add id to checkedIds only if it's not already in the list
+                if (!checkedIds.includes(id)) {
+                    checkedIds.push(id);
                 }
+                
+                // Loop through all checkedIds
+                checkedIds.forEach(function (checkedId) {
+                    if (checkedId !== toId) {
+                        $.ajax({
+                            url: '/Api/LinkCallstack?id=' + checkedId + '&toId=' + toId,
+                            processData: false,
+                            contentType: false,
+                            type: 'POST',
+                            complete: function (data) {
+                                location.reload();
+                            },
+                        });
+                    }
+                });
             }
 
 
