@@ -283,6 +283,11 @@ namespace CrashDumpAnalyzer.Controllers
         [HttpPost]
         public async Task<IActionResult> DeleteDumpCallstack(int id)
         {
+            return await DeleteDumpCallstack(id, string.Empty);
+        }
+
+        private async Task<IActionResult> DeleteDumpCallstack(int id, string comment)
+        {
             if (_dbContext.DumpCallstacks == null)
                 return NotFound();
             var dumpCallstack = await _dbContext.DumpCallstacks
@@ -298,6 +303,10 @@ namespace CrashDumpAnalyzer.Controllers
             {
                 // only mark the callstack as deleted, do not delete it from the db
                 dumpCallstack.Deleted = true;
+                if (!string.IsNullOrEmpty(dumpCallstack.Comment))
+                    dumpCallstack.Comment = comment;
+                else
+                    dumpCallstack.Comment = dumpCallstack.Comment + "\n" + comment;
                 // but we delete all dump files from this callstack:
                 // the callstack itself is still stored as text in the db
                 foreach (var dumpInfo in dumpCallstack.DumpInfos)
@@ -815,7 +824,7 @@ namespace CrashDumpAnalyzer.Controllers
                     var version = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
                     if (!MinVersions.IsVersionSupported(callstack.ApplicationName, version))
                     {
-                        await DeleteDumpCallstack(callstack.DumpCallstackId);
+                        await DeleteDumpCallstack(callstack.DumpCallstackId, "Version is too old, it won't be analyzed anymore.");
                     }
                 }
             }
@@ -955,7 +964,7 @@ namespace CrashDumpAnalyzer.Controllers
                     var version = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
                     if (!MinVersions.IsVersionSupported(callstack.ApplicationName, version))
                     {
-                        await DeleteDumpCallstack(callstack.DumpCallstackId);
+                        await DeleteDumpCallstack(callstack.DumpCallstackId, "Version is too old, it won't be analyzed anymore.");
                     }
                 }
                 // now run agestore to keep the cache size in check
