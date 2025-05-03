@@ -347,25 +347,53 @@ namespace CrashDumpAnalyzer.Controllers
 
                 if (!string.IsNullOrWhiteSpace(searchString))
                 {
-                    // Convert wildcard search string to regex pattern
-                    string pattern = ".*" + Regex.Escape(searchString).Replace("\\*", ".*").Replace("\\?", ".") + ".*";
-                    Regex regex = new Regex(pattern, RegexOptions.IgnoreCase);
+                    var splitStrings = searchString.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+                    if (searchString.StartsWith('/'))
+                        splitStrings = [searchString];
 
-                    list = list.Where(dumpCallstack =>
-                        regex.IsMatch(dumpCallstack.ApplicationName) ||
-                        regex.IsMatch(dumpCallstack.ApplicationVersion) ||
-                        regex.IsMatch(dumpCallstack.FixedVersion) ||
-                        regex.IsMatch(dumpCallstack.ExceptionType) ||
-                        regex.IsMatch(dumpCallstack.Ticket) ||
-                        regex.IsMatch(dumpCallstack.Comment) ||
-                        regex.IsMatch(dumpCallstack.Callstack) ||
-                        dumpCallstack.DumpInfos.Any(dumpFileInfo =>
-                            regex.IsMatch(dumpFileInfo.UploadedFromIp) ||
-                            regex.IsMatch(dumpFileInfo.UploadedFromHostname) ||
-                            regex.IsMatch(dumpFileInfo.Environment) ||
-                            regex.IsMatch(dumpFileInfo.ComputerName) ||
-                            regex.IsMatch(dumpFileInfo.Domain)))
-                        .ToList();
+                    foreach (var splitString in splitStrings)
+                    {
+                        string pattern = string.Empty;
+                        if (splitString.StartsWith('/'))
+                        {
+                            pattern = splitString.Substring(1);
+                            try
+                            {
+                                // Check if the pattern is a valid regex
+                                Regex testRegex = new Regex(pattern, RegexOptions.IgnoreCase);
+                            }
+                            catch (Exception)
+                            {
+                                // Convert wildcard search string to regex pattern
+                                pattern = ".*" + Regex.Escape(splitString).Replace("\\*", ".*").Replace("\\?", ".") + ".*";
+                            }
+                        }
+                        else
+                            // Convert wildcard search string to regex pattern
+                            pattern = ".*" + Regex.Escape(splitString).Replace("\\*", ".*").Replace("\\?", ".") + ".*";
+                        Regex regex = new Regex(pattern, RegexOptions.IgnoreCase);
+
+                        list = list.Where(dumpCallstack =>
+                            regex.IsMatch(dumpCallstack.ApplicationName) ||
+                            regex.IsMatch(dumpCallstack.ApplicationVersion) ||
+                            regex.IsMatch(dumpCallstack.FixedVersion) ||
+                            regex.IsMatch(dumpCallstack.ExceptionType) ||
+                            regex.IsMatch(dumpCallstack.Ticket) ||
+                            regex.IsMatch(dumpCallstack.Comment) ||
+                            regex.IsMatch(dumpCallstack.Callstack) ||
+                            dumpCallstack.DumpInfos.Any(dumpFileInfo =>
+                                regex.IsMatch(dumpFileInfo.UploadedFromIp) ||
+                                regex.IsMatch(dumpFileInfo.UploadedFromHostname) ||
+                                regex.IsMatch(dumpFileInfo.UploadedFromUserEmail) ||
+                                regex.IsMatch(dumpFileInfo.UploadedFromUsername) ||
+                                regex.IsMatch(dumpFileInfo.VersionResource) ||
+                                regex.IsMatch(dumpFileInfo.LogSummary) ||
+                                regex.IsMatch(dumpFileInfo.Comment) ||
+                                regex.IsMatch(dumpFileInfo.Environment) ||
+                                regex.IsMatch(dumpFileInfo.ComputerName) ||
+                                regex.IsMatch(dumpFileInfo.Domain)))
+                            .ToList();
+                    }
                 }
 
                 foreach (var dumpCallstack in list)
