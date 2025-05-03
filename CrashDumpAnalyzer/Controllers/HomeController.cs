@@ -28,6 +28,8 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly int _maxFixedEntriesToShow;
         private readonly List<string> _issueTypes;
         private readonly string DumpType = "CrashDumps";
+        private readonly int _lastUploadsDays;
+        private readonly int _lastUploadsItems;
 
         public HomeController(IConfiguration configuration,
             ILogger<HomeController> logger,
@@ -42,6 +44,8 @@ namespace CrashDumpAnalyzer.Controllers
             _dbContext = context;
             _daysBack = configuration.GetValue<int>("ShowEntriesForDaysBack") > 0 ? configuration.GetValue<int>("ShowEntriesForDaysBack") : 180;
             _maxFixedEntriesToShow = configuration.GetValue<int>("ShowMaxFixedEntries") > 0 ? configuration.GetValue<int>("ShowMaxFixedEntries") : 20;
+            _lastUploadsDays = configuration.GetValue<int>("LastUploadsDays") > 0 ? configuration.GetValue<int>("LastUploadsDays") : 2;
+            _lastUploadsItems = configuration.GetValue<int>("LastUploadsItems") > 0 ? configuration.GetValue<int>("LastUploadsItems") : 20;
             Constants.TicketBaseUrl = configuration.GetValue<string>("TicketBaseUrl") ?? string.Empty;
             var logAnalyzer = new LogAnalyzer(_logger, _configuration);
             _issueTypes = new List<string>();
@@ -263,10 +267,17 @@ namespace CrashDumpAnalyzer.Controllers
         {
             if (_dbContext.DumpFileInfos != null)
             {
+                // Calculate the cutoff date for the last x days
+                DateTime daysAgo = DateTime.Now.AddDays(-_lastUploadsDays);
+
+                // Fetch items that satisfy either condition in a single query
                 var resultList = await _dbContext.DumpFileInfos.AsNoTracking()
+                    .Where(dumpFileInfo => dumpFileInfo.UploadDate >= daysAgo)
                     .OrderByDescending(dumpFileInfo => dumpFileInfo.UploadDate)
-                    .Take(20)
+                    .Take(_lastUploadsItems)
                     .ToListAsync();
+
+                // Resolve hostnames for items without a hostname
                 foreach (var dumpFileInfo in resultList)
                 {
                     if (string.IsNullOrEmpty(dumpFileInfo.UploadedFromHostname) &&
@@ -281,6 +292,7 @@ namespace CrashDumpAnalyzer.Controllers
                         }
                         catch (Exception)
                         {
+                            // Handle exceptions silently
                         }
                     }
                 }
