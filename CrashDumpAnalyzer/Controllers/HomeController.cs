@@ -270,12 +270,22 @@ namespace CrashDumpAnalyzer.Controllers
                 // Calculate the cutoff date for the last x days
                 DateTime daysAgo = DateTime.Now.AddDays(-_lastUploadsDays);
 
-                // Fetch items that satisfy either condition in a single query
-                var resultList = await _dbContext.DumpFileInfos.AsNoTracking()
-                    .Where(dumpFileInfo => dumpFileInfo.UploadDate >= daysAgo)
+                // Fetch the last X items
+                var lastXItems = await _dbContext.DumpFileInfos.AsNoTracking()
                     .OrderByDescending(dumpFileInfo => dumpFileInfo.UploadDate)
                     .Take(_lastUploadsItems)
                     .ToListAsync();
+
+                // Fetch all items uploaded in the last two days
+                var recentItems = await _dbContext.DumpFileInfos.AsNoTracking()
+                    .Where(dumpFileInfo => dumpFileInfo.UploadDate >= daysAgo)
+                    .OrderByDescending(dumpFileInfo => dumpFileInfo.UploadDate)
+                    .ToListAsync();
+
+                // Combine the two lists, ensuring no duplicates
+                var resultList = recentItems.Union(lastXItems)
+                    .OrderByDescending(dumpFileInfo => dumpFileInfo.UploadDate)
+                    .ToList();
 
                 // Resolve hostnames for items without a hostname
                 foreach (var dumpFileInfo in resultList)
