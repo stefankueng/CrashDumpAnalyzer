@@ -810,6 +810,14 @@ namespace CrashDumpAnalyzer.Controllers
                     dbContext.Add(callstack);
 
                 await dbContext.SaveChangesAsync(token);
+                if (callstack.ApplicationVersion != null)
+                {
+                    var version = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
+                    if (!MinVersions.IsVersionSupported(callstack.ApplicationName, version))
+                    {
+                        await DeleteDumpCallstack(callstack.DumpCallstackId);
+                    }
+                }
             }
             await dbContext.DisposeAsync();
         }
@@ -941,7 +949,15 @@ namespace CrashDumpAnalyzer.Controllers
                     dbContext.Add(callstack);
                 await dbContext.SaveChangesAsync(token);
                 await dbContext.DisposeAsync();
-
+                // if the callstack has a version that's not supported anymore, delete it
+                if (callstack.ApplicationVersion != null)
+                {
+                    var version = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
+                    if (!MinVersions.IsVersionSupported(callstack.ApplicationName, version))
+                    {
+                        await DeleteDumpCallstack(callstack.DumpCallstackId);
+                    }
+                }
                 // now run agestore to keep the cache size in check
                 if (_agestoreExe != string.Empty)
                 {
