@@ -282,10 +282,8 @@ namespace CrashDumpAnalyzer.Controllers
                     .OrderByDescending(dumpFileInfo => dumpFileInfo.UploadDate)
                     .ToListAsync();
 
-                // Combine the two lists, ensuring no duplicates
-                var resultList = recentItems.Union(lastXItems)
-                    .OrderByDescending(dumpFileInfo => dumpFileInfo.UploadDate)
-                    .ToList();
+                // use the larger list
+                var resultList = recentItems.Count > lastXItems.Count ? recentItems : lastXItems;
 
                 // Resolve hostnames for items without a hostname
                 foreach (var dumpFileInfo in resultList)
