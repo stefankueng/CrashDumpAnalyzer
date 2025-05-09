@@ -136,7 +136,7 @@ namespace CrashDumpAnalyzer.Controllers
 
                 // get all statistics from the db
                 var callStacks = await _dbContext.DumpCallstacks.AsNoTracking()
-                    .Where(callstack => callstack.ApplicationName != Constants.UnassignedDumpNames && callstack.LinkedToDumpCallstackId == 0)
+                    .Where(callstack => callstack.ApplicationName != Constants.UnassignedDumpNames)
                     .Include(callstack => callstack.DumpInfos)
                     .AsSplitQuery()
                     .Include(callstack => callstack.LogFileDatas)
@@ -144,19 +144,19 @@ namespace CrashDumpAnalyzer.Controllers
 
 
                 var openCallstacksList = callStacks
-                    .Where(callstack => !callstack.Deleted && string.IsNullOrEmpty(callstack.FixedVersion))
+                    .Where(callstack => !callstack.Deleted && string.IsNullOrEmpty(callstack.FixedVersion) && callstack.LinkedToDumpCallstackId == 0)
                     .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
                     .ToDictionary(group => group.Key, group => group.ToList());
                 var openCallstacks = callStacks
-                    .Where(callstack => !callstack.Deleted && string.IsNullOrEmpty(callstack.FixedVersion))
+                    .Where(callstack => !callstack.Deleted && string.IsNullOrEmpty(callstack.FixedVersion) && callstack.LinkedToDumpCallstackId == 0)
                     .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
                     .ToDictionary(group => group.Key, group => group.Count());
                 var openCallstacksWithoutTickets = callStacks
-                    .Where(callstack => !callstack.Deleted && string.IsNullOrEmpty(callstack.FixedVersion) && string.IsNullOrEmpty(callstack.Ticket))
+                    .Where(callstack => !callstack.Deleted && string.IsNullOrEmpty(callstack.FixedVersion) && string.IsNullOrEmpty(callstack.Ticket) && callstack.LinkedToDumpCallstackId == 0)
                     .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
                     .ToDictionary(group => group.Key, group => group.Count());
                 var closedCallstacks = callStacks
-                    .Where(callstack => callstack.Deleted || !string.IsNullOrEmpty(callstack.FixedVersion))
+                    .Where(callstack => callstack.Deleted || !string.IsNullOrEmpty(callstack.FixedVersion) && callstack.LinkedToDumpCallstackId == 0)
                     .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
                     .ToDictionary(group => group.Key, group => group.Count());
 
@@ -168,11 +168,12 @@ namespace CrashDumpAnalyzer.Controllers
                         group => group
                             .Select(callstack => new
                             {
-                                AdjustedDumpCount = Math.Max((callstack.DumpInfos?.Count ?? 0) - 1, 0),
+                                AdjustedDumpCount =(callstack.DumpInfos?.Count ?? 1) - 1,
+                                LinkedDumpCount = callstack.LinkedToDumpCallstackId != 0 ? 1 : 0,
                                 AdjustedLineCount = Math.Max((callstack.LogFileDatas?.Sum(logFileData => logFileData.LineNumbers?.Count ?? 0) ?? 0) - 1, 0)
                             })
-                            .Where(adjusted => adjusted.AdjustedDumpCount > 0 || adjusted.AdjustedLineCount > 0)
-                            .Aggregate(0, (total, adjusted) => total + adjusted.AdjustedDumpCount + adjusted.AdjustedLineCount)
+                            .Where(adjusted => adjusted.AdjustedDumpCount > 0 || adjusted.LinkedDumpCount > 0 || adjusted.AdjustedLineCount > 0)
+                            .Aggregate(0, (total, adjusted) => total + adjusted.AdjustedDumpCount + adjusted.LinkedDumpCount + adjusted.AdjustedLineCount)
                     );
 
 
