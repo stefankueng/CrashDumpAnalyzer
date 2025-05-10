@@ -303,7 +303,7 @@ namespace CrashDumpAnalyzer.Controllers
             {
                 // only mark the callstack as deleted, do not delete it from the db
                 dumpCallstack.Deleted = true;
-                if (!string.IsNullOrEmpty(dumpCallstack.Comment))
+                if (string.IsNullOrEmpty(dumpCallstack.Comment))
                     dumpCallstack.Comment = comment;
                 else
                     dumpCallstack.Comment = dumpCallstack.Comment + "\n" + comment;
