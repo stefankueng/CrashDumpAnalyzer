@@ -422,7 +422,7 @@ namespace CrashDumpAnalyzer.Controllers
                 }
 
                 Dictionary<int, List<DumpCallstack>> groupedCallstacks = new();
-                List<DumpCallstack> resultList = new();
+                List<DumpCallstack> resultList = [];
                 foreach (var callstack in list)
                 {
                     if (callstack.LinkedToDumpCallstackId != 0)
@@ -464,6 +464,7 @@ namespace CrashDumpAnalyzer.Controllers
                         for (int i = 1; i < group.Value.Count; i++)
                         {
                             first.DumpInfos.AddRange(group.Value[i].DumpInfos);
+                            first.LogFileDatas.AddRange(group.Value[i].LogFileDatas);
                             first.Callstack += "\n---------------------------------------\n" + group.Value[i].Callstack;
                             if (first.ExceptionType != group.Value[i].ExceptionType)
                                 first.ExceptionType += "\n\n" + group.Value[i].ExceptionType;
