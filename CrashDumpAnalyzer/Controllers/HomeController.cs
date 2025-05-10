@@ -529,6 +529,9 @@ namespace CrashDumpAnalyzer.Controllers
                     if (!aDumpAfterFixedVersion && bDumpAfterFixedVersion)
                         return 1;
 
+                    // if a callstack is marked as deleted, move it to the very end of the list
+                    if (a.Deleted != b.Deleted)
+                        return a.Deleted ? 1 : -1;
                     // if a callstack is marked as fixed, move it to the end of the list
                     if (!string.IsNullOrEmpty(a.FixedVersion) && string.IsNullOrEmpty(b.FixedVersion))
                         return 1;
