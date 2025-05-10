@@ -168,7 +168,7 @@ namespace CrashDumpAnalyzer.Controllers
                         group => group
                             .Select(callstack => new
                             {
-                                AdjustedDumpCount =(callstack.DumpInfos?.Count ?? 1) - 1,
+                                AdjustedDumpCount = (callstack.DumpInfos?.Count ?? 1) - 1,
                                 LinkedDumpCount = callstack.LinkedToDumpCallstackId != 0 ? 1 : 0,
                                 AdjustedLineCount = Math.Max((callstack.LogFileDatas?.Sum(logFileData => logFileData.LineNumbers?.Count ?? 0) ?? 0) - 1, 0)
                             })
@@ -572,16 +572,11 @@ namespace CrashDumpAnalyzer.Controllers
                     return b.DumpInfos.Count - a.DumpInfos.Count;
                 });
 
+                if (!string.IsNullOrEmpty(searchString))
+                    return resultList;
                 // find the index where the fixed callstacks start
                 int fixedIndex = resultList.FindIndex(callstack => !string.IsNullOrEmpty(callstack.FixedVersion) &&
-                new SemanticVersion(callstack.FixedVersion, callstack.FixedBuildType) > new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType));
-                foreach (var callstack in resultList)
-                {
-                    if (callstack.Ticket.Length > 10)
-                    {
-                        //callstack.Ticket = string.Empty;
-                    }
-                }
+                                new SemanticVersion(callstack.FixedVersion, callstack.FixedBuildType) > new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType));
                 if (fixedIndex == -1)
                     fixedIndex = resultList.Count;
                 return resultList.Take(fixedIndex + _maxFixedEntriesToShow).ToList();
