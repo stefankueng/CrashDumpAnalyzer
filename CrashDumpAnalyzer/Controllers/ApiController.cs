@@ -604,8 +604,22 @@ namespace CrashDumpAnalyzer.Controllers
             if (id == toId)
                 return BadRequest();
             var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
+            var toEntry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == toId);
             if (entry != null)
             {
+                bool resetDeleted = false;
+                if (toEntry != null)
+                {
+                    if (!toEntry.Deleted)
+                        resetDeleted = true;
+                    if (!entry.Deleted)
+                    {
+                        resetDeleted = true;
+                        toEntry.Deleted = false;
+                    }
+                }
+                if (resetDeleted)
+                    entry.Deleted = false;
                 entry.LinkedToDumpCallstackId = toId;
                 await _dbContext.SaveChangesAsync();
                 ModelState.Clear();
@@ -616,6 +630,8 @@ namespace CrashDumpAnalyzer.Controllers
                     if (entry != null)
                     {
                         entry.LinkedToDumpCallstackId = toId;
+                        if (resetDeleted)
+                            entry.Deleted = false;
                         await _dbContext.SaveChangesAsync();
                     }
                 } while (entry != null);
