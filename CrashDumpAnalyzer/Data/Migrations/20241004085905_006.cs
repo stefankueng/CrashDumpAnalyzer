@@ -13,6 +13,8 @@ namespace CrashDumpAnalyzer.Data.Migrations
             // change all absolute DumpFileInfo.FilePath to relative paths in the db
             var builder = WebApplication.CreateBuilder();
             var dumpPath = builder.Configuration.GetValue<string>("DumpPath");
+            if (string.IsNullOrEmpty(dumpPath))
+                return;
             dumpPath.TrimEnd('\\');
             dumpPath.TrimEnd('/');
             migrationBuilder.Sql(
