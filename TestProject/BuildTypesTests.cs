@@ -8,6 +8,7 @@ using System.Collections.Generic;
 namespace CrashDumpAnalyzer.Tests
 {
     [TestClass]
+    [DoNotParallelize]
     public class BuildTypesTests
     {
         private Mock<ILogger>? _loggerMock;
@@ -36,7 +37,7 @@ namespace CrashDumpAnalyzer.Tests
             Assert.AreEqual(1, BuildTypes.Types["alpha"]);
             Assert.AreEqual(2, BuildTypes.Types["beta"]);
             Assert.AreEqual(3, BuildTypes.Types["rc"]);
-            Assert.AreEqual(4, BuildTypes.Types["release"]);
+            Assert.AreEqual(4, BuildTypes.Types[""]);
         }
 
         [TestMethod]
