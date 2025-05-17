@@ -199,8 +199,8 @@ namespace CrashDumpAnalyzer.Controllers
                                 _dbContext.Add(callstack);
 
                             _logger.LogInformation(
-                                "Uploaded file '{TrustedFileNameForDisplay}' saved to " +
-                                "'{TargetFilePath}' as {TrustedFileNameForFileStorage}",
+                                "Uploaded file '{FileNameForDisplay}' saved to " +
+                                "'{TargetFilePath}' as {FileNameForFileStorage}",
                                 fileNameForDisplay, _dumpPath,
                                 fileNameForFileStorage);
                         }
@@ -577,7 +577,7 @@ namespace CrashDumpAnalyzer.Controllers
         public async Task<IActionResult> SetComment(int id, string? comment)
         {
             comment ??= string.Empty;
-            _logger.LogInformation("Setting comment for {id} to {comment}", id, comment);
+            _logger.LogInformation("Setting comment for {id} to {comment}", id, comment.Replace(Environment.NewLine, ""));
             if (_dbContext.DumpCallstacks == null)
                 return NotFound();
             var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
