@@ -1,0 +1,83 @@
+{
+  "version": "3.0",
+  "defaultProvider": "cdnjs",
+    "libraries": [
+        {
+            "provider": "cdnjs",
+            "library": "jquery@3.7.1",
+            "destination": "wwwroot/lib/jquery/dist/",
+            "files": [
+                "jquery.min.js",
+                "jquery.js",
+                "jquery.min.map"
+            ]
+        },
+        {
+            "provider": "cdnjs",
+            "library": "jquery-validate@1.21.0",
+            "destination": "wwwroot/lib/jquery-validation/dist/",
+            "files": [
+                "jquery.validate.min.js",
+                "jquery.validate.js",
+                "additional-methods.js",
+                "additional-methods.min.js"
+            ]
+        },
+        {
+            "provider": "cdnjs",
+            "library": "jquery-validation-unobtrusive@4.0.0",
+            "destination": "wwwroot/lib/jquery-validation-unobtrusive/"
+        },
+        {
+            "provider": "cdnjs",
+            "library": "bootstrap@5.3.3",
+            "destination": "wwwroot/lib/bootstrap/dist/",
+            "files": [
+                "js/bootstrap.bundle.js",
+                "css/bootstrap-grid.css",
+                "css/bootstrap-grid.css.map",
+                "css/bootstrap-grid.min.css",
+                "css/bootstrap-grid.min.css.map",
+                "css/bootstrap-grid.rtl.css",
+                "css/bootstrap-grid.rtl.css.map",
+                "css/bootstrap-grid.rtl.min.css",
+                "css/bootstrap-grid.rtl.min.css.map",
+                "css/bootstrap-reboot.css",
+                "css/bootstrap-reboot.css.map",
+                "css/bootstrap-reboot.min.css",
+                "css/bootstrap-reboot.min.css.map",
+                "css/bootstrap-reboot.rtl.css",
+                "css/bootstrap-reboot.rtl.css.map",
+                "css/bootstrap-reboot.rtl.min.css",
+                "css/bootstrap-reboot.rtl.min.css.map",
+                "css/bootstrap-utilities.css",
+                "css/bootstrap-utilities.css.map",
+                "css/bootstrap-utilities.min.css",
+                "css/bootstrap-utilities.min.css.map",
+                "css/bootstrap-utilities.rtl.css",
+                "css/bootstrap-utilities.rtl.css.map",
+                "css/bootstrap-utilities.rtl.min.css",
+                "css/bootstrap-utilities.rtl.min.css.map",
+                "css/bootstrap.css",
+                "css/bootstrap.css.map",
+                "css/bootstrap.min.css",
+                "css/bootstrap.min.css.map",
+                "css/bootstrap.rtl.css",
+                "css/bootstrap.rtl.css.map",
+                "css/bootstrap.rtl.min.css",
+                "css/bootstrap.rtl.min.css.map",
+                "js/bootstrap.bundle.js.map",
+                "js/bootstrap.bundle.min.js",
+                "js/bootstrap.bundle.min.js.map",
+                "js/bootstrap.esm.js",
+                "js/bootstrap.esm.js.map",
+                "js/bootstrap.esm.min.js",
+                "js/bootstrap.esm.min.js.map",
+                "js/bootstrap.js",
+                "js/bootstrap.js.map",
+                "js/bootstrap.min.js",
+                "js/bootstrap.min.js.map"
+            ]
+        }
+    ]
+}
