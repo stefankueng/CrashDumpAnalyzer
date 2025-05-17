@@ -550,8 +550,8 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         // calculate the number of issues found in the callstack
                         // and sort by that number
-                        var aIssues = a.LogFileDatas.Sum(logFileData => logFileData.LineNumbers.Count);
-                        var bIssues = b.LogFileDatas.Sum(logFileData => logFileData.LineNumbers.Count);
+                        var aIssues = a.LogFileDatas.Sum(logFileData => logFileData.LineNumbers?.Count ?? 0);
+                        var bIssues = b.LogFileDatas.Sum(logFileData => logFileData.LineNumbers?.Count ?? 0);
                         if (aIssues != bIssues)
                             return bIssues - aIssues; // sort by number of issues found
                     }
