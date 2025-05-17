@@ -369,7 +369,7 @@ namespace CrashDumpAnalyzer.Controllers
                             try
                             {
                                 // Check if the pattern is a valid regex
-                                Regex testRegex = new Regex(pattern, RegexOptions.IgnoreCase);
+                                Regex testRegex = new Regex(pattern, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(Constants.RegexTimeoutInSeconds));
                             }
                             catch (Exception)
                             {
@@ -380,7 +380,7 @@ namespace CrashDumpAnalyzer.Controllers
                         else
                             // Convert wildcard search string to regex pattern
                             pattern = ".*" + Regex.Escape(splitString).Replace("\\*", ".*").Replace("\\?", ".") + ".*";
-                        Regex regex = new Regex(pattern, RegexOptions.IgnoreCase);
+                        Regex regex = new Regex(pattern, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(Constants.RegexTimeoutInSeconds));
 
                         list = list.Where(dumpCallstack =>
                             regex.IsMatch(dumpCallstack.ApplicationName) ||
