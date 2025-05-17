@@ -139,12 +139,12 @@ namespace CrashDumpAnalyzer.Controllers
 
                     if (contentDisposition != null)
                     {
-                        string? trustedFileNameForDisplay = WebUtility.HtmlEncode(
+                        string? fileNameForDisplay = WebUtility.HtmlEncode(
                             contentDisposition.FileName.Value);
                         var ext = Path.GetExtension(contentDisposition.FileName.Value);
-                        string trustedFileNameForFileStorage = DateTime.Now.ToString("yyyyMMddHHmmss") + Path.GetRandomFileName() + ext;
+                        string fileNameForFileStorage = DateTime.Now.ToString("yyyyMMddHHmmss") + Path.GetRandomFileName() + ext;
                         await using (FileStream targetStream = System.IO.File.Create(
-                                         Path.Combine(_dumpPath, trustedFileNameForFileStorage), 10_000_000))
+                                         Path.Combine(_dumpPath, fileNameForFileStorage), 10_000_000))
                         {
                             var success = await FileHelpers.ProcessStreamedFile(
                                 section, contentDisposition, ModelState,
@@ -153,13 +153,13 @@ namespace CrashDumpAnalyzer.Controllers
                             if (!ModelState.IsValid || !success)
                             {
                                 targetStream.Close();
-                                System.IO.File.Delete(Path.Combine(_dumpPath, trustedFileNameForFileStorage));
+                                System.IO.File.Delete(Path.Combine(_dumpPath, fileNameForFileStorage));
                                 return BadRequest(ModelState);
                             }
                             //User.FindFirstValue(ClaimTypes.Name);
                             DumpFileInfo entry = new DumpFileInfo
                             {
-                                FilePath = trustedFileNameForFileStorage,
+                                FilePath = fileNameForFileStorage,
                                 FileSize = targetStream.Length,
                                 UploadDate = DateTime.Now,
                                 UploadedFromIp = uploadedFromIp,
@@ -201,8 +201,8 @@ namespace CrashDumpAnalyzer.Controllers
                             _logger.LogInformation(
                                 "Uploaded file '{TrustedFileNameForDisplay}' saved to " +
                                 "'{TargetFilePath}' as {TrustedFileNameForFileStorage}",
-                                trustedFileNameForDisplay, _dumpPath,
-                                trustedFileNameForFileStorage);
+                                fileNameForDisplay, _dumpPath,
+                                fileNameForFileStorage);
                         }
                         try
                         {
@@ -225,7 +225,7 @@ namespace CrashDumpAnalyzer.Controllers
                         {
                             // use cbg to get a callstack from the dump
                             // and then update the database with the callstack
-                            string dumpFilePath = Path.Combine(_dumpPath, trustedFileNameForFileStorage);
+                            string dumpFilePath = Path.Combine(_dumpPath, fileNameForFileStorage);
                             Task<DumpData>? dumpAnalyzeTask = null;
                             Task<Dictionary<LogIssue, List<(DateTime date, long lineNumber)>>>? logAnalyzeTask = null;
                             if (_logfileFileExts.Contains(Path.GetExtension(dumpFilePath), StringComparer.InvariantCultureIgnoreCase))
@@ -257,13 +257,13 @@ namespace CrashDumpAnalyzer.Controllers
                             if (dumpAnalyzeTask != null)
                             {
                                 var dumpData = await dumpAnalyzeTask;
-                                await UpdateDumpDataInDatabase(dbContext, trustedFileNameForFileStorage,
+                                await UpdateDumpDataInDatabase(dbContext, fileNameForFileStorage,
                                     uploadedFromHostname, dumpData, null, token);
                             }
                             else if (logAnalyzeTask != null)
                             {
                                 var logData = await logAnalyzeTask;
-                                await UpdateLogDataInDatabase(dbContext, trustedFileNameForFileStorage,
+                                await UpdateLogDataInDatabase(dbContext, fileNameForFileStorage,
                                     uploadedFromHostname, logData, token);
                             }
                         });
