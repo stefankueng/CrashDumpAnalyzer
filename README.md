@@ -30,6 +30,21 @@ CrashDumpAnalyzer needs access to your symbol store to properly analyze the cras
 
 ## Setting Up CrashDumpAnalyzer
 
-- first, install the Windows SDK. Select only the debugging tools in the installer.
-- 
+- clone the repository, open solution in VisualStudio, right-click on Solution and click "Publish". This will build the CrashDumpAnalyzer.
+- install the Windows SDK. Select only the debugging tools in the installer.
+- assuming that CrashDumpAnalyzer gets installed in C:\CrashDumpAnalyzer, create the folder c:\CrashDumpAnalyzer\FileUpload
+  you can of course chose other paths...
+- copy the CrashDumpAnalyzer build folder to C:\CrashDumpAnalyzer
+- create the file C:\CrashDumpAnalyzer\appsettings.json, copy the contents from [appsettings_example.json](https://github.com/stefankueng/CrashDumpAnalyzer/blob/main/CrashDumpAnalyzer/appsettings_example.json) and adjust the settings
+- you should create a new user account under which CrashDumpAnalyzer will be running. That user account should have only write rights to the FileUpload and it's installation folder, nowhere else!
+- now set the access rights and create a service for CrashDumpAnalyzer in Powershell:
+- $acl = Get-Acl "C:\CrashDumpAnalyzer"
+  $aclRuleArgs = "CDA-User", "Read,Write,ReadAndExecute", "ContainerInherit,ObjectInherit", "None", "Allow"
+  $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($aclRuleArgs)
+  $acl.SetAccessRule($accessRule)
+  $acl | Set-Acl "C:\CrashDumpAnalyzer"
+  New-Service -Name "CrashDumpAnalyzer" -BinaryPathName "C:\CrashDumpAnalyzer\CrashDumpAnalyzer.exe --contentRoot C:\CrashDumpAnalyzer" -Credential "CDA-User" -Description "Web service to analyze crash dumps" -DisplayName "CrashDumpAnalyzer" -StartupType Automatic
+- and finally, start the service:
+  Start-Service -Name CrashDumpAnalyzer
+- if everything went well, CrashDumpAnalyzer should be reachable under https://localhost/ (or whatever url you've configured in appsettings.json)
 
