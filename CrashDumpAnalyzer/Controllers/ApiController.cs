@@ -32,7 +32,7 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly long _maxCacheSize;
         private readonly long _deleteDumpsUploadedBeforeDays;
         private readonly string[] _logfileFileExts;
-
+        private readonly string versionTooOldComment = "Version is too old, it won't be analyzed anymore.";
         public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
                             IServiceProvider provider,
                             ApplicationDbContext dbContext,
@@ -308,7 +308,10 @@ namespace CrashDumpAnalyzer.Controllers
                     if (string.IsNullOrEmpty(dumpCallstack.Comment))
                         dumpCallstack.Comment = comment;
                     else
-                        dumpCallstack.Comment = dumpCallstack.Comment + "\n" + comment;
+                    {
+                        if (!dumpCallstack.Comment.Contains(versionTooOldComment, StringComparison.InvariantCultureIgnoreCase))
+                            dumpCallstack.Comment = dumpCallstack.Comment + "\n" + comment;
+                    }
                     // but we delete all dump files from this callstack:
                     // the callstack itself is still stored as text in the db
                     foreach (var dumpInfo in dumpCallstack.DumpInfos)
@@ -989,7 +992,7 @@ namespace CrashDumpAnalyzer.Controllers
                     var version = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
                     if (!MinVersions.IsVersionSupported(callstack.ApplicationName, version))
                     {
-                        await DeleteDumpCallstack(dbContext, callstack.DumpCallstackId, "Version is too old, it won't be analyzed anymore.");
+                        await DeleteDumpCallstack(dbContext, callstack.DumpCallstackId, versionTooOldComment);
                     }
                 }
                 // now run agestore to keep the cache size in check
