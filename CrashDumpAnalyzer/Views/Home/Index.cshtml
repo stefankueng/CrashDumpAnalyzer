@@ -22,7 +22,7 @@
                 <div style="text-align: left; padding-bottom: 10px; padding-top: 5px">
                     <form action="/" method="get" class="nosubmit">
                         <div style="display: flex;">
-                            <input type="text" class="nosubmit" name="searchstring" placeholder="Search..." value="@Model.ActiveFilterString" autocomplete='off' />
+                            <input type="text" class="nosubmit" name="searchstring" placeholder="Search... (wildcards * ? supported, start with '/' for regex)" value="@Model.ActiveFilterString" autocomplete='off' />
                             <input type="hidden" name="activeTab" value="@Model.ActiveTab" />
                         </div>
                     </form>
