@@ -59,10 +59,13 @@
                 this._minor = 0;
                 this._micro = 0;
                 this._patch = 0;
-                //this.version = "0.0.0";
+                this._buildType = -1;
             }
         }
-
+        public bool isValid()
+        {
+            return this._major != 0 || this._minor != 0 || this._micro != 0 || this._patch != 0 || this._buildType != -1;
+        }
         public override bool Equals(object? obj)
         {
             if (obj is SemanticVersion other)
