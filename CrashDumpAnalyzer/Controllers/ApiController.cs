@@ -293,9 +293,9 @@ namespace CrashDumpAnalyzer.Controllers
             try
             {
                 var dumpCallstack = await dbContext.DumpCallstacks
-            .Include(dumpCallstack => dumpCallstack.DumpInfos)
-            .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
-            .FirstAsync(cs => cs.DumpCallstackId == id);
+                                                    .Include(dumpCallstack => dumpCallstack.DumpInfos)
+                                                    .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                                                    .FirstAsync(cs => cs.DumpCallstackId == id);
                 if (dumpCallstack == null)
                     return NotFound();
                 if (dumpCallstack.DumpCallstackId != id)
@@ -303,15 +303,18 @@ namespace CrashDumpAnalyzer.Controllers
 
                 try
                 {
+                    if (!dumpCallstack.Deleted)
+                    {
+                        if (string.IsNullOrEmpty(dumpCallstack.Comment))
+                            dumpCallstack.Comment = comment;
+                        else
+                        {
+                            if (!dumpCallstack.Comment.Contains(versionTooOldComment, StringComparison.InvariantCultureIgnoreCase))
+                                dumpCallstack.Comment = dumpCallstack.Comment + "\n" + comment;
+                        }
+                    }
                     // only mark the callstack as deleted, do not delete it from the db
                     dumpCallstack.Deleted = true;
-                    if (string.IsNullOrEmpty(dumpCallstack.Comment))
-                        dumpCallstack.Comment = comment;
-                    else
-                    {
-                        if (!dumpCallstack.Comment.Contains(versionTooOldComment, StringComparison.InvariantCultureIgnoreCase))
-                            dumpCallstack.Comment = dumpCallstack.Comment + "\n" + comment;
-                    }
                     // but we delete all dump files from this callstack:
                     // the callstack itself is still stored as text in the db
                     foreach (var dumpInfo in dumpCallstack.DumpInfos)
@@ -333,7 +336,7 @@ namespace CrashDumpAnalyzer.Controllers
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, dumpInfo.FilePath)}");
+                            _logger.LogError(ex, "Error deleting dump file {Path}", Path.Combine(_dumpPath, dumpInfo.FilePath));
                         }
                         if (deleteFile)
                             dumpInfo.FilePath = string.Empty;
@@ -383,7 +386,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 }
                                 catch (Exception ex)
                                 {
-                                    _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, dumpInfo.FilePath)}");
+                                    _logger.LogError(ex, "Error deleting dump file {Path}", Path.Combine(_dumpPath, dumpInfo.FilePath));
                                 }
                                 if (deleteFile)
                                     dumpInfo.FilePath = string.Empty;
@@ -614,6 +617,7 @@ namespace CrashDumpAnalyzer.Controllers
                 return NotFound();
             if (id == toId)
                 return BadRequest();
+            _logger.LogInformation("Linking callstack {id} to {toId}", id, toId);
             var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
             var toEntry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == toId);
             if (entry != null)
@@ -855,6 +859,7 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         if (!MinVersions.IsVersionSupported(callstack.ApplicationName, version))
                         {
+                            _logger.LogInformation("deleting callstack because it's too old. {ApplicationName} - {Version}", callstack.ApplicationName, version.ToVersionString());
                             await DeleteDumpCallstack(dbContext, callstack.DumpCallstackId, versionTooOldComment);
                         }
                     }
