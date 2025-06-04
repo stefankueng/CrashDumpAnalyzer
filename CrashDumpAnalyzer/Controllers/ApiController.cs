@@ -851,9 +851,12 @@ namespace CrashDumpAnalyzer.Controllers
                 if (callstack.ApplicationVersion != null)
                 {
                     var version = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
-                    if (!MinVersions.IsVersionSupported(callstack.ApplicationName, version))
+                    if (version.isValid() && !string.IsNullOrEmpty(callstack.ApplicationName))
                     {
-                        await DeleteDumpCallstack(dbContext, callstack.DumpCallstackId, "Version is too old, it won't be analyzed anymore.");
+                        if (!MinVersions.IsVersionSupported(callstack.ApplicationName, version))
+                        {
+                            await DeleteDumpCallstack(dbContext, callstack.DumpCallstackId, versionTooOldComment);
+                        }
                     }
                 }
             }
