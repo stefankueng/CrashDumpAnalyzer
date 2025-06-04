@@ -137,7 +137,11 @@
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Callstack)</td>
-                    <td style="white-space: pre-line;">@Html.DisplayFor(modelItem => item.Callstack)</td>
+                    <td style="white-space: pre-line;">
+                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="@item.CleanCallstack">
+                            @Html.DisplayFor(modelItem => item.Callstack)
+                        </span>
+                    </td>
                 </tr>
             </table>
         }
