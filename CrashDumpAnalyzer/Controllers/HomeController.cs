@@ -427,11 +427,11 @@ namespace CrashDumpAnalyzer.Controllers
                 {
                     if (callstack.LinkedToDumpCallstackId != 0)
                         continue;
-                    groupedCallstacks[callstack.DumpCallstackId] = new List<DumpCallstack> { callstack };
+                    groupedCallstacks[callstack.DumpCallstackId] = [callstack];
                 }
                 if (list.Count == 1 && groupedCallstacks.Count == 0)
                 {
-                    groupedCallstacks[list.ElementAt(0).DumpCallstackId] = new List<DumpCallstack> { list.ElementAt(0) };
+                    groupedCallstacks[list.ElementAt(0).DumpCallstackId] = [list.ElementAt(0)];
                 }
                 foreach (var callstack in list)
                 {
@@ -440,7 +440,7 @@ namespace CrashDumpAnalyzer.Controllers
                     if (groupedCallstacks.ContainsKey(callstack.LinkedToDumpCallstackId))
                         groupedCallstacks[callstack.LinkedToDumpCallstackId].Add(callstack);
                     else if (!string.IsNullOrWhiteSpace(searchString))
-                        groupedCallstacks[callstack.DumpCallstackId] = new List<DumpCallstack> { callstack };
+                        groupedCallstacks[callstack.DumpCallstackId] = [callstack];
                 }
 
                 foreach (var group in groupedCallstacks)
