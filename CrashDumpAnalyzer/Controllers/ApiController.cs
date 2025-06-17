@@ -325,6 +325,7 @@ namespace CrashDumpAnalyzer.Controllers
                             // check if the dumpInfo is referenced by another callstack
                             var otherCallstacks = await dbContext.DumpCallstacks
                                 .Include(dumpCallStack => dumpCallStack.DumpInfos)
+                                .AsSplitQuery()
                                 .Include(dumpCallStack => dumpCallStack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                                 .AnyAsync(cs => cs.DumpCallstackId != dumpCallstack.DumpCallstackId && cs.Deleted == false &&
                                 (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
@@ -350,6 +351,7 @@ namespace CrashDumpAnalyzer.Controllers
                             continue;
                         var otherCallstacks = await dbContext.DumpCallstacks
                             .Include(dumpCallstack => dumpCallstack.DumpInfos)
+                            .AsSplitQuery()
                             .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .Where(cs => cs.DumpCallstackId != id && cs.Deleted == false &&
                             (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
@@ -375,6 +377,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 {
                                     var otherCallstacks = await dbContext.DumpCallstacks
                                         .Include(dumpCallstack => dumpCallstack.DumpInfos)
+                                        .AsSplitQuery()
                                         .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                                         .AnyAsync(cs => cs.DumpCallstackId != dumpInfo.DumpCallstackId && cs.Deleted == false &&
                                         (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
@@ -398,6 +401,7 @@ namespace CrashDumpAnalyzer.Controllers
                                     continue;
                                 var otherCallstacks = await dbContext.DumpCallstacks
                                     .Include(callStack => callStack.DumpInfos)
+                                    .AsSplitQuery()
                                     .Include(callStack => callStack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                                     .AnyAsync(cs => cs.DumpCallstackId != callStack.DumpCallstackId && cs.Deleted == false &&
                                     (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
