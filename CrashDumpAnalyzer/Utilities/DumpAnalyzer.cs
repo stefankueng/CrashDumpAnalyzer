@@ -190,6 +190,11 @@ namespace CrashDumpAnalyzer.Utilities
                             context = DumpContext.None;
                         else
                             environment += lineString + "\n";
+                        if (lineString.Contains("ImageFile:"))
+                        {
+                            if (string.IsNullOrEmpty(processName))
+                                processName = lineString.Substring(lineString.LastIndexOf('\\') + 1).Trim('\'');
+                        }
                     }
                     break;
                     case DumpContext.VersionResourceHeader:
@@ -197,6 +202,10 @@ namespace CrashDumpAnalyzer.Utilities
                         {
                             context = DumpContext.VersionResource;
                             versionResource = string.Empty;
+                        }
+                        if (lineString.Contains("Product version:") && processName != "unknown")
+                        {
+                            version = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
                         }
                         break;
                     case DumpContext.VersionResource:
@@ -222,6 +231,10 @@ namespace CrashDumpAnalyzer.Utilities
                     context = DumpContext.StackText;
                 }
                 if (lineString.Contains("---------"))
+                {
+                    context = DumpContext.Modules;
+                }
+                if (lineString.Contains("start             end                 module name"))
                 {
                     context = DumpContext.Modules;
                 }
