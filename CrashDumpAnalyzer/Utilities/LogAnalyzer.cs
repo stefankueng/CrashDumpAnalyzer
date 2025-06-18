@@ -73,7 +73,7 @@ namespace CrashDumpAnalyzer.Utilities
                 }
             });
         }
-        public List<string> IssueTypes => _logIssueTypeRegexes.Keys.ToList();
+        public List<string> IssueTypes => [.. _logIssueTypeRegexes.Keys];
         public async Task<Dictionary<LogIssue, List<(DateTime date, long lineNumber)>>> Analyze(string logFilePath, CancellationToken token)
         {
             string output = await File.ReadAllTextAsync(logFilePath, Encoding.Default, token);
@@ -81,7 +81,7 @@ namespace CrashDumpAnalyzer.Utilities
             string versionString = string.Empty;
             string buildTypeString = string.Empty;
             string applicationName = string.Empty;
-            List<SpecificLogIssue> issues = new List<SpecificLogIssue>();
+            List<SpecificLogIssue> issues = [];
             long lineCount = 0;
             foreach (var lineStringOrig in output.Split(["\n"], StringSplitOptions.None))
             {
@@ -192,11 +192,13 @@ namespace CrashDumpAnalyzer.Utilities
             var logIssues = new Dictionary<LogIssue, List<(DateTime date, long lineNumber)>>();
             foreach (var issue in issues)
             {
-                if (!logIssues.ContainsKey(issue.LogIssue))
+                if (!logIssues.TryGetValue(issue.LogIssue, out var value))
                 {
-                    logIssues[issue.LogIssue] = new List<(DateTime date, long lineNumber)>();
+                    value = [];
+                    logIssues[issue.LogIssue] = value;
                 }
-                logIssues[issue.LogIssue].Add((issue.Time, issue.LineNumber));
+
+                value.Add((issue.Time, issue.LineNumber));
             }
             return logIssues;
         }
