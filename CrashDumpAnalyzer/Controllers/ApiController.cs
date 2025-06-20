@@ -290,146 +290,36 @@ namespace CrashDumpAnalyzer.Controllers
         {
             if (dbContext.DumpCallstacks == null)
                 return NotFound();
+
             try
             {
                 var dumpCallstack = await dbContext.DumpCallstacks
-                                                    .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                                                    .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
-                                                    .FirstAsync(cs => cs.DumpCallstackId == id);
-                if (dumpCallstack == null)
-                    return NotFound();
-                if (dumpCallstack.DumpCallstackId != id)
+                    .Include(cs => cs.DumpInfos)
+                    .Include(cs => cs.LogFileDatas).ThenInclude(l => l.DumpFileInfo)
+                    .FirstOrDefaultAsync(cs => cs.DumpCallstackId == id);
+
+                if (dumpCallstack == null || dumpCallstack.DumpCallstackId != id)
                     return NotFound();
 
                 try
                 {
-                    if (!dumpCallstack.Deleted)
-                    {
-                        if (string.IsNullOrEmpty(dumpCallstack.Comment))
-                            dumpCallstack.Comment = comment;
-                        else
-                        {
-                            if (!dumpCallstack.Comment.Contains(versionTooOldComment, StringComparison.InvariantCultureIgnoreCase))
-                                dumpCallstack.Comment = dumpCallstack.Comment + "\n" + comment;
-                        }
-                    }
-                    // only mark the callstack as deleted, do not delete it from the db
-                    dumpCallstack.Deleted = true;
-                    // but we delete all dump files from this callstack:
-                    // the callstack itself is still stored as text in the db
-                    foreach (var dumpInfo in dumpCallstack.DumpInfos)
-                    {
-                        bool deleteFile = true;
-                        try
-                        {
-                            // check if the dumpInfo is referenced by another callstack
-                            var otherCallstacks = await dbContext.DumpCallstacks
-                                .Include(dumpCallStack => dumpCallStack.DumpInfos)
-                                .AsSplitQuery()
-                                .Include(dumpCallStack => dumpCallStack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
-                                .AnyAsync(cs => cs.DumpCallstackId != dumpCallstack.DumpCallstackId && cs.Deleted == false &&
-                                (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
-                                cs.LogFileDatas.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath)));
-                            if (otherCallstacks)
-                                deleteFile = false;
-                            if (deleteFile && !string.IsNullOrEmpty(dumpInfo.FilePath))
-                                System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error deleting dump file {Path}", Path.Combine(_dumpPath, dumpInfo.FilePath));
-                        }
-                        if (deleteFile)
-                            dumpInfo.FilePath = string.Empty;
-                    }
-                    foreach (var logFileLine in dumpCallstack.LogFileDatas)
-                    {
-                        var dumpInfo = logFileLine.DumpFileInfo;
-                        if (dumpInfo == null)
-                            continue;
-                        if (string.IsNullOrEmpty(dumpInfo.FilePath))
-                            continue;
-                        var otherCallstacks = await dbContext.DumpCallstacks
-                            .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                            .AsSplitQuery()
-                            .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
-                            .Where(cs => cs.DumpCallstackId != id && cs.Deleted == false &&
-                            (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
-                            cs.LogFileDatas.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath))).ToListAsync();
-                        if (otherCallstacks.Count == 0)
-                        {
-                            System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
-                            dumpInfo.FilePath = string.Empty;
-                            logFileLine.DumpFileInfo = null;
-                        }
-                    }
-                    await dbContext.SaveChangesAsync();
-                    try
-                    {
-                        // now do the same for all callstacks that are linked to this callstack
-                        var dumpCallstacks = dbContext.DumpCallstacks.Include(dmpCallstack => dmpCallstack.DumpInfos).Where(cs => cs.LinkedToDumpCallstackId == id);
-                        foreach (var callStack in dumpCallstacks)
-                        {
-                            callStack.Deleted = true;
-                            foreach (var dumpInfo in callStack.DumpInfos)
-                            {
-                                bool deleteFile = true;
-                                try
-                                {
-                                    var otherCallstacks = await dbContext.DumpCallstacks
-                                        .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                                        .AsSplitQuery()
-                                        .Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
-                                        .AnyAsync(cs => cs.DumpCallstackId != dumpInfo.DumpCallstackId && cs.Deleted == false &&
-                                        (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
-                                        cs.LogFileDatas.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath)));
-                                    if (otherCallstacks)
-                                        deleteFile = false;
-                                    if (deleteFile && !string.IsNullOrEmpty(dumpInfo.FilePath))
-                                        System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogError(ex, "Error deleting dump file {Path}", Path.Combine(_dumpPath, dumpInfo.FilePath));
-                                }
-                                if (deleteFile)
-                                    dumpInfo.FilePath = string.Empty;
-                            }
-                            foreach (var logFileLine in callStack.LogFileDatas)
-                            {
-                                var dumpInfo = logFileLine.DumpFileInfo;
-                                if (dumpInfo == null)
-                                    continue;
-                                var otherCallstacks = await dbContext.DumpCallstacks
-                                    .Include(callStack => callStack.DumpInfos)
-                                    .AsSplitQuery()
-                                    .Include(callStack => callStack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
-                                    .AnyAsync(cs => cs.DumpCallstackId != callStack.DumpCallstackId && cs.Deleted == false &&
-                                    (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
-                                    cs.LogFileDatas.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath)));
-                                if (!otherCallstacks && !string.IsNullOrEmpty(dumpInfo.FilePath))
-                                {
-                                    System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
-                                    dumpInfo.FilePath = string.Empty;
-                                }
-                                logFileLine.DumpFileInfo = null;
-                                await dbContext.SaveChangesAsync();
-                            }
+                    UpdateCallstackComment(dumpCallstack, comment);
 
-                            await dbContext.SaveChangesAsync();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error deleting callstack from database");
-                    }
+                    dumpCallstack.Deleted = true;
+
+                    await DeleteDumpFilesForCallstack(dbContext, dumpCallstack);
+                    await DeleteLogFilesForCallstack(dbContext, dumpCallstack, id);
+
+                    await dbContext.SaveChangesAsync();
+
+                    await DeleteLinkedCallstacks(dbContext, id);
+
                     if (dumpCallstack.ApplicationName == Constants.UnassignedDumpNames)
                     {
                         try
                         {
                             dbContext.Remove(dumpCallstack);
                             await dbContext.SaveChangesAsync();
-
                         }
                         catch (Exception ex)
                         {
@@ -441,7 +331,6 @@ namespace CrashDumpAnalyzer.Controllers
                 {
                     _logger.LogError(ex, "Error deleting callstack from database");
                 }
-
             }
             catch (Exception ex)
             {
@@ -449,6 +338,103 @@ namespace CrashDumpAnalyzer.Controllers
             }
             return NoContent();
         }
+
+        private void UpdateCallstackComment(DumpCallstack callstack, string comment)
+        {
+            if (!callstack.Deleted)
+            {
+                if (string.IsNullOrEmpty(callstack.Comment))
+                    callstack.Comment = comment;
+                else if (!callstack.Comment.Contains(versionTooOldComment, StringComparison.InvariantCultureIgnoreCase))
+                    callstack.Comment = callstack.Comment + "\n" + comment;
+            }
+        }
+
+        private async Task DeleteDumpFilesForCallstack(ApplicationDbContext dbContext, DumpCallstack callstack)
+        {
+            if (dbContext.DumpCallstacks == null)
+                return;
+
+            foreach (var dumpInfo in callstack.DumpInfos)
+            {
+                bool deleteFile = true;
+                try
+                {
+                    var otherCallstacks = await dbContext.DumpCallstacks
+                        .Include(cs => cs.DumpInfos)
+                        .AsSplitQuery()
+                        .Include(cs => cs.LogFileDatas).ThenInclude(l => l.DumpFileInfo)
+                        .AnyAsync(cs => cs.DumpCallstackId != callstack.DumpCallstackId && cs.Deleted == false &&
+                            (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
+                             cs.LogFileDatas.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath)));
+                    if (otherCallstacks)
+                        deleteFile = false;
+                    if (deleteFile && !string.IsNullOrEmpty(dumpInfo.FilePath))
+                        System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error deleting dump file {Path}", Path.Combine(_dumpPath, dumpInfo.FilePath));
+                }
+                if (deleteFile)
+                    dumpInfo.FilePath = string.Empty;
+            }
+        }
+
+        private async Task DeleteLogFilesForCallstack(ApplicationDbContext dbContext, DumpCallstack callstack, int callstackId)
+        {
+            if (dbContext.DumpCallstacks == null)
+                return;
+
+            foreach (var logFileLine in callstack.LogFileDatas)
+            {
+                var dumpInfo = logFileLine.DumpFileInfo;
+                if (dumpInfo == null || string.IsNullOrEmpty(dumpInfo.FilePath))
+                    continue;
+
+                var otherCallstacks = await dbContext.DumpCallstacks
+                    .Include(cs => cs.DumpInfos)
+                    .AsSplitQuery()
+                    .Include(cs => cs.LogFileDatas).ThenInclude(l => l.DumpFileInfo)
+                    .Where(cs => cs.DumpCallstackId != callstackId && cs.Deleted == false &&
+                        (cs.DumpInfos.Any(di => di.FilePath == dumpInfo.FilePath) ||
+                         cs.LogFileDatas.Any(l => l.DumpFileInfo != null && l.DumpFileInfo.FilePath == dumpInfo.FilePath)))
+                    .ToListAsync();
+
+                if (otherCallstacks.Count == 0)
+                {
+                    System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
+                    dumpInfo.FilePath = string.Empty;
+                    logFileLine.DumpFileInfo = null;
+                }
+            }
+        }
+
+        private async Task DeleteLinkedCallstacks(ApplicationDbContext dbContext, int id)
+        {
+            if (dbContext.DumpCallstacks == null)
+                return;
+            try
+            {
+                var linkedToDumpCallstacks = dbContext.DumpCallstacks
+                    .Include(cs => cs.DumpInfos)
+                    .Include(cs => cs.LogFileDatas).ThenInclude(l => l.DumpFileInfo)
+                    .Where(cs => cs.LinkedToDumpCallstackId == id);
+
+                foreach (var callStack in linkedToDumpCallstacks)
+                {
+                    callStack.Deleted = true;
+                    await DeleteDumpFilesForCallstack(dbContext, callStack);
+                    await DeleteLogFilesForCallstack(dbContext, callStack, callStack.DumpCallstackId);
+                    await dbContext.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting callstack from database");
+            }
+        }
+
 
         [EndpointSummary("Unlink the callstack with the specified id")]
         [HttpPost]
