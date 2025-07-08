@@ -417,9 +417,9 @@ namespace CrashDumpAnalyzer.Controllers
             try
             {
                 var linkedToDumpCallstacks = dbContext.DumpCallstacks
+                    .Where(cs => cs.LinkedToDumpCallstackId == id)
                     .Include(cs => cs.DumpInfos)
-                    .Include(cs => cs.LogFileDatas).ThenInclude(l => l.DumpFileInfo)
-                    .Where(cs => cs.LinkedToDumpCallstackId == id);
+                    .Include(cs => cs.LogFileDatas).ThenInclude(l => l.DumpFileInfo);
 
                 foreach (var callStack in linkedToDumpCallstacks)
                 {
