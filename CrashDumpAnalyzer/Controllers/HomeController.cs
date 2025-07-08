@@ -179,7 +179,7 @@ namespace CrashDumpAnalyzer.Controllers
 
 
                 var newCallstacksPerWeek = callStacks
-                    .Where(callstack => callstack.DumpInfos != null && callstack.DumpInfos.Any())
+                    .Where(callstack => callstack.DumpInfos != null && callstack.DumpInfos.Count != 0)
                     .GroupBy(callstack => _issueTypes.Contains(callstack.ExceptionType) ? callstack.ExceptionType : DumpType)
                     .ToDictionary(
                         group => group.Key,
@@ -210,9 +210,12 @@ namespace CrashDumpAnalyzer.Controllers
                     .ToDictionary(
                         group => group.Key,
                         group => group.Sum(callstack =>
-                            (callstack.DumpInfos?.Where(dumpInfo => !string.IsNullOrEmpty(dumpInfo.FilePath)).Sum(dumpInfo => dumpInfo.FileSize) ?? 0) +
-                            (callstack.LogFileDatas?.Where(logFileData => logFileData.DumpFileInfo != null && !string.IsNullOrEmpty(logFileData.DumpFileInfo.FilePath)).Sum(logFileData => logFileData.DumpFileInfo!.FileSize) ?? 0)
-                        )
+                        {
+                            long fileSizeSelector(DumpFileInfo dumpInfo) => dumpInfo.FileSize;
+                            long logFileDataFileSizeSelector(LogFileData logFileData) => logFileData.DumpFileInfo!.FileSize;
+                            return (callstack.DumpInfos?.Where(dumpInfo => !string.IsNullOrEmpty(dumpInfo.FilePath)).Sum(fileSizeSelector) ?? 0) +
+                                                        (callstack.LogFileDatas?.Where(logFileData => logFileData.DumpFileInfo != null && !string.IsNullOrEmpty(logFileData.DumpFileInfo.FilePath)).Sum(selector: logFileDataFileSizeSelector) ?? 0);
+                        })
                     );
 
 
@@ -252,16 +255,16 @@ namespace CrashDumpAnalyzer.Controllers
                 var updatedIssueIds = new List<string>();
                 foreach (var issueId in issueIds)
                 {
-                    var splitIds = issueId.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    var splitIds = issueId.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
                     updatedIssueIds.AddRange(splitIds);
                 }
-                issueIds = updatedIssueIds.Distinct().Where(id => !string.IsNullOrEmpty(id)).ToList();
-                issueIds = issueIds.Distinct().ToList();
+                issueIds = [.. updatedIssueIds.Distinct().Where(id => !string.IsNullOrEmpty(id))];
+                issueIds = [.. issueIds.Distinct()];
 
                 var httpClient = _httpClientFactory.CreateClient();
                 return await _issueTracker.GetIssueDataAsync(httpClient, issueIds, CancellationToken.None);
             }
-            return new Dictionary<string, IssueData>();
+            return [];
         }
 
         private async Task<List<DumpFileInfo>> FetchLastDumpFileInfos()
@@ -324,33 +327,33 @@ namespace CrashDumpAnalyzer.Controllers
                     if (string.IsNullOrWhiteSpace(searchString))
                         list = await _dbContext.DumpCallstacks.AsNoTracking()
                             .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                            .AsSplitQuery()
                             .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                             .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .Where(dumpCallstack => (issueType == null || dumpCallstack.ExceptionType == issueType || (activeTab == 0 && dumpCallstack.LogFileDatas.Count == 0)) &&
                                                     dumpCallstack.Deleted == (deleted > 0) &&
                                                     (dumpCallstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= cutoffDate) ||
                                                     dumpCallstack.LogFileDatas.Count != 0))
+                            .AsSplitQuery()
                             .ToListAsync();
                     else // with search string, include deleted callstacks
                         list = await _dbContext.DumpCallstacks.AsNoTracking()
                             .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                            .AsSplitQuery()
                             .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                             .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                             .Where(dumpCallstack => (issueType == null || dumpCallstack.ExceptionType == issueType || (activeTab == 0 && dumpCallstack.LogFileDatas.Count == 0)))
+                            .AsSplitQuery()
                             .ToListAsync();
                 }
                 else
                 {
                     list = await _dbContext.DumpCallstacks.AsNoTracking()
                         .Include(dumpCallstack => dumpCallstack.DumpInfos)
-                        .AsSplitQuery()
                         .Include(dumpCallstack => dumpCallstack.LogFileDatas)
                         .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                         .Where(dumpCallstack => (issueType == null || dumpCallstack.ExceptionType == issueType || (activeTab == 0 && dumpCallstack.LogFileDatas.Count == 0)) &&
                                                 dumpCallstack.DumpCallstackId == id ||
                                                 dumpCallstack.LinkedToDumpCallstackId == id)
+                        .AsSplitQuery()
                         .ToListAsync();
                 }
 
@@ -365,7 +368,7 @@ namespace CrashDumpAnalyzer.Controllers
                         string pattern = string.Empty;
                         if (splitString.StartsWith('/'))
                         {
-                            pattern = splitString.Substring(1);
+                            pattern = splitString[1..];
                             try
                             {
                                 // Check if the pattern is a valid regex
@@ -382,7 +385,7 @@ namespace CrashDumpAnalyzer.Controllers
                             pattern = ".*" + Regex.Escape(splitString).Replace("\\*", ".*").Replace("\\?", ".") + ".*";
                         Regex regex = new Regex(pattern, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(Constants.RegexTimeoutInSeconds));
 
-                        list = list.Where(dumpCallstack =>
+                        list = [.. list.Where(dumpCallstack =>
                             regex.IsMatch(dumpCallstack.ApplicationName) ||
                             regex.IsMatch(dumpCallstack.ApplicationVersion) ||
                             regex.IsMatch(dumpCallstack.FixedVersion) ||
@@ -400,8 +403,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 regex.IsMatch(dumpFileInfo.Comment) ||
                                 regex.IsMatch(dumpFileInfo.Environment) ||
                                 regex.IsMatch(dumpFileInfo.ComputerName) ||
-                                regex.IsMatch(dumpFileInfo.Domain)))
-                            .ToList();
+                                regex.IsMatch(dumpFileInfo.Domain)))];
                     }
                 }
 
@@ -416,12 +418,12 @@ namespace CrashDumpAnalyzer.Controllers
                         foreach (var logFileData in dumpCallstack.LogFileDatas)
                         {
                             if (logFileData.LineNumberString != null)
-                                logFileData.LineNumbers = logFileData.LineNumberString.Split(',').Select(long.Parse).ToList();
+                                logFileData.LineNumbers = [.. logFileData.LineNumberString.Split(',').Select(long.Parse)];
                         }
                     }
                 }
 
-                Dictionary<int, List<DumpCallstack>> groupedCallstacks = new();
+                Dictionary<int, List<DumpCallstack>> groupedCallstacks = [];
                 List<DumpCallstack> resultList = [];
                 foreach (var callstack in list)
                 {
@@ -437,8 +439,8 @@ namespace CrashDumpAnalyzer.Controllers
                 {
                     if (callstack.LinkedToDumpCallstackId == 0 || callstack.DumpCallstackId == callstack.LinkedToDumpCallstackId)
                         continue;
-                    if (groupedCallstacks.ContainsKey(callstack.LinkedToDumpCallstackId))
-                        groupedCallstacks[callstack.LinkedToDumpCallstackId].Add(callstack);
+                    if (groupedCallstacks.TryGetValue(callstack.LinkedToDumpCallstackId, out var value))
+                        value.Add(callstack);
                     else if (!string.IsNullOrWhiteSpace(searchString))
                         groupedCallstacks[callstack.DumpCallstackId] = [callstack];
                 }
@@ -453,7 +455,7 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         var first = group.Value[0];
                         var tickets = new Dictionary<string, int>();
-                        var splitIds = group.Value[0].Ticket.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                        var splitIds = group.Value[0].Ticket.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
                         foreach (var ticket in splitIds)
                         {
                             if (tickets.ContainsKey(ticket))
@@ -494,7 +496,7 @@ namespace CrashDumpAnalyzer.Controllers
                                 }
                             }
                             // use tickets
-                            splitIds = group.Value[i].Ticket.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            splitIds = group.Value[i].Ticket.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
                             foreach (var ticket in splitIds)
                             {
                                 if (ticket.Length > 0)
@@ -579,12 +581,12 @@ namespace CrashDumpAnalyzer.Controllers
                                 new SemanticVersion(callstack.FixedVersion, callstack.FixedBuildType) > new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType));
                 if (fixedIndex == -1)
                     fixedIndex = resultList.Count;
-                return resultList.Take(fixedIndex + _maxFixedEntriesToShow).ToList();
+                return [.. resultList.Take(fixedIndex + _maxFixedEntriesToShow)];
             }
-            return new List<DumpCallstack>();
+            return [];
         }
 
-        private bool HasDumpAfterFixedVersion(DumpCallstack dumpCallstack)
+        private static bool HasDumpAfterFixedVersion(DumpCallstack dumpCallstack)
         {
             var appVersion = new SemanticVersion(dumpCallstack.ApplicationVersion, dumpCallstack.BuildType);
             var fixedVersion = new SemanticVersion(dumpCallstack.FixedVersion, dumpCallstack.FixedBuildType);

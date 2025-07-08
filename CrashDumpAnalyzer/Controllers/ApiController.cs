@@ -60,7 +60,7 @@ namespace CrashDumpAnalyzer.Controllers
                 this._deleteDumpsUploadedBeforeDays = 30;
 
             _logfileFileExts = _configuration.GetSection("LogFileAnalyzer").GetValue<string>("FileExtensions", ".txt;.log").Split(";");
-            _permittedExtensions = _permittedExtensions.Concat(_logfileFileExts).ToArray();
+            _permittedExtensions = [.. _permittedExtensions, .. _logfileFileExts];
         }
 
 
@@ -461,9 +461,9 @@ namespace CrashDumpAnalyzer.Controllers
             return NoContent();
         }
 
-        [EndpointSummary("Deletes the dump or log file for the specified callstackId and the dumpId")]
+        [EndpointSummary("Deletes the dump or log file for the specified dumpId")]
         [HttpPost]
-        public async Task<IActionResult> DeleteDumpFile(int callstackId, int dumpId)
+        public async Task<IActionResult> DeleteDumpFile(int dumpId)
         {
             if (_dbContext.DumpFileInfos == null)
                 return NotFound();
@@ -479,7 +479,7 @@ namespace CrashDumpAnalyzer.Controllers
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, dumpToRemove.FilePath)}");
+                    _logger.LogError(ex, "Error deleting dump file {Path}", Path.Combine(_dumpPath, dumpToRemove.FilePath));
                 }
                 dumpToRemove.FilePath = string.Empty;
                 await _dbContext.SaveChangesAsync();
@@ -509,21 +509,19 @@ namespace CrashDumpAnalyzer.Controllers
                 var memoryStream = new MemoryStream();
                 using (var reader = new StreamReader(fs))
                 {
-                    await using (var writer = new StreamWriter(memoryStream, leaveOpen: true))
+                    await using var writer = new StreamWriter(memoryStream, leaveOpen: true);
+                    // first write header and style the <p> to have no margin
+                    await writer.WriteLineAsync("<!DOCTYPE html><html><head><style>:target { background-color: #ff0 }</style></head><body style=\"font-family: monospace; text-wrap: nowrap; white-space: nowrap;\">");
+                    long lineNumber = 0;
+                    while (await reader.ReadLineAsync() is { } line)
                     {
-                        // first write header and style the <p> to have no margin
-                        await writer.WriteLineAsync("<!DOCTYPE html><html><head><style>:target { background-color: #ff0 }</style></head><body style=\"font-family: monospace; text-wrap: nowrap; white-space: nowrap;\">");
-                        long lineNumber = 0;
-                        while (await reader.ReadLineAsync() is { } line)
-                        {
-                            ++lineNumber;
-                            await writer.WriteLineAsync($"<div id=\"{lineNumber}\">" + line + "</div>");
-                        }
-                        // close the body and html tags
-                        await writer.WriteLineAsync("</body></html>");
-                        await writer.FlushAsync();
-                        memoryStream.Position = 0; // Reset the position to the beginning of the stream
+                        ++lineNumber;
+                        await writer.WriteLineAsync($"<div id=\"{lineNumber}\">" + line + "</div>");
                     }
+                    // close the body and html tags
+                    await writer.WriteLineAsync("</body></html>");
+                    await writer.FlushAsync();
+                    memoryStream.Position = 0; // Reset the position to the beginning of the stream
                 }
 
                 return File(memoryStream, "text/html");
@@ -738,7 +736,7 @@ namespace CrashDumpAnalyzer.Controllers
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, entry.FilePath)}");
+                        _logger.LogError(ex, "Error deleting dump file {path}", Path.Combine(_dumpPath, entry.FilePath));
                     }
                     entry.FilePath = string.Empty;
                     await dbContext.SaveChangesAsync(token);
@@ -973,10 +971,7 @@ namespace CrashDumpAnalyzer.Controllers
                     {
                         var unassigned = await dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
                                                                                        x => x.ApplicationName == Constants.UnassignedDumpNames, token);
-                        if (unassigned != null)
-                        {
-                            unassigned.DumpInfos.Remove(entry);
-                        }
+                        unassigned?.DumpInfos.Remove(entry);
                     }
                 }
                 callstack.DumpInfos.Add(entry);
@@ -1006,7 +1001,7 @@ namespace CrashDumpAnalyzer.Controllers
                     StreamReader agestoreSr = agestoreProcess.StandardOutput;
                     string agestoreOutput = await agestoreSr.ReadToEndAsync(token);
                     await agestoreProcess.WaitForExitAsync(token);
-                    _logger.LogInformation(agestoreOutput);
+                    _logger.LogInformation("agestore output: {out}", agestoreOutput);
                 }
             }
         }
@@ -1021,8 +1016,8 @@ namespace CrashDumpAnalyzer.Controllers
                             .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
                 .Where(cs => !string.IsNullOrEmpty(cs.FixedVersion) || cs.Deleted).ToListAsync(token);
 
-            SortedSet<int> logFilesToDelete = new();
-            SortedSet<int> logFilesToKeep = new();
+            SortedSet<int> logFilesToDelete = [];
+            SortedSet<int> logFilesToKeep = [];
             foreach (var callstack in callstacks)
             {
                 foreach (var dumpInfo in callstack.DumpInfos)
@@ -1034,12 +1029,12 @@ namespace CrashDumpAnalyzer.Controllers
                             if (!string.IsNullOrEmpty(dumpInfo.FilePath))
                             {
                                 System.IO.File.Delete(Path.Combine(_dumpPath, dumpInfo.FilePath));
-                                _logger.LogInformation($"Deleted dump file {Path.Combine(_dumpPath, dumpInfo.FilePath)}");
+                                _logger.LogInformation("Deleted dump file {path}", Path.Combine(_dumpPath, dumpInfo.FilePath));
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, $"Error deleting dump file {Path.Combine(_dumpPath, dumpInfo.FilePath)}");
+                            _logger.LogError(ex, "Error deleting dump file {Path}", Path.Combine(_dumpPath, dumpInfo.FilePath));
                         }
                         dumpInfo.FilePath = string.Empty;
                     }
@@ -1069,12 +1064,12 @@ namespace CrashDumpAnalyzer.Controllers
                         if (!string.IsNullOrEmpty(file.FilePath))
                         {
                             System.IO.File.Delete(Path.Combine(_dumpPath, file.FilePath));
-                            _logger.LogInformation($"Deleted log file {Path.Combine(_dumpPath, file.FilePath)}");
+                            _logger.LogInformation("Deleted log file {path}", Path.Combine(_dumpPath, file.FilePath));
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, $"Error deleting log file {Path.Combine(_dumpPath, file.FilePath)}");
+                        _logger.LogError(ex, "Error deleting log file {path}", Path.Combine(_dumpPath, file.FilePath));
                     }
                     file.FilePath = string.Empty;
                 }

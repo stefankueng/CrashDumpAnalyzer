@@ -83,7 +83,7 @@
     function deleteDump(callstackId, dumpId) {
         console.debug("deleting dump " + dumpId + " of callstack " + callstackId);
         $.ajax({
-            url: '/Api/DeleteDumpFile?callstackId=' + callstackId + '&dumpId=' + dumpId,
+            url: '/Api/DeleteDumpFile?dumpId=' + dumpId,
             processData: false,
             contentType: false,
             type: 'POST',
