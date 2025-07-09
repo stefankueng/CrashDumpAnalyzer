@@ -63,7 +63,7 @@
         @if (!string.IsNullOrEmpty(Model.ActiveFilterString))
         {
             <div style="float: right; margin-top: 10px;">
-                <button type="button" class="btn btn-primary" title="delete all selected callstacks" onclick="deleteAllSelectedEntries()">❌</button>
+                <button type="button" class="btn btn-primary" title="delete all selected callstacks" onclick="deleteAllSelectedEntries(event.shiftKey)">❌</button>
                 <button type="button" class="btn btn-primary" title="combine all selected callstacks" onclick="combineAllSelectedEntries()">⅄</button>
             </div>
         }
@@ -251,7 +251,7 @@
                             <td class="collapsed callstack @stateClass"><a style="display:block;" tabindex="0" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Callstack" data-bs-content="<span class='callstack'>@Html.DisplayFor(modelItem => item.Callstack)</span>">@Html.DisplayFor(modelItem => item.Callstack)</a></td>
                             <!-- delete and ungroup buttons -->
                             <td class="@stateClass">
-                                <button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)" title="delete callstack">❌</button>
+                                <button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId, event.shiftKey)" title="delete callstack">❌</button>
                                 @if (item.Callstack.Contains("--------------"))
                                 {
                                     <button type="button" class="btn btn-primary" onclick="unlinkCallstack(@item.DumpCallstackId)" title="ungroup callstacks">🔗</button>

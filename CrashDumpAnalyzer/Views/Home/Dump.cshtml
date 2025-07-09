@@ -44,7 +44,7 @@
             <table>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.ApplicationName)</td>
-                    <td>@Html.DisplayFor(modelItem => item.ApplicationName)<p Style="float: right;"><button type="button" class="btn btn-primary" onclick="reAnalyzeDump(@item.DumpCallstackId)" title="re-analyze dump file">↻</button><button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId)" title="delete callstack">❌</button></p></td>
+                    <td>@Html.DisplayFor(modelItem => item.ApplicationName)<p Style="float: right;"><button type="button" class="btn btn-primary" onclick="reAnalyzeDump(@item.DumpCallstackId)" title="re-analyze dump file">↻</button><button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId, event.shiftKey)" title="delete callstack">❌</button></p></td>
                 </tr>
                 <tr>
                     <td class="@stateClass">@Html.DisplayNameFor(modelItem => item.ApplicationVersion)</td>

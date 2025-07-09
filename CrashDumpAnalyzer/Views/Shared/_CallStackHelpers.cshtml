@@ -55,7 +55,7 @@
                 <h5 class="modal-title" id="setCommentModalLabel">Enter a comment</h5>
             </div>
             <div class="modal-body">
-                <label for="commentEdit">Comment:</label><br/>
+                <label for="commentEdit">Comment:</label><br />
                 <textarea class="modalCommentInput" id="commentEdit" name="commentEdit" cols="40" rows="5"></textarea>
                 <p id="commentError" style="color: red;"></p>
             </div>
@@ -68,10 +68,10 @@
 </div>
 
 <script type="text/javascript">
-    function deleteCallstack(id) {
-        console.debug("deleting callstack for " + id);
+    function deleteCallstack(id, reallyDelete) {
+        console.debug("deleting callstack for " + id + ", reallyDelete is " + reallyDelete);
         $.ajax({
-            url: '/Api/DeleteDumpCallstack?id=' + id,
+            url: '/Api/DeleteDumpCallstack?id=' + id + '&reallyDelete=' + reallyDelete,
             processData: false,
             contentType: false,
             type: 'POST',

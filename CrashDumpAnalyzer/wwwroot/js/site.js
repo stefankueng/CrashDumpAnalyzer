@@ -41,7 +41,7 @@ function toggleAllRows(checkbox) {
     var checkboxes = document.querySelectorAll('.row-checkbox');
     checkboxes.forEach(cb => cb.checked = checkbox.checked);
 }
-function deleteAllSelectedEntries() {
+function deleteAllSelectedEntries(reallyDelete) {
     let checkedIds = [];
     document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
         checkedIds.push(cb.getAttribute('data-id'));
@@ -64,7 +64,7 @@ function deleteAllSelectedEntries() {
     checkedIds.forEach(function (checkedId) {
         ajaxCalls.push(
             $.ajax({
-                url: '/Api/DeleteDumpCallstack?id=' + checkedId,
+                url: '/Api/DeleteDumpCallstack?id=' + checkedId + '&reallyDelete=' + (reallyDelete || false),
                 processData: false,
                 contentType: false,
                 type: 'POST',
