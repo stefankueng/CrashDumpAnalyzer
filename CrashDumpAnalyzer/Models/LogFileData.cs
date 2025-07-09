@@ -1,7 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CrashDumpAnalyzer.Models
 {
+    [Index(nameof(LatestTime))]
     public class LogFileData
     {
         public int LogFileDataId { get; set; }

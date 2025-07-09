@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel;
 
 namespace CrashDumpAnalyzer.Models
 {
@@ -7,6 +8,20 @@ namespace CrashDumpAnalyzer.Models
     /// The log file issue text is stored in the Callstack property and
     /// therefore needs to be unique so that the same issues have the same text.
     /// </summary>
+    [Index(nameof(CleanCallstack))]
+    [Index(nameof(ApplicationName))]
+    [Index(nameof(LinkedToDumpCallstackId))]
+    [Index(nameof(Deleted))]
+    [Index(nameof(ApplicationName), nameof(Deleted))]
+    [Index(nameof(ExceptionType), nameof(Deleted))]
+    [Index(nameof(FixedVersion), nameof(Deleted))]
+    [Index(nameof(ExceptionType))]
+    [Index(nameof(ApplicationName), nameof(ExceptionType))]
+    [Index(nameof(Deleted), nameof(FixedVersion), nameof(LinkedToDumpCallstackId))]
+    [Index(nameof(Deleted), nameof(LinkedToDumpCallstackId))]
+    [Index(nameof(Ticket))]
+    [Index(nameof(FixedVersion), nameof(FixedBuildType))]
+    [Index(nameof(ApplicationVersion), nameof(BuildType))]
     public class DumpCallstack
     {
         public int DumpCallstackId { get; set; }

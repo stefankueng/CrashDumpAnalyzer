@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CrashDumpAnalyzer.Models
 {
@@ -6,6 +7,18 @@ namespace CrashDumpAnalyzer.Models
     /// Represents a dump file with extracted information, or a log file.
     /// If a log file contains entries for multiple versions, then the highest version is used.
     /// </summary>
+    [Index(nameof(FilePath))]
+    [Index(nameof(DumpCallstackId))]
+    [Index(nameof(UploadDate))]
+    [Index(nameof(ApplicationName))]
+    [Index(nameof(UploadDate), nameof(DumpCallstackId))]
+    [Index(nameof(UploadedFromIp))]
+    [Index(nameof(UploadedFromHostname))]
+    [Index(nameof(UploadedFromUserEmail))]
+    [Index(nameof(UploadedFromUsername))]
+    [Index(nameof(Environment))]
+    [Index(nameof(ComputerName))]
+    [Index(nameof(Domain))]
     public class DumpFileInfo
     {
         public int DumpFileInfoId { get; set; }

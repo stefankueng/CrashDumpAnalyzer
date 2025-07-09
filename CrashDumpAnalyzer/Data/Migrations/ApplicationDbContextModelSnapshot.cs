@@ -15,7 +15,7 @@ namespace CrashDumpAnalyzer.Data.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.3");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.6");
 
             modelBuilder.Entity("CrashDumpAnalyzer.Models.DumpCallstack", b =>
                 {
@@ -68,6 +68,34 @@ namespace CrashDumpAnalyzer.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("DumpCallstackId");
+
+                    b.HasIndex("ApplicationName");
+
+                    b.HasIndex("CleanCallstack");
+
+                    b.HasIndex("Deleted");
+
+                    b.HasIndex("ExceptionType");
+
+                    b.HasIndex("LinkedToDumpCallstackId");
+
+                    b.HasIndex("Ticket");
+
+                    b.HasIndex("ApplicationName", "Deleted");
+
+                    b.HasIndex("ApplicationName", "ExceptionType");
+
+                    b.HasIndex("ApplicationVersion", "BuildType");
+
+                    b.HasIndex("Deleted", "LinkedToDumpCallstackId");
+
+                    b.HasIndex("ExceptionType", "Deleted");
+
+                    b.HasIndex("FixedVersion", "Deleted");
+
+                    b.HasIndex("FixedVersion", "FixedBuildType");
+
+                    b.HasIndex("Deleted", "FixedVersion", "LinkedToDumpCallstackId");
 
                     b.ToTable("DumpCallstack", (string)null);
                 });
@@ -152,7 +180,29 @@ namespace CrashDumpAnalyzer.Data.Migrations
 
                     b.HasKey("DumpFileInfoId");
 
+                    b.HasIndex("ApplicationName");
+
+                    b.HasIndex("ComputerName");
+
+                    b.HasIndex("Domain");
+
                     b.HasIndex("DumpCallstackId");
+
+                    b.HasIndex("Environment");
+
+                    b.HasIndex("FilePath");
+
+                    b.HasIndex("UploadDate");
+
+                    b.HasIndex("UploadedFromHostname");
+
+                    b.HasIndex("UploadedFromIp");
+
+                    b.HasIndex("UploadedFromUserEmail");
+
+                    b.HasIndex("UploadedFromUsername");
+
+                    b.HasIndex("UploadDate", "DumpCallstackId");
 
                     b.ToTable("DumpFileInfo", (string)null);
                 });
@@ -180,6 +230,8 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.HasIndex("DumpCallstackId");
 
                     b.HasIndex("DumpFileInfoId");
+
+                    b.HasIndex("LatestTime");
 
                     b.ToTable("LogFileData", (string)null);
                 });
