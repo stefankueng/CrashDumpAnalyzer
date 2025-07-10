@@ -15,7 +15,7 @@ namespace CrashDumpAnalyzer.Data.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.6");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.7");
 
             modelBuilder.Entity("CrashDumpAnalyzer.Models.DumpCallstack", b =>
                 {
@@ -447,11 +447,13 @@ namespace CrashDumpAnalyzer.Data.Migrations
                 {
                     b.HasOne("CrashDumpAnalyzer.Models.DumpCallstack", null)
                         .WithMany("LogFileDatas")
-                        .HasForeignKey("DumpCallstackId");
+                        .HasForeignKey("DumpCallstackId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("CrashDumpAnalyzer.Models.DumpFileInfo", "DumpFileInfo")
                         .WithMany()
-                        .HasForeignKey("DumpFileInfoId");
+                        .HasForeignKey("DumpFileInfoId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("DumpFileInfo");
                 });
