@@ -1030,11 +1030,11 @@ namespace CrashDumpAnalyzer.Controllers
             if (dbContext.DumpCallstacks == null)
                 return [];
             // get all linked callstacks
-            List<int> allLinkedCallstacks = new List<int>();
+            List<int> allLinkedCallstacks = [];
             var linkedCallstacks = dbContext.DumpCallstacks.AsNoTracking().Where(x => x.LinkedToDumpCallstackId == id).Select(x => x.DumpCallstackId).ToList();
             if (linkedCallstacks == null || linkedCallstacks.Count == 0)
             {
-                return [];
+                return [id];
             }
             // recursively get all linked callstacks
             foreach (var linkedId in linkedCallstacks)
@@ -1046,7 +1046,8 @@ namespace CrashDumpAnalyzer.Controllers
                 }
             }
             allLinkedCallstacks.AddRange(linkedCallstacks);
-            allLinkedCallstacks.Add(id);
+            if (!allLinkedCallstacks.Contains(id))
+                allLinkedCallstacks.Add(id);
             return allLinkedCallstacks;
         }
 
