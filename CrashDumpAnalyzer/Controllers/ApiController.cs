@@ -335,6 +335,7 @@ namespace CrashDumpAnalyzer.Controllers
                     }
                     if (reallyDelete)
                     {
+                        _logger.LogInformation("really deleting {num} linked callstacks", linkedIds.Count);
                         foreach (var linkedId in linkedIds)
                         {
                             try
