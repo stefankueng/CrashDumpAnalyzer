@@ -498,6 +498,24 @@ namespace CrashDumpAnalyzer.Controllers
             return NoContent();
         }
 
+        [EndpointSummary("Set the 'version' and build type for the application with 'id'")]
+        [HttpPost]
+        public async Task<IActionResult> SetApplicationVersion(int id, string? version, string? buildType)
+        {
+            if (_dbContext.DumpCallstacks == null)
+                return NotFound();
+            var entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == id);
+            if (entry != null)
+            {
+                entry.ApplicationVersion = version ?? string.Empty;
+                entry.BuildType = buildType != null ? BuildTypes.ParseBuildType(buildType) : -1;
+                await _dbContext.SaveChangesAsync();
+                ModelState.Clear();
+                return NoContent();
+            }
+            return BadRequest();
+        }
+
         [EndpointSummary("Set the ticket assigned to the callstack with id")]
         [HttpPost]
         public async Task<IActionResult> SetTicket(int id, string? ticket)

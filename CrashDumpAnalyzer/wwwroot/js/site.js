@@ -140,6 +140,39 @@ $(function () {
         });
     })
 
+    $('#setApplicationVersionModal').on('show.bs.modal', function (e) {
+        $('.modalAppVersionInput').val('');
+        $('#appVersionError').html('');
+        let btn = $(e.relatedTarget); // e.related here is the element that opened the modal (the button)
+        let id = btn.data('id');
+        $('.saveAppEdit').data('id', id); // then pass it to the button inside the modal
+        let version = btn.closest('td').prev().find('.version').text().trim();
+        let buildType = btn.closest('td').prev().find('.buildType').text().trim();
+        if (version.length === 0) {
+            version = btn.closest('td').find('.version').text().trim();
+            buildType = btn.closest('td').find('.buildType').text().trim();
+        }
+        $('.modalAppVersionInput').val(version);
+        $('#filterAppBuildTypes input:radio').each(function () {
+            if ($(this).val() === buildType) {
+                $(this).prop('checked', true);
+            }
+        });
+    })
+
+    $('.saveAppEdit').on('click', function () {
+        let id = $(this).data('id'); // the rest is just the same
+        let text = $('.modalAppVersionInput').val();
+        if (!text || (/^(\d+\.\d+\.\d+\.\d+)$/.test(text)))
+            $('#appVersionError').html('');
+        else {
+            $('#appVersionError').html('Enter version number in the format 1.2.3.4');
+            return;
+        }
+        saveApplicationVersion(id);
+        $('#setApplicationVersionModal').modal('toggle'); // this is to close the modal after clicking the modal button
+    })
+
     $('.saveEdit').on('click', function () {
         let id = $(this).data('id'); // the rest is just the same
         let text = $('.modalTextInput').val();
@@ -278,6 +311,21 @@ function saveFixedVersion(id) {
     console.log(text + ' --> ' + buildType + ' --> ' + id);
     $.ajax({
         url: '/Api/SetFixedVersion?id=' + id + '&version=' + encodeURIComponent(text) +'&buildType=' + buildType,
+        processData: false,
+        contentType: false,
+        type: 'POST',
+        complete: function (data) {
+            location.reload();
+        },
+    });
+}
+function saveApplicationVersion(id) {
+    console.debug("Saving application version for " + id);
+    let text = $('.modalAppVersionInput').val();
+    let buildType = $('#filterAppBuildTypes input:radio:checked').val();
+    console.log(text + ' --> ' + buildType + ' --> ' + id);
+    $.ajax({
+        url: '/Api/SetApplicationVersion?id=' + id + '&version=' + encodeURIComponent(text) +'&buildType=' + buildType,
         processData: false,
         contentType: false,
         type: 'POST',

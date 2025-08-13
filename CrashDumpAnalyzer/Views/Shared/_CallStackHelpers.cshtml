@@ -29,6 +29,33 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="setApplicationVersionModal" tabindex="-1" role="dialog" aria-labelledby="setApplicationVersionModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="setApplicationVersionModalLabel">Enter the version of application</h5>
+            </div>
+            <div class="modal-body">
+                <label for="appVersionEdit">version:</label>
+                <input class="modalAppVersionInput" type="text" id="appVersionEdit" name="appVersionEdit" autocomplete='off'>
+                <p id="appVersionError" style="color: red;"></p>
+                <div id="filterAppBuildTypes" data-toggle="buttons">
+                    @foreach (var buildType in BuildTypes.BuildTypeStrings())
+                    {
+                        <div>
+                            <input type="radio" id="@buildType" name="buildType" value="@buildType">
+                            <label for="@buildType">@buildType</label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary saveAppEdit">Save changes</button>
+                <button type="button" class="btn btn-secondary close" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="modal fade" id="setTicketModal" tabindex="-1" role="dialog" aria-labelledby="setTicketModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">

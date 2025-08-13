@@ -48,7 +48,14 @@
                 </tr>
                 <tr>
                     <td class="@stateClass">@Html.DisplayNameFor(modelItem => item.ApplicationVersion)</td>
-                    <td class="@stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion) @BuildTypes.BuildTypeString(item.BuildType)</td>
+                    <td class="@stateClass">
+                        <p class="version">@Html.DisplayFor(modelItem => item.ApplicationVersion)</p>
+                        <p class="buildType">@BuildTypes.BuildTypeString(item.BuildType)</p>
+                        @if (item.LogFileDatas.Count > 0)
+                        {
+                            <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setApplicationVersionModal" data-id="@item.DumpCallstackId">Set</button>
+                        }
+                    </td>
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Comment)</td>
