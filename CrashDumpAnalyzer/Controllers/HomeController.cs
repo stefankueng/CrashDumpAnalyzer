@@ -588,7 +588,7 @@ namespace CrashDumpAnalyzer.Controllers
 
         private static bool HasDumpAfterFixedVersion(DumpCallstack dumpCallstack)
         {
-            var appVersion = new SemanticVersion(dumpCallstack.ApplicationVersion, dumpCallstack.BuildType);
+            var appVersion = new SemanticVersion(dumpCallstack.ApplicationVersion, dumpCallstack.BuildType < 0 ? BuildTypes.ParseBuildType("") : dumpCallstack.BuildType);
             var fixedVersion = new SemanticVersion(dumpCallstack.FixedVersion, dumpCallstack.FixedBuildType);
             return appVersion > fixedVersion;
         }

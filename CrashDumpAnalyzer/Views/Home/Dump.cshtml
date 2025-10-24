@@ -11,7 +11,7 @@
         {
             var item = Model.Callstack;
             var fixedVersion = new SemanticVersion(item.FixedVersion, item.FixedBuildType);
-            var appVersion = new SemanticVersion(item.ApplicationVersion, item.BuildType);
+            var appVersion = new SemanticVersion(item.ApplicationVersion, item.BuildType < 0 ? BuildTypes.ParseBuildType("") : item.BuildType);
             var isFixed = item.FixedVersion.Length > 0 && appVersion <= fixedVersion;
             var isNotFixed = item.FixedVersion.Length > 0 && appVersion > fixedVersion;
 
