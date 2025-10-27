@@ -332,7 +332,9 @@ namespace CrashDumpAnalyzer.Controllers
                             .Where(dumpCallstack => (issueType == null || dumpCallstack.ExceptionType == issueType || (activeTab == 0 && dumpCallstack.LogFileDatas.Count == 0)) &&
                                                     dumpCallstack.Deleted == (deleted > 0) &&
                                                     (dumpCallstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= cutoffDate) ||
-                                                    dumpCallstack.LogFileDatas.Count != 0))
+                                                    dumpCallstack.LogFileDatas.Count != 0 ||
+                                                    (dumpCallstack.Ticket.Length > 0 && dumpCallstack.FixedVersion.Length == 0) // always include not-fixed callstacks with assigned tickets
+                                                    ))
                             .AsSplitQuery()
                             .ToListAsync();
                     else // with search string, include deleted callstacks
