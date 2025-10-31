@@ -29,6 +29,7 @@ namespace CrashDumpAnalyzer.Utilities
         public string domain = string.Empty;
         public string environment = string.Empty;
         public string versionResource = string.Empty;
+        public string commandLine = string.Empty;
         public DateTime dumpTime = DateTime.Now;
     }
     public class DumpAnalyzer
@@ -85,6 +86,7 @@ namespace CrashDumpAnalyzer.Utilities
             string domain = string.Empty;
             string environment = string.Empty;
             string versionResource = string.Empty;
+            string commandLine = string.Empty;
             DateTime dumpTime = DateTime.Now;
             int childSpCount = 0;
             foreach (var lineStringOrig in output.Split(["\n"], StringSplitOptions.None))
@@ -285,6 +287,10 @@ namespace CrashDumpAnalyzer.Utilities
                 {
                     context = DumpContext.Peb;
                 }
+                if (lineString.Contains("CommandLine:"))
+                {
+                    commandLine = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
+                }
                 if (lineString.Contains(":quit"))
                 {
                     context = DumpContext.None;
@@ -322,6 +328,7 @@ namespace CrashDumpAnalyzer.Utilities
             dumpData.cleanCallstackString = cleanCallstackString;
             dumpData.versionResource = versionResource;
             dumpData.dumpTime = dumpTime;
+            dumpData.commandLine = commandLine;
 
             return dumpData;
         }

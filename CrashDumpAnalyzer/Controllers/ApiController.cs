@@ -841,6 +841,7 @@ namespace CrashDumpAnalyzer.Controllers
                 entry.Domain = dumpData.domain;
                 entry.Environment = dumpData.environment;
                 entry.VersionResource = dumpData.versionResource;
+                entry.CommandLine = dumpData.commandLine;
 
                 // find out if we already have this callstack
                 DumpCallstack callstack = new DumpCallstack

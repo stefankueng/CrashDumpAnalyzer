@@ -38,6 +38,7 @@ namespace CrashDumpAnalyzer.Models
         public string VersionResource { get; set; } = string.Empty;
         public string LogSummary { get; set; } = string.Empty;
         public string Comment { get; set; } = string.Empty;
+        public string CommandLine { get; set; } = string.Empty;
         public string UploadedFromUsername { get; set; } = string.Empty;
         public string UploadedFromUserEmail { get; set; } = string.Empty;
 
