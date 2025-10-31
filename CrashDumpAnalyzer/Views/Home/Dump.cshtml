@@ -92,14 +92,24 @@
                             {
                                 @foreach (var dumpInfo in item.DumpInfos)
                                 {
+                                    var popContent = "<div><strong>Command line:</strong> " + System.Text.Encodings.Web.HtmlEncoder.Default.Encode(dumpInfo.CommandLine ?? string.Empty) + "</div>"
+                                    + "<div><strong>VersionResource:</strong> <pre style='white-space:pre-wrap;margin:0'>" + System.Text.Encodings.Web.HtmlEncoder.Default.Encode(dumpInfo.VersionResource ?? string.Empty) + "</pre></div>";
                                     <tr style="border-style:none;border-width:0">
+
                                         @if (dumpInfo.FilePath.Length > 0)
                                         {
-                                            <td style="border-style:none;border-width:0" data-toggle="tooltip" title="@dumpInfo.VersionResource"><a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a><button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">❌</button></td>
+                                            <td style="border-style:none;border-width:0" data-bs-toggle="tooltip" title="@dumpInfo.VersionResource">
+                                                <button type="button" class="btn btn-outline-info btn-sm" style="margin-left:4px" data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" title="Dump info" data-bs-content="@popContent" aria-label="Show dump info">ℹ️</button>
+                                                <a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
+                                                <button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">❌</button>
+                                            </td>
                                         }
                                         else
                                         {
-                                            <td style="border-style:none;border-width:0" data-toggle="tooltip" title="@dumpInfo.VersionResource">dump file deleted</td>
+                                            <td style="border-style:none;border-width:0" data-bs-toggle="tooltip" title="@dumpInfo.VersionResource">
+                                                <button type="button" class="btn btn-outline-info btn-sm" style="margin-left:4px" data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" title="Dump info" data-bs-content="@popContent" aria-label="Show dump info">ℹ️</button>
+                                                dump file deleted
+                                            </td>
                                         }
                                         <td style="border-style:none;border-width:0">@dumpInfo.Comment</td>
                                         <td style="border-style:none;border-width:0">Dump from @dumpInfo.DumpTime (@dumpInfo.DumpTime.AsTimeAgo())</td>
