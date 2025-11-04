@@ -27,20 +27,6 @@
                     This dump callstack has been deleted.
                 </div>
             }
-            var stateColor = "transparent";
-            var className = string.Empty;
-            var issueTitle = string.Empty;
-            var issueState = string.Empty;
-            var issue = @Model.IssueData;
-            var appendedTitle = string.Empty;
-            if (issue != null)
-            {
-                stateColor = issue.StateColor;
-                className = "issue-" + issue.StateColor;
-                issueTitle = issue.Title;
-                issueState = issue.State;
-                appendedTitle = " : " + issue.Title;
-            }
             <table>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.ApplicationName)</td>
@@ -64,9 +50,32 @@
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Ticket)</td>
                     <td>
-                        <a href="@Constants.TicketBaseUrl@item.Ticket" target="_blank" data-bs-toggle="tooltip" title="@issueTitle" class="ticket">@item.Ticket</a>@appendedTitle
-                        <div data-bs-toggle="tooltip" title="@issueTitle" class="@className" style="background-color: @stateColor; display: flex; width: fit-content;">@issueState</div>
-                        <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button>
+                        @if (item.Ticket.Length > 0)
+                        {
+                            // split item.Ticket into multiple tickets separated by space or comma
+                            var tickets = item.Ticket.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            @foreach (var itemTicket in tickets)
+                            {
+                                @if (Model.IssueData != null && Model.IssueData.ContainsKey(itemTicket))
+                                {
+                                    var issue = Model.IssueData[itemTicket];
+                                    if (issue != null)
+                                    {
+                                        var className = "issue-" + @issue.StateColor;
+                                        <a href="@Constants.TicketBaseUrl@itemTicket" target="_blank" data-bs-toggle="tooltip" title="@issue.Title" class="ticket">@itemTicket</a>
+                                        <div data-bs-toggle="tooltip" title="@issue.Title" class="@className" style="background-color: @issue.StateColor">@issue.State</div>
+                                    }
+                                }
+                                else
+                                {
+                                    <a href="@Constants.TicketBaseUrl@itemTicket" target="_blank" class="ticket">@itemTicket</a>
+                                }
+                            }
+                        }
+                        @if (item.ApplicationName != Constants.UnassignedDumpNames)
+                        {
+                            <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button>
+                        }
                     </td>
                 </tr>
                 <tr>

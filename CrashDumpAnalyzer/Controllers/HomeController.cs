@@ -108,7 +108,7 @@ namespace CrashDumpAnalyzer.Controllers
                             var data = new DumpPageData
                             {
                                 Callstack = linkedList[0],
-                                IssueData = issueData.FirstOrDefault().Value
+                                IssueData = issueData
                             };
                             return View(data);
                         }
@@ -119,7 +119,7 @@ namespace CrashDumpAnalyzer.Controllers
                         var data = new DumpPageData
                         {
                             Callstack = list[0],
-                            IssueData = issueData.FirstOrDefault().Value
+                            IssueData = issueData
                         };
                         return View(data);
                     }
