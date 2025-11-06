@@ -366,6 +366,7 @@ namespace CrashDumpAnalyzer.Controllers
             var token = new CancellationToken();
             await CleanupOrphanedLogFileData(dbContext, token);
             await CleanupUnreferencedDumpFiles(dbContext, token);
+            await RemoveOrphanedFiles(dbContext, token);
             return NoContent();
         }
 
@@ -1083,7 +1084,7 @@ namespace CrashDumpAnalyzer.Controllers
                     .Include(dc => dc.LogFileDatas)
                     .SelectMany(dc => dc.LogFileDatas)
                     .Select(lfd => lfd.LogFileDataId)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken: token);
 
                 foreach (var id in referencedIds)
                 {
@@ -1094,7 +1095,7 @@ namespace CrashDumpAnalyzer.Controllers
             // Find all LogFileData entries that are not referenced
             var orphanedLogFileData = await dbContext.LogFileDatas
                 .Where(lfd => !referencedLogFileDataIds.Contains(lfd.LogFileDataId))
-                .ToListAsync();
+                .ToListAsync(cancellationToken: token);
 
             if (orphanedLogFileData.Count > 0)
             {
@@ -1124,7 +1125,7 @@ namespace CrashDumpAnalyzer.Controllers
             // Get all DumpFileInfos with their relationships
             var allDumpFileInfos = await dbContext.DumpFileInfos
                 .Include(dfi => dfi.DumpCallstack)
-                .ToListAsync();
+                .ToListAsync(cancellationToken: token);
 
             // Get all DumpFileInfo IDs that are referenced by LogFileDatas
             var referencedByLogFiles = new HashSet<int>();
@@ -1133,7 +1134,7 @@ namespace CrashDumpAnalyzer.Controllers
                 var logFileReferences = await dbContext.LogFileDatas
                     .Where(lfd => lfd.DumpFileInfo != null)
                     .Select(lfd => lfd.DumpFileInfo!.DumpFileInfoId)
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken: token);
 
                 foreach (var id in logFileReferences)
                 {
@@ -1220,6 +1221,32 @@ namespace CrashDumpAnalyzer.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error saving changes to database during cleanup of unreferenced dump files");
+            }
+        }
+
+        private async Task RemoveOrphanedFiles(ApplicationDbContext dbContext, CancellationToken token)
+        {
+            // get all dump files in the dump path
+            var dumpFilesInDirectory = Directory.GetFiles(_dumpPath);
+            if (dbContext.DumpFileInfos == null)
+                return;
+            var dumpFilesInDatabase = await dbContext.DumpFileInfos.ToListAsync(token);
+            foreach (var dumpFile in dumpFilesInDirectory)
+            {
+                var fileName = Path.GetFileName(dumpFile);
+                var found = dumpFilesInDatabase.FirstOrDefault(x => x.FilePath == fileName);
+                if (found == null)
+                {
+                    try
+                    {
+                        System.IO.File.Delete(dumpFile);
+                        _logger.LogInformation("Deleted orphaned file {path}", dumpFile);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error deleting orphaned file {path}", dumpFile);
+                    }
+                }
             }
         }
     }
