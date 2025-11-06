@@ -132,8 +132,6 @@ namespace CrashDumpAnalyzer.Controllers
         {
             if (_dbContext.DumpCallstacks != null)
             {
-                DateTime cutoffDate = DateTime.Now.AddDays(-_daysBack);
-
                 // get all statistics from the db
                 var callStacks = await _dbContext.DumpCallstacks.AsNoTracking()
                     .Where(callstack => callstack.ApplicationName != Constants.UnassignedDumpNames)
