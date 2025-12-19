@@ -5,14 +5,9 @@ function changeTheme() {
     const theme = document.documentElement.getAttribute('data-bs-theme') === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-bs-theme', theme);
     localStorage.setItem('theme', theme);
+    initTooltips();
 }
 
-$(document).on('click', '.collapsible', function () {
-    $(this).toggleClass('collapsed');
-    console.debug($(this).prev);
-    $(this).prev().toggleClass('collapsed');
-    $(this).next().toggleClass('collapsed');
-});
 $(document).ready(function () {
     $('.btn').each(function () {
         if (Array.from($(this).text().trim()).length === 1) {
@@ -28,6 +23,43 @@ $(document).ready(function () {
 
 const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]')
 const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl, { html: true, sanitize: false, container: 'body' }))
+
+// AllowList used for tooltip sanitizer (keep sanitize enabled)
+const tooltipAllowList = {
+    // elementName: [allowed attributes]
+    div: ['class', 'style', 'data-*'],
+    pre: ['class', 'style'],
+    strong: [],
+    em: [],
+    br: [],
+    a: ['href', 'target', 'class', 'rel', 'data-*']
+};
+
+let _activeTooltips = [];
+
+function initTooltips() {
+    if (_activeTooltips && _activeTooltips.length > 0) {
+        _activeTooltips.forEach(t => {
+            try { t.dispose(); } catch (ex) { /* ignore */ }
+        });
+    }
+    _activeTooltips = [];
+
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => {
+        const t = new bootstrap.Tooltip(tooltipTriggerEl, {
+            html: true,
+            sanitize: true,
+            allowList: tooltipAllowList,
+            container: 'body'
+        });
+        return t;
+    });
+
+    _activeTooltips = tooltipList;
+}
+initTooltips();
+
 $('[data-bs-toggle="popover"]').click(function (e) {
     e.preventDefault();
     $('[data-bs-toggle="popover"]').not(this).popover('hide');

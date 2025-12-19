@@ -1,4 +1,4 @@
-using CrashDumpAnalyzer.Data;
+﻿using CrashDumpAnalyzer.Data;
 using CrashDumpAnalyzer.Models;
 
 using Microsoft.AspNetCore.Mvc;
@@ -509,6 +509,7 @@ namespace CrashDumpAnalyzer.Controllers
                             }
 
                         }
+                        first.DumpInfos.Sort((a, b) => b.UploadDate.CompareTo(a.UploadDate));
                         first.Ticket = string.Join(", ", tickets.Keys);
                         resultList.Add(first);
                     }

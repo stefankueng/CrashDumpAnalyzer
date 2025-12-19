@@ -107,16 +107,14 @@
 
                                         @if (dumpInfo.FilePath.Length > 0)
                                         {
-                                            <td style="border-style:none;border-width:0" data-bs-toggle="tooltip" title="@dumpInfo.VersionResource">
-                                                <button type="button" class="btn btn-outline-info btn-sm" style="margin-left:4px" data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" title="Dump info" data-bs-content="@popContent" aria-label="Show dump info">ℹ️</button>
+                                            <td style="border-style:none;border-width:0" data-bs-toggle="tooltip" title="@popContent">
                                                 <a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
                                                 <button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">❌</button>
                                             </td>
                                         }
                                         else
                                         {
-                                            <td style="border-style:none;border-width:0" data-bs-toggle="tooltip" title="@dumpInfo.VersionResource">
-                                                <button type="button" class="btn btn-outline-info btn-sm" style="margin-left:4px" data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" title="Dump info" data-bs-content="@popContent" aria-label="Show dump info">ℹ️</button>
+                                            <td style="border-style:none;border-width:0" data-bs-toggle="tooltip" title="@popContent">
                                                 dump file deleted
                                             </td>
                                         }

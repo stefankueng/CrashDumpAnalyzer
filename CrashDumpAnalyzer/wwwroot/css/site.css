@@ -1,4 +1,4 @@
-html {
+﻿html {
     font-size: 14px;
 }
 
@@ -439,4 +439,67 @@ input.nosubmit {
 .issue-success {
     background-color: darkgreen;
     color: lightgreen;
+}
+
+.tooltip .tooltip-inner {
+    white-space: pre-wrap;
+    max-width: 40rem;
+    text-align: left;
+}
+
+.tooltip .tooltip-inner pre {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+/* Force tooltip colors based on document theme */
+[data-bs-theme=dark] .tooltip .tooltip-inner {
+    color: #fff !important;
+    background-color: #212529 !important;
+}
+
+[data-bs-theme=light] .tooltip .tooltip-inner {
+    color: #212529 !important;
+    background-color: #dee2e6 !important;
+}
+
+/* Force tooltip arrow colors */
+[data-bs-theme=dark] .bs-tooltip-top .tooltip-arrow::before,
+[data-bs-theme=dark] .bs-tooltip-auto[data-popper-placement^=top] .tooltip-arrow::before {
+    border-top-color: #212529 !important;
+}
+
+[data-bs-theme=dark] .bs-tooltip-end .tooltip-arrow::before,
+[data-bs-theme=dark] .bs-tooltip-auto[data-popper-placement^=right] .tooltip-arrow::before {
+    border-right-color: #212529 !important;
+}
+
+[data-bs-theme=dark] .bs-tooltip-bottom .tooltip-arrow::before,
+[data-bs-theme=dark] .bs-tooltip-auto[data-popper-placement^=bottom] .tooltip-arrow::before {
+    border-bottom-color: #212529 !important;
+}
+
+[data-bs-theme=dark] .bs-tooltip-start .tooltip-arrow::before,
+[data-bs-theme=dark] .bs-tooltip-auto[data-popper-placement^=left] .tooltip-arrow::before {
+    border-left-color: #212529 !important;
+}
+
+[data-bs-theme=light] .bs-tooltip-top .tooltip-arrow::before,
+[data-bs-theme=light] .bs-tooltip-auto[data-popper-placement^=top] .tooltip-arrow::before {
+    border-top-color: #dee2e6 !important;
+}
+
+[data-bs-theme=light] .bs-tooltip-end .tooltip-arrow::before,
+[data-bs-theme=light] .bs-tooltip-auto[data-popper-placement^=right] .tooltip-arrow::before {
+    border-right-color: #dee2e6 !important;
+}
+
+[data-bs-theme=light] .bs-tooltip-bottom .tooltip-arrow::before,
+[data-bs-theme=light] .bs-tooltip-auto[data-popper-placement^=bottom] .tooltip-arrow::before {
+    border-bottom-color: #dee2e6 !important;
+}
+
+[data-bs-theme=light] .bs-tooltip-start .tooltip-arrow::before,
+[data-bs-theme=light] .bs-tooltip-auto[data-popper-placement^=left] .tooltip-arrow::before {
+    border-left-color: #dee2e6 !important;
 }
