@@ -257,6 +257,11 @@ namespace CrashDumpAnalyzer.Controllers
                             if (dumpAnalyzeTask != null)
                             {
                                 var dumpData = await dumpAnalyzeTask;
+                                if (string.IsNullOrWhiteSpace(dumpData.cleanCallstackString) && string.IsNullOrWhiteSpace(dumpData.processName))
+                                {
+                                    dumpData.processName = Constants.InvalidFilesNames;
+                                    dumpData.cleanCallstackString = Constants.InvalidFilesNames;
+                                }
                                 await UpdateDumpDataInDatabase(dbContext, fileNameForFileStorage,
                                     uploadedFromHostname, dumpData, null, token);
                             }
@@ -858,7 +863,7 @@ namespace CrashDumpAnalyzer.Controllers
                         // 80000003 is a breakpoint exception, not a crash.
                         // This always gives us the callstack of the main thread, which is the same for most dumps that are created because of a hang.
                         // so we never attempt to assign these to an existing callstack
-                        if (cs != null && !dumpData.exceptionCode.StartsWith("80000003"))
+                        if (cs != null && !dumpData.exceptionCode.StartsWith("80000003") && cs.ApplicationName != Constants.UnassignedDumpNames)
                         {
                             callstack = cs;
                             callstack.Deleted = false;
