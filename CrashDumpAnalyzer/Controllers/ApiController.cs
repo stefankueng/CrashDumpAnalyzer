@@ -336,22 +336,15 @@ namespace CrashDumpAnalyzer.Controllers
                     if (reallyDelete)
                     {
                         _logger.LogInformation("really deleting {num} linked callstacks", linkedIds.Count);
-                        foreach (var linkedId in linkedIds)
+                        if (linkedIds.Count > 0)
                         {
-                            try
-                            {
-                                var callStack = await dbContext.DumpCallstacks.FirstOrDefaultAsync(cs => cs.DumpCallstackId == linkedId);
-                                if (callStack != null)
-                                {
-                                    dbContext.Remove(callStack);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "Error deleting linked callstack from database");
-                            }
+                            // Use raw SQL for much faster deletion - bypasses EF Core change tracking
+                            // The database cascade delete will handle related DumpFileInfo and LogFileData records
+                            var idList = string.Join(",", linkedIds);
+                            var deletedCount = await dbContext.Database.ExecuteSqlRawAsync(
+                                $"DELETE FROM DumpCallstack WHERE DumpCallstackId IN ({idList})");
+                            _logger.LogInformation("Deleted {count} callstacks using raw SQL", deletedCount);
                         }
-                        await dbContext.SaveChangesAsync();
                     }
                 }
                 catch (Exception ex)
@@ -1076,41 +1069,17 @@ namespace CrashDumpAnalyzer.Controllers
             if (dbContext.LogFileDatas == null)
                 return;
 
-            // Get all LogFileData IDs that are referenced by DumpCallstacks
-            var referencedLogFileDataIds = new HashSet<int>();
-            if (dbContext.DumpCallstacks != null)
+            // Use raw SQL to delete orphaned LogFileData entries directly in the database
+            // This is much faster than loading all records into memory
+            var deletedCount = await dbContext.Database.ExecuteSqlRawAsync(@"
+                DELETE FROM LogFileData 
+                WHERE DumpCallstackId IS NULL OR DumpCallstackId NOT IN (
+                    SELECT DumpCallstackId FROM DumpCallstack
+                )", token);
+
+            if (deletedCount > 0)
             {
-                var referencedIds = await dbContext.DumpCallstacks
-                    .Include(dc => dc.LogFileDatas)
-                    .SelectMany(dc => dc.LogFileDatas)
-                    .Select(lfd => lfd.LogFileDataId)
-                    .ToListAsync(cancellationToken: token);
-
-                foreach (var id in referencedIds)
-                {
-                    referencedLogFileDataIds.Add(id);
-                }
-            }
-
-            // Find all LogFileData entries that are not referenced
-            var orphanedLogFileData = await dbContext.LogFileDatas
-                .Where(lfd => !referencedLogFileDataIds.Contains(lfd.LogFileDataId))
-                .ToListAsync(cancellationToken: token);
-
-            if (orphanedLogFileData.Count > 0)
-            {
-                dbContext.LogFileDatas.RemoveRange(orphanedLogFileData);
-                _logger.LogInformation("Removed {Count} orphaned LogFileData entries from database",
-                    orphanedLogFileData.Count);
-
-                try
-                {
-                    await dbContext.SaveChangesAsync(token);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error saving changes to database during cleanup of orphaned LogFileData");
-                }
+                _logger.LogInformation("Removed {Count} orphaned LogFileData entries from database", deletedCount);
             }
             else
             {
