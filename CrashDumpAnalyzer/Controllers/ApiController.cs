@@ -346,7 +346,7 @@ namespace CrashDumpAnalyzer.Controllers
                             // Use raw SQL for much faster deletion - bypasses EF Core change tracking
                             // The database cascade delete will handle related DumpFileInfo and LogFileData records
                             var idList = string.Join(",", linkedIds);
-                            var deletedCount = await dbContext.Database.ExecuteSqlRawAsync(
+                            var deletedCount = await dbContext.Database.ExecuteSqlAsync(
                                 $"DELETE FROM DumpCallstack WHERE DumpCallstackId IN ({idList})");
                             _logger.LogInformation("Deleted {count} callstacks using raw SQL", deletedCount);
                         }
