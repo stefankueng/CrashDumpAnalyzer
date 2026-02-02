@@ -396,17 +396,26 @@ function saveComment(id) {
     });
 }
 
-function deleteOldEntries() {
+async function deleteOldEntries() {
     const versionInput = document.getElementById('deleteVersionInput');
     const version = versionInput.value.trim();
-    const progressMessage = document.getElementById('deleteProgressMessage');
+    const inputSection = document.getElementById('deleteInputSection');
+    const progressSection = document.getElementById('deleteProgressSection');
+    const resultMessage = document.getElementById('deleteResultMessage');
+    const progressBar = document.getElementById('deleteProgressBar');
+    const progressText = document.getElementById('deleteProgressText');
+    const progressCounter = document.getElementById('deleteProgressCounter');
+    const progressDetails = document.getElementById('deleteProgressDetails');
+    const startBtn = document.getElementById('deleteStartBtn');
+    const cancelBtn = document.getElementById('deleteCancelBtn');
+    const closeBtn = document.getElementById('deleteModalCloseBtn');
+    const reloadBtn = document.getElementById('deleteReloadBtn');
     
     if (!version) {
         alert('Please enter a version number');
         return;
     }
 
-    // Basic version format validation
     if (!/^(\d+\.\d+\.\d+\.\d+)$/.test(version)) {
         alert('Please enter a valid version number in the format 1.2.3.4');
         return;
@@ -417,22 +426,98 @@ function deleteOldEntries() {
         return;
     }
 
-    progressMessage.textContent = 'Deleting entries...';
-    progressMessage.style.display = 'block';
+    inputSection.style.display = 'none';
+    progressSection.style.display = 'block';
+    resultMessage.style.display = 'none';
+    startBtn.style.display = 'none';
+    cancelBtn.disabled = true;
+    closeBtn.disabled = true;
 
-    $.ajax({
-        url: '/Api/DeleteOldEntries?version=' + encodeURIComponent(version),
-        type: 'POST',
-        success: function (data) {
-            progressMessage.className = 'alert alert-success';
-            progressMessage.textContent = `Successfully deleted ${data.deletedCount} entries.`;
-            setTimeout(function () {
-                location.reload();
-            }, 2000);
-        },
-        error: function (xhr, status, error) {
-            progressMessage.className = 'alert alert-danger';
-            progressMessage.textContent = 'Error deleting entries: ' + (xhr.responseText || error);
+    progressText.textContent = 'Counting entries to delete...';
+    progressCounter.textContent = '0 / ?';
+    progressBar.style.width = '0%';
+    progressBar.textContent = '0%';
+    progressBar.setAttribute('aria-valuenow', 0);
+
+    try {
+        const countResponse = await $.ajax({
+            url: '/Api/CountOldEntries?version=' + encodeURIComponent(version),
+            type: 'GET'
+        });
+
+        const totalCount = countResponse.count;
+        
+        if (totalCount === 0) {
+            progressSection.style.display = 'none';
+            resultMessage.className = 'alert alert-info';
+            resultMessage.textContent = 'No entries found to delete.';
+            resultMessage.style.display = 'block';
+            cancelBtn.disabled = false;
+            closeBtn.disabled = false;
+            return;
         }
-    });
+
+        progressText.textContent = `Deleting ${totalCount} entries...`;
+        progressCounter.textContent = `0 / ${totalCount}`;
+        
+        let deletedCount = 0;
+        const batchSize = 10;
+        const startTime = new Date();
+        
+        while (deletedCount < totalCount) {
+            const batchResponse = await $.ajax({
+                url: '/Api/DeleteOldEntries?version=' + encodeURIComponent(version) + '&batchSize=' + batchSize,
+                type: 'POST'
+            });
+
+            deletedCount += batchResponse.deletedCount;
+            
+            const progress = Math.min(100, Math.round((deletedCount / totalCount) * 100));
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = progress + '%';
+            progressBar.setAttribute('aria-valuenow', progress);
+            progressCounter.textContent = `${deletedCount} / ${totalCount}`;
+            
+            const elapsed = (new Date() - startTime) / 1000;
+            const rate = deletedCount / elapsed;
+            const remaining = totalCount - deletedCount;
+            const eta = remaining > 0 ? Math.round(remaining / rate) : 0;
+            
+            progressDetails.textContent = `Deleted ${deletedCount} entries (${rate.toFixed(1)} per second). ETA: ${eta} seconds`;
+            
+            if (batchResponse.deletedCount === 0) {
+                break;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        progressBar.classList.remove('progress-bar-animated');
+        progressSection.style.display = 'none';
+        resultMessage.className = 'alert alert-success';
+        resultMessage.textContent = `Successfully deleted ${deletedCount} entries.`;
+        resultMessage.style.display = 'block';
+        reloadBtn.style.display = 'inline-block';
+        closeBtn.disabled = false;
+        
+    } catch (error) {
+        progressSection.style.display = 'none';
+        resultMessage.className = 'alert alert-danger';
+        resultMessage.textContent = 'Error deleting entries: ' + (error.responseText || error.statusText || error);
+        resultMessage.style.display = 'block';
+        cancelBtn.disabled = false;
+        closeBtn.disabled = false;
+    }
 }
+
+$('#deleteOldEntriesModal').on('hidden.bs.modal', function () {
+    document.getElementById('deleteInputSection').style.display = 'block';
+    document.getElementById('deleteProgressSection').style.display = 'none';
+    document.getElementById('deleteResultMessage').style.display = 'none';
+    document.getElementById('deleteVersionInput').value = '';
+    document.getElementById('deleteStartBtn').style.display = 'inline-block';
+    document.getElementById('deleteReloadBtn').style.display = 'none';
+    document.getElementById('deleteCancelBtn').disabled = false;
+    document.getElementById('deleteModalCloseBtn').disabled = false;
+});
+

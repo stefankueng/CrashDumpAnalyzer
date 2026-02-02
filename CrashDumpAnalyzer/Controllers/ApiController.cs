@@ -368,9 +368,54 @@ namespace CrashDumpAnalyzer.Controllers
             return NoContent();
         }
 
+        [EndpointSummary("Count entries with version lower than specified that don't have tickets assigned")]
+        [HttpGet]
+        public async Task<IActionResult> CountOldEntries(string version)
+        {
+            if (_dbContext.DumpCallstacks == null)
+                return NotFound();
+
+            if (string.IsNullOrWhiteSpace(version))
+                return BadRequest("Version is required");
+
+            try
+            {
+                var targetVersion = new SemanticVersion(version, -1);
+
+                var entriesToCount = await _dbContext.DumpCallstacks
+                    .Where(cs => string.IsNullOrEmpty(cs.Ticket) &&
+                                 cs.LinkedToDumpCallstackId == 0 )
+                    .ToListAsync();
+
+                int count = 0;
+                foreach (var entry in entriesToCount)
+                {
+                    try
+                    {
+                        var entryVersion = new SemanticVersion(entry.ApplicationVersion, entry.BuildType);
+                        if (entryVersion < targetVersion)
+                        {
+                            count++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error parsing version {version} for callstack {id}", entry.ApplicationVersion, entry.DumpCallstackId);
+                    }
+                }
+
+                return Ok(new { count });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error counting old entries");
+                return StatusCode(500, "Error counting old entries");
+            }
+        }
+
         [EndpointSummary("Delete entries with version lower than specified that don't have tickets assigned")]
         [HttpPost]
-        public async Task<IActionResult> DeleteOldEntries(string version)
+        public async Task<IActionResult> DeleteOldEntries(string version, int batchSize = 10)
         {
             if (_dbContext.DumpCallstacks == null)
                 return NotFound();
@@ -385,9 +430,11 @@ namespace CrashDumpAnalyzer.Controllers
                 var entriesToDelete = await _dbContext.DumpCallstacks
                     .Where(cs => string.IsNullOrEmpty(cs.Ticket) &&
                                  cs.LinkedToDumpCallstackId == 0 )
+                    .Take(batchSize)
                     .ToListAsync();
 
                 int deletedCount = 0;
+                var deletedIds = new List<int>();
                 foreach (var entry in entriesToDelete)
                 {
                     try
@@ -395,8 +442,9 @@ namespace CrashDumpAnalyzer.Controllers
                         var entryVersion = new SemanticVersion(entry.ApplicationVersion, entry.BuildType);
                         if (entryVersion < targetVersion)
                         {
-                            await DeleteDumpCallstack(_dbContext, entry.DumpCallstackId, $"Deleted because version {entry.ApplicationVersion} is older than {version}", true);
+                            await DeleteDumpCallstack(_dbContext, entry.DumpCallstackId, string.Empty, true);
                             deletedCount++;
+                            deletedIds.Add(entry.DumpCallstackId);
                         }
                     }
                     catch (Exception ex)
@@ -405,8 +453,8 @@ namespace CrashDumpAnalyzer.Controllers
                     }
                 }
 
-                _logger.LogInformation("Deleted {count} old entries without tickets (older than {version})", deletedCount, version);
-                return Ok(new { deletedCount });
+                _logger.LogInformation("Deleted {count} old entries without tickets in this batch (older than {version})", deletedCount, version);
+                return Ok(new { deletedCount, deletedIds });
             }
             catch (Exception ex)
             {
