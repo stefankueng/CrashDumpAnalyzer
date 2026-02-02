@@ -5,8 +5,8 @@
 }
 
 <div class="text-center">
-    <h1 class="display-4 title">@ViewData["Title"]</h1>
-    <div>
+<h1 class="display-4 title">@ViewData["Title"]</h1>
+<div>
         @if (Model != null)
         {
             <table style="width:100%">
@@ -90,6 +90,35 @@
             </table>
         }
 
+    </div>
+</div>
+<div style="margin-bottom: 20px;">
+    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteOldEntriesModal">
+        Delete Old Entries
+    </button>
+</div>
+
+<!-- Modal for Delete Old Entries -->
+<div class="modal fade" id="deleteOldEntriesModal" tabindex="-1" aria-labelledby="deleteOldEntriesModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteOldEntriesModalLabel">Delete Old Entries</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Enter a version number to delete all entries with a lower version that do not have a ticket assigned.</p>
+                <div class="mb-3">
+                    <label for="deleteVersionInput" class="form-label">Version Number:</label>
+                    <input type="text" class="form-control" id="deleteVersionInput" placeholder="e.g., 1.2.3.4">
+                </div>
+                <div id="deleteProgressMessage" class="alert alert-info" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="deleteOldEntries()">Delete</button>
+            </div>
+        </div>
     </div>
 </div>
 

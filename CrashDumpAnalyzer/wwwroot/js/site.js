@@ -394,4 +394,45 @@ function saveComment(id) {
             location.reload();
         },
     });
+}
+
+function deleteOldEntries() {
+    const versionInput = document.getElementById('deleteVersionInput');
+    const version = versionInput.value.trim();
+    const progressMessage = document.getElementById('deleteProgressMessage');
+    
+    if (!version) {
+        alert('Please enter a version number');
+        return;
     }
+
+    // Basic version format validation
+    if (!/^(\d+\.\d+\.\d+\.\d+)$/.test(version)) {
+        alert('Please enter a valid version number in the format 1.2.3.4');
+        return;
+    }
+
+    const confirmMessage = `Are you sure you want to delete all entries with version lower than ${version} that don't have tickets assigned?`;
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+
+    progressMessage.textContent = 'Deleting entries...';
+    progressMessage.style.display = 'block';
+
+    $.ajax({
+        url: '/Api/DeleteOldEntries?version=' + encodeURIComponent(version),
+        type: 'POST',
+        success: function (data) {
+            progressMessage.className = 'alert alert-success';
+            progressMessage.textContent = `Successfully deleted ${data.deletedCount} entries.`;
+            setTimeout(function () {
+                location.reload();
+            }, 2000);
+        },
+        error: function (xhr, status, error) {
+            progressMessage.className = 'alert alert-danger';
+            progressMessage.textContent = 'Error deleting entries: ' + (xhr.responseText || error);
+        }
+    });
+}

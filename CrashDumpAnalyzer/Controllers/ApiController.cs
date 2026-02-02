@@ -368,6 +368,53 @@ namespace CrashDumpAnalyzer.Controllers
             return NoContent();
         }
 
+        [EndpointSummary("Delete entries with version lower than specified that don't have tickets assigned")]
+        [HttpPost]
+        public async Task<IActionResult> DeleteOldEntries(string version)
+        {
+            if (_dbContext.DumpCallstacks == null)
+                return NotFound();
+
+            if (string.IsNullOrWhiteSpace(version))
+                return BadRequest("Version is required");
+
+            try
+            {
+                var targetVersion = new SemanticVersion(version, -1);
+
+                var entriesToDelete = await _dbContext.DumpCallstacks
+                    .Where(cs => string.IsNullOrEmpty(cs.Ticket) &&
+                                 cs.LinkedToDumpCallstackId == 0 )
+                    .ToListAsync();
+
+                int deletedCount = 0;
+                foreach (var entry in entriesToDelete)
+                {
+                    try
+                    {
+                        var entryVersion = new SemanticVersion(entry.ApplicationVersion, entry.BuildType);
+                        if (entryVersion < targetVersion)
+                        {
+                            await DeleteDumpCallstack(_dbContext, entry.DumpCallstackId, $"Deleted because version {entry.ApplicationVersion} is older than {version}", true);
+                            deletedCount++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error deleting old callstack with id {id}", entry.DumpCallstackId);
+                    }
+                }
+
+                _logger.LogInformation("Deleted {count} old entries without tickets (older than {version})", deletedCount, version);
+                return Ok(new { deletedCount });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting old entries");
+                return StatusCode(500, "Error deleting old entries");
+            }
+        }
+
         private void UpdateCallstackComment(DumpCallstack callstack, string comment)
         {
             if (!callstack.Deleted)
