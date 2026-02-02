@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CrashDumpAnalyzer/CrashDumpAnalyzer.csproj" />
+  <Project Path="TestProject/TestProject.csproj" />
+</Solution>
