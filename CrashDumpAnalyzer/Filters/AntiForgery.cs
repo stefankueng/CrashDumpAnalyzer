@@ -18,7 +18,7 @@ namespace CrashDumpAnalyzer.Filters
 				context.HttpContext.Response.Cookies.Append(
 					"RequestVerificationToken",
 					tokens.RequestToken,
-					new CookieOptions() { HttpOnly = false });
+					new CookieOptions() { HttpOnly = true, Secure = true });
 		}
 
 		public override void OnResultExecuted(ResultExecutedContext context)
