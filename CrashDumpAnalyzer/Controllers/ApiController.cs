@@ -432,7 +432,6 @@ namespace CrashDumpAnalyzer.Controllers
                 var entriesToDelete = await _dbContext.DumpCallstacks
                     .Where(cs => string.IsNullOrEmpty(cs.Ticket) && string.IsNullOrEmpty(cs.Comment) &&
                                  cs.LinkedToDumpCallstackId == 0)
-                    .Take(batchSize)
                     .ToListAsync();
 
                 int deletedCount = 0;
@@ -447,6 +446,8 @@ namespace CrashDumpAnalyzer.Controllers
                             await DeleteDumpCallstack(_dbContext, entry.DumpCallstackId, string.Empty, true);
                             deletedCount++;
                             deletedIds.Add(entry.DumpCallstackId);
+                            if (deletedCount >= batchSize)
+                                break;
                         }
                     }
                     catch (Exception ex)
