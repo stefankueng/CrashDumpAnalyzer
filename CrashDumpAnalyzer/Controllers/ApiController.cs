@@ -340,14 +340,16 @@ namespace CrashDumpAnalyzer.Controllers
                     }
                     if (reallyDelete)
                     {
-                        _logger.LogInformation("really deleting {num} linked callstacks", linkedIds.Count);
                         if (linkedIds.Count > 0)
                         {
+                            _logger.LogInformation("really deleting {num} linked callstacks", linkedIds.Count);
                             // Use raw SQL for much faster deletion - bypasses EF Core change tracking
                             // The database cascade delete will handle related DumpFileInfo and LogFileData records
                             var idList = string.Join(",", linkedIds);
-                            var deletedCount = await dbContext.Database.ExecuteSqlAsync(
+#pragma warning disable EF1002 // Risk of vulnerability to SQL injection.
+                            var deletedCount = await dbContext.Database.ExecuteSqlRawAsync(
                                 $"DELETE FROM DumpCallstack WHERE DumpCallstackId IN ({idList})");
+#pragma warning restore EF1002 // Risk of vulnerability to SQL injection.
                             _logger.LogInformation("Deleted {count} callstacks using raw SQL", deletedCount);
                         }
                     }
