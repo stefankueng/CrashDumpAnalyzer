@@ -101,6 +101,12 @@
             }
         }
 
+        public int Major => this._major;
+        public int Minor => this._minor;
+        public int Micro => this._micro;
+        public int Patch => this._patch;
+
+
         public static bool operator ==(SemanticVersion v1, SemanticVersion v2)
         { return v1.Equals(v2); }
 
