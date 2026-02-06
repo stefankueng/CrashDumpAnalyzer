@@ -316,6 +316,7 @@ namespace CrashDumpAnalyzer.Controllers
             if (_dbContext.DumpCallstacks != null)
             {
                 List<DumpCallstack>? list = null;
+                Dictionary<int, DumpCallstack>? callstackById = null;
                 DateTime cutoffDate = DateTime.Now.AddDays(-_daysBack);
                 string? issueType = null;
                 if (activeTab >= 0 && _issueTypes.Count > 1)
@@ -385,6 +386,8 @@ namespace CrashDumpAnalyzer.Controllers
                             pattern = ".*" + Regex.Escape(splitString).Replace("\\*", ".*").Replace("\\?", ".") + ".*";
                         Regex regex = new Regex(pattern, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(Constants.RegexTimeoutInSeconds));
 
+                        callstackById = list.ToDictionary(item => item.DumpCallstackId, item => item);
+
                         list = [.. list.Where(dumpCallstack =>
                             regex.IsMatch(dumpCallstack.ApplicationName) ||
                             regex.IsMatch(dumpCallstack.ApplicationVersion) ||
@@ -442,7 +445,17 @@ namespace CrashDumpAnalyzer.Controllers
                     if (groupedCallstacks.TryGetValue(callstack.LinkedToDumpCallstackId, out var value))
                         value.Add(callstack);
                     else if (!string.IsNullOrWhiteSpace(searchString))
-                        groupedCallstacks[callstack.DumpCallstackId] = [callstack];
+                    {
+                        if (callstackById != null && callstack.LinkedToDumpCallstackId != 0)
+                        {
+                            if (callstackById.TryGetValue(callstack.LinkedToDumpCallstackId, out var linkedCallstack))
+                                groupedCallstacks[linkedCallstack.DumpCallstackId] = [linkedCallstack, callstack];
+                            else
+                                groupedCallstacks[callstack.DumpCallstackId] = [callstack];
+                        }
+                        else
+                            groupedCallstacks[callstack.DumpCallstackId] = [callstack];
+                    }
                 }
 
                 foreach (var group in groupedCallstacks)
