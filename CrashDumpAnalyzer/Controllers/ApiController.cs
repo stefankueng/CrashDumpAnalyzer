@@ -395,7 +395,7 @@ namespace CrashDumpAnalyzer.Controllers
                     try
                     {
                         var entryVersion = new SemanticVersion(entry.ApplicationVersion, entry.BuildType);
-                        if (entryVersion < targetVersion)
+                        if (entryVersion < targetVersion && entryVersion.Major == targetVersion.Major)
                         {
                             count++;
                         }
@@ -442,7 +442,7 @@ namespace CrashDumpAnalyzer.Controllers
                     try
                     {
                         var entryVersion = new SemanticVersion(entry.ApplicationVersion, entry.BuildType);
-                        if (entryVersion < targetVersion)
+                        if (entryVersion < targetVersion && entryVersion.Major == targetVersion.Major)
                         {
                             await DeleteDumpCallstack(_dbContext, entry.DumpCallstackId, string.Empty, true);
                             deletedCount++;
