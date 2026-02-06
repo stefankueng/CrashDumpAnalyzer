@@ -385,8 +385,8 @@ namespace CrashDumpAnalyzer.Controllers
                 var targetVersion = new SemanticVersion(version, -1);
 
                 var entriesToCount = await _dbContext.DumpCallstacks
-                    .Where(cs => string.IsNullOrEmpty(cs.Ticket) &&
-                                 cs.LinkedToDumpCallstackId == 0 )
+                    .Where(cs => string.IsNullOrEmpty(cs.Ticket) && string.IsNullOrEmpty(cs.Comment) &&
+                                 cs.LinkedToDumpCallstackId == 0)
                     .ToListAsync();
 
                 int count = 0;
@@ -430,8 +430,8 @@ namespace CrashDumpAnalyzer.Controllers
                 var targetVersion = new SemanticVersion(version, -1);
 
                 var entriesToDelete = await _dbContext.DumpCallstacks
-                    .Where(cs => string.IsNullOrEmpty(cs.Ticket) &&
-                                 cs.LinkedToDumpCallstackId == 0 )
+                    .Where(cs => string.IsNullOrEmpty(cs.Ticket) && string.IsNullOrEmpty(cs.Comment) &&
+                                 cs.LinkedToDumpCallstackId == 0)
                     .Take(batchSize)
                     .ToListAsync();
 
