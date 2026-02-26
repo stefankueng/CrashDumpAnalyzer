@@ -456,7 +456,7 @@ namespace CrashDumpAnalyzer.Controllers
                     }
                 }
 
-                _logger.LogInformation("Deleted {count} old entries without tickets in this batch (older than {version})", deletedCount, version);
+                _logger.LogInformation("Deleted {count} old entries without tickets in this batch (older than {version})", deletedCount, targetVersion.ToString());
                 return Ok(new { deletedCount, deletedIds });
             }
             catch (Exception ex)
