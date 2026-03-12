@@ -1,0 +1,128 @@
+@using CrashDumpAnalyzer.Utilities
+@model RecentDumpsData
+@{
+    ViewData["Title"] = "Recent Dumps";
+}
+
+<div class="text-center">
+    <h1 class="display-4 title">@ViewData["Title"]</h1>
+
+    <div style="margin: 20px 0; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
+        <label for="weeksSlider" style="display: block; margin-bottom: 10px;">
+            Show dumps from last <span id="weeksValue">@Model.WeeksBack</span> weeks
+        </label>
+        <input type="range" class="form-range" id="weeksSlider" min="1" max="52" value="@Model.WeeksBack" style="width: 100%;">
+    </div>
+
+    <table class="flowTable">
+        <thead>
+            <tr>
+                <th>Ticket</th>
+                <th>Callstacks</th>
+                <th>Dump Count (Last @Model.WeeksBack Weeks)</th>
+                <th>Dump Comments</th>
+                <th>Highest Fixed Version</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ticketGroup in Model.TicketGroups)
+            {
+                <tr>
+                    <!-- Ticket -->
+                    <td style="vertical-align: top;">
+                        @if (ticketGroup.Ticket == "(No Ticket)")
+                        {
+                            <span>@ticketGroup.Ticket</span>
+                        }
+                        else
+                        {
+                            @if (Model.IssueData != null && Model.IssueData.ContainsKey(ticketGroup.Ticket))
+                            {
+                                var issue = Model.IssueData[ticketGroup.Ticket];
+                                if (issue != null)
+                                {
+                                    var className = "issue-" + @issue.StateColor;
+                                    <a href="@Constants.TicketBaseUrl@ticketGroup.Ticket" target="_blank" data-bs-toggle="tooltip" title="@issue.Title" class="ticket">@ticketGroup.Ticket</a>
+                                    <div data-bs-toggle="tooltip" title="@issue.Title" class="@className" style="background-color: @issue.StateColor">@issue.State</div>
+                                }
+                            }
+                            else
+                            {
+                                <a href="@Constants.TicketBaseUrl@ticketGroup.Ticket" target="_blank" class="ticket">@ticketGroup.Ticket</a>
+                            }
+                        }
+                    </td>
+
+                    <!-- Callstacks -->
+                    <td style="vertical-align: top; max-width: 600px;">
+                        @foreach (var callstack in ticketGroup.Callstacks)
+                        {
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <a href="/Home/Dump?callstackId=@callstack.DumpCallstackId" class="button-link">◎</a>
+                                </div>
+                            </div>
+                        }
+                    </td>
+
+                    <!-- Dump Count -->
+                    <td style="vertical-align: top; text-align: center;">
+                        <strong>@ticketGroup.RecentDumpCount</strong>
+                    </td>
+
+                    <!-- Dump Comments -->
+                    <td style="vertical-align: top; max-width: 400px; white-space: normal; word-break: break-word;">
+                        @if (ticketGroup.CommentCounts.Count > 0)
+                        {
+                            foreach (var commentCount in ticketGroup.CommentCounts.OrderByDescending(c => c.Value))
+                            {
+                                <div style="margin-bottom: 8px; padding: 5px; border-left: 3px solid #007bff; border-radius: 3px;">
+                                    <span style="font-weight: bold; color: #007bff;">(@commentCount.Value)</span>
+                                    <span>@commentCount.Key</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <span style="color: #999;">No comments</span>
+                        }
+                    </td>
+
+                    <!-- Highest Fixed Version -->
+                    <td style="vertical-align: top;">
+                        @if (!string.IsNullOrEmpty(ticketGroup.HighestFixedVersion))
+                        {
+                            <p class="version">@ticketGroup.HighestFixedVersion</p>
+                            <p class="buildType">@BuildTypes.BuildTypeString(ticketGroup.HighestFixedBuildType)</p>
+                        }
+                        else
+                        {
+                            <span style="color: #999;">-</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<script type="text/javascript">
+    const slider = document.getElementById('weeksSlider');
+    const weeksValue = document.getElementById('weeksValue');
+
+    slider.addEventListener('input', function() {
+        weeksValue.textContent = this.value;
+    });
+
+    slider.addEventListener('change', function() {
+        window.location.href = '/Home/RecentDumps?weeksBack=' + this.value;
+    });
+
+    // Initialize Bootstrap popovers
+    document.addEventListener('DOMContentLoaded', function() {
+        const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+        popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl);
+        });
+    });
+</script>

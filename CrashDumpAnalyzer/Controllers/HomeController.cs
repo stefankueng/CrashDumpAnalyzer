@@ -233,6 +233,122 @@ namespace CrashDumpAnalyzer.Controllers
             }
             return View();
         }
+        public async Task<IActionResult> RecentDumps(int weeksBack = 4)
+        {
+            if (_dbContext.DumpCallstacks != null)
+            {
+                DateTime cutoffDate = DateTime.Now.AddDays(-weeksBack * 7);
+
+                var callstacks = await _dbContext.DumpCallstacks.AsNoTracking()
+                    .Include(callstack => callstack.DumpInfos)
+                    .Where(callstack => !string.IsNullOrEmpty(callstack.Ticket) &&
+                                       callstack.LinkedToDumpCallstackId == 0 &&
+                                       callstack.ApplicationName != Constants.UnassignedDumpNames &&
+                                       callstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= cutoffDate))
+                    .AsSplitQuery()
+                    .ToListAsync();
+
+                callstacks = [.. callstacks.Where(cs => cs.LogFileDatas.Count == 0)];
+
+                foreach (var callstack in callstacks)
+                {
+                    if (callstack.DumpInfos.Count > 0)
+                        callstack.DumpInfos.Sort((a, b) => b.UploadDate.CompareTo(a.UploadDate));
+                }
+
+                var ticketGroups = new List<TicketGroupData>();
+
+                var ticketsToCallstacks = new Dictionary<string, List<DumpCallstack>>();
+                foreach (var callstack in callstacks)
+                {
+                    var tickets = string.IsNullOrEmpty(callstack.Ticket) 
+                        ? new[] { "(No Ticket)" }
+                        : callstack.Ticket.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
+
+                    foreach (var ticket in tickets)
+                    {
+                        if (!ticketsToCallstacks.ContainsKey(ticket))
+                            ticketsToCallstacks[ticket] = [];
+                        ticketsToCallstacks[ticket].Add(callstack);
+                    }
+                }
+
+                var orderedTickets = ticketsToCallstacks.Keys
+                    .OrderByDescending(t => t == "(No Ticket)")
+                    .ThenBy(t => t);
+
+                foreach (var ticket in orderedTickets)
+                {
+                    var groupCallstacks = ticketsToCallstacks[ticket];
+                    var recentDumpCount = 0;
+                    var commentCounts = new Dictionary<string, int>();
+                    var highestFixedVersion = new SemanticVersion(0, 0, 0, 0, -1);
+                    string highestFixedVersionString = string.Empty;
+                    int highestFixedBuildType = -1;
+
+                    foreach (var callstack in groupCallstacks)
+                    {
+                        var recentDumps = callstack.DumpInfos.Where(d => d.UploadDate >= cutoffDate).ToList();
+                        recentDumpCount += recentDumps.Count;
+
+                        foreach (var dump in recentDumps)
+                        {
+                            if (!string.IsNullOrEmpty(dump.Comment))
+                            {
+                                if (commentCounts.ContainsKey(dump.Comment))
+                                    commentCounts[dump.Comment]++;
+                                else
+                                    commentCounts[dump.Comment] = 1;
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(callstack.FixedVersion))
+                        {
+                            var fixedVersion = new SemanticVersion(callstack.FixedVersion, callstack.FixedBuildType);
+                            if (fixedVersion > highestFixedVersion)
+                            {
+                                highestFixedVersion = fixedVersion;
+                                highestFixedVersionString = callstack.FixedVersion;
+                                highestFixedBuildType = callstack.FixedBuildType;
+                            }
+                        }
+                    }
+
+                    ticketGroups.Add(new TicketGroupData
+                    {
+                        Ticket = ticket,
+                        Callstacks = groupCallstacks,
+                        RecentDumpCount = recentDumpCount,
+                        CommentCounts = commentCounts,
+                        HighestFixedVersion = highestFixedVersionString,
+                        HighestFixedBuildType = highestFixedBuildType
+                    });
+                }
+
+                ticketGroups.Sort((a, b) =>
+                {
+                    if (a.Ticket == "(No Ticket)" && b.Ticket != "(No Ticket)")
+                        return -1;
+                    if (a.Ticket != "(No Ticket)" && b.Ticket == "(No Ticket)")
+                        return 1;
+
+                    return b.RecentDumpCount.CompareTo(a.RecentDumpCount);
+                });
+
+                var issueData = await GetIssueData(callstacks);
+
+                var data = new RecentDumpsData
+                {
+                    TicketGroups = ticketGroups,
+                    IssueData = issueData,
+                    WeeksBack = weeksBack
+                };
+
+                return View(data);
+            }
+            return View();
+        }
+
         public IActionResult Privacy()
         {
             return View();
