@@ -241,7 +241,7 @@ namespace CrashDumpAnalyzer.Controllers
 
                 var callstacks = await _dbContext.DumpCallstacks.AsNoTracking()
                     .Include(callstack => callstack.DumpInfos)
-                    .Where(callstack => !string.IsNullOrEmpty(callstack.Ticket) &&
+                    .Where(callstack => (!string.IsNullOrEmpty(callstack.Ticket) || !string.IsNullOrEmpty(callstack.Comment)) &&
                                        callstack.LinkedToDumpCallstackId == 0 &&
                                        callstack.ApplicationName != Constants.UnassignedDumpNames &&
                                        callstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= cutoffDate))
