@@ -240,7 +240,7 @@ namespace CrashDumpAnalyzer.Controllers
                 var regexPattern = _configuration["DumpCommentGroupingRegex"] ?? "(?<GroupKey>.+)";
                 var regex = new Regex(regexPattern, RegexOptions.Compiled);
                 var dateLimit = DateTime.UtcNow.AddDays(-7 * weeksBack);
-                
+
                 // Get unlinked callstacks with recent dumps
                 var unlinkedCallstacks = _dbContext.DumpCallstacks
                     .AsNoTracking()
@@ -266,7 +266,7 @@ namespace CrashDumpAnalyzer.Controllers
                     .Select(cs => cs.LinkedToDumpCallstackId)
                     .Distinct()
                     .ToList();
-                
+
                 var parentCallstacks = new List<DumpCallstack>();
                 if (parentCallstackIds.Count > 0)
                 {
@@ -388,9 +388,9 @@ namespace CrashDumpAnalyzer.Controllers
                             List<string> compName = [.. getIpHost.HostName.Split('.')];
                             dumpFileInfo.UploadedFromHostname = compName.First();
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
-                            // Handle exceptions silently
+                            _logger.LogWarning(ex, "Failed to resolve hostname for IP {IpAddress}", dumpFileInfo.UploadedFromIp);
                         }
                     }
                 }
