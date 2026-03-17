@@ -32,7 +32,7 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly long _maxCacheSize;
         private readonly long _deleteDumpsUploadedBeforeDays;
         private readonly string[] _logfileFileExts;
-        private readonly string versionTooOldComment = "Version is too old, it won't be analyzed anymore.";
+        private readonly string _versionTooOldComment = "Version is too old, it won't be analyzed anymore.";
         public ApiController(IConfiguration configuration, ILogger<ApiController> logger,
                             IServiceProvider provider,
                             ApplicationDbContext dbContext,
@@ -472,7 +472,7 @@ namespace CrashDumpAnalyzer.Controllers
             {
                 if (string.IsNullOrEmpty(callstack.Comment))
                     callstack.Comment = comment;
-                else if (!callstack.Comment.Contains(versionTooOldComment, StringComparison.InvariantCultureIgnoreCase))
+                else if (!callstack.Comment.Contains(_versionTooOldComment, StringComparison.InvariantCultureIgnoreCase))
                     callstack.Comment = callstack.Comment + "\n" + comment;
             }
         }
@@ -909,7 +909,7 @@ namespace CrashDumpAnalyzer.Controllers
                         if (!MinVersions.IsVersionSupported(callstack.ApplicationName, version))
                         {
                             _logger.LogInformation("deleting callstack because it's too old. {ApplicationName} - {Version}", callstack.ApplicationName, version.ToVersionString());
-                            await DeleteDumpCallstack(dbContext, callstack.DumpCallstackId, versionTooOldComment, false);
+                            await DeleteDumpCallstack(dbContext, callstack.DumpCallstackId, _versionTooOldComment, false);
                         }
                     }
                 }
@@ -1047,7 +1047,7 @@ namespace CrashDumpAnalyzer.Controllers
                     var version = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
                     if (!MinVersions.IsVersionSupported(callstack.ApplicationName, version))
                     {
-                        await DeleteDumpCallstack(dbContext, callstack.DumpCallstackId, versionTooOldComment, false);
+                        await DeleteDumpCallstack(dbContext, callstack.DumpCallstackId, _versionTooOldComment, false);
                     }
                 }
                 // now run agestore to keep the cache size in check

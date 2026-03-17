@@ -8,7 +8,7 @@
 <div class="text-center">
     <div>
         <div style="display: flex; width: 100%;">
-            <divstyle style="width: 60%;">
+            <div style="width: 60%;">
                 <h1 class="display-4 title">@ViewData["Title"]</h1>
                 <form action="/Api/UploadFiles" method="post" enctype="multipart/form-data" onsubmit="return submitFilesForm(this);">
                     <input type="file" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
@@ -27,7 +27,7 @@
                         </div>
                     </form>
                 </div>
-            </divstyle>
+            </div>
             <div style="width: 5%"></div>
             <div style="min-width: 600px; width: 35%; height: 240px; overflow-y: auto;">
                 <h4>last @Model.UploadedDumps.Count() uploaded dumps</h4>

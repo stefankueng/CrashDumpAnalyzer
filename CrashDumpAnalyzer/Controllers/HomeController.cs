@@ -238,7 +238,17 @@ namespace CrashDumpAnalyzer.Controllers
             if (_dbContext.DumpCallstacks != null)
             {
                 var regexPattern = _configuration["DumpCommentGroupingRegex"] ?? "(?<GroupKey>.+)";
-                var regex = new Regex(regexPattern, RegexOptions.Compiled);
+                Regex regex;
+                try
+                {
+                    regex = new Regex(regexPattern, RegexOptions.Compiled, TimeSpan.FromSeconds(Constants.RegexTimeoutInSeconds));
+                }
+                catch (RegexMatchTimeoutException ex)
+                {
+                    _logger.LogError(ex, "Regex timeout for pattern: {Pattern}", regexPattern.Trim());
+                    // Use fallback pattern
+                    regex = new Regex("(?<GroupKey>.+)");
+                }
                 var dateLimit = DateTime.UtcNow.AddDays(-7 * weeksBack);
 
                 // Get unlinked callstacks with recent dumps
@@ -348,7 +358,17 @@ namespace CrashDumpAnalyzer.Controllers
                 issueIds = [.. issueIds.Distinct()];
 
                 var httpClient = _httpClientFactory.CreateClient();
-                return await _issueTracker.GetIssueDataAsync(httpClient, issueIds, CancellationToken.None);
+                var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken.None);
+                cts.CancelAfter(TimeSpan.FromSeconds(30)); // 30-second timeout
+                try
+                {
+                    return await _issueTracker.GetIssueDataAsync(httpClient, issueIds, cts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogWarning("Issue tracker request timed out");
+                    return []; // Return empty data instead of crashing
+                }
             }
             return [];
         }
