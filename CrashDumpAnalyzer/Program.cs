@@ -1,4 +1,4 @@
-using CrashDumpAnalyzer.Data;
+﻿using CrashDumpAnalyzer.Data;
 using CrashDumpAnalyzer.IssueTrackers;
 using CrashDumpAnalyzer.IssueTrackers.Interfaces;
 using CrashDumpAnalyzer.Services;
@@ -12,6 +12,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -121,8 +122,11 @@ builder.Services.AddResponseCompression(options =>
 var issueTracker = IssueTrackerFactory.GetIssueTracker(builder.Configuration);
 if (issueTracker != null)
     builder.Services.AddSingleton(issueTracker);
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ApplicationDbContext>();
 
 var app = builder.Build();
+app.MapHealthChecks("/health");
 
 using (var serviceScope = app.Services.GetService<IServiceScopeFactory>()?.CreateScope())
 {
