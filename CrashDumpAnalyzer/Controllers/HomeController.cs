@@ -349,6 +349,56 @@ namespace CrashDumpAnalyzer.Controllers
             return View();
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GroupedDumpsAsync(int weeksBack = 4)
+        {
+            var regexPattern = _configuration["DumpCommentGroupingRegex"] ?? "(?<GroupKey>.+)";
+            var regex = new Regex(regexPattern, RegexOptions.Compiled);
+            var dateLimit = DateTime.UtcNow.AddDays(-7 * weeksBack);
+            var callstacks = _dbContext.DumpCallstacks
+                .AsNoTracking()
+                .Include(c => c.DumpInfos)
+                .Where(callstack => (!string.IsNullOrEmpty(callstack.Ticket) || !string.IsNullOrEmpty(callstack.Comment)) &&
+                                   callstack.LinkedToDumpCallstackId == 0 &&
+                                   callstack.ApplicationName != Constants.UnassignedDumpNames &&
+                                   callstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= dateLimit))
+                .ToList();
+
+            var dumpFileInfos = callstacks
+                .SelectMany(cs => cs.DumpInfos
+                    .Where(dump => dump.UploadDate >= dateLimit)
+                    .Select(dump => new { Callstack = cs, Dump = dump }))
+                .ToList();
+
+            var groups = dumpFileInfos
+                .GroupBy(x => {
+                    var match = regex.Match(x.Dump.Comment);
+                    var key = match.Success && match.Groups["GroupKey"].Value.Trim() != "" ? match.Groups["GroupKey"].Value.Trim() : "unknown";
+                    return key;
+                })
+                .Select(g => new GroupedDumpData
+                {
+                    GroupKey = g.Key,
+                    Callstacks = g.Select(x => x.Callstack).Distinct().ToList(),
+                    DumpCount = g.Count(),
+                    CommentCounts = g.GroupBy(x => x.Dump.Comment).ToDictionary(x => x.Key, x => x.Count()),
+                    HighestFixedVersion = g.Select(x => x.Callstack).Where(cs => !string.IsNullOrEmpty(cs.FixedVersion)).OrderByDescending(cs => cs.FixedVersion).FirstOrDefault()?.FixedVersion ?? string.Empty,
+                    HighestFixedBuildType = g.Select(x => x.Callstack).Where(cs => cs.FixedBuildType >= 0).OrderByDescending(cs => cs.FixedBuildType).FirstOrDefault()?.FixedBuildType ?? -1
+                })
+                .OrderBy(g => g.GroupKey == "unknown" ? 1 : 0)
+                .ThenByDescending(g => g.DumpCount)
+                .ToList();
+            var issueData = await GetIssueData(callstacks);
+
+            var model = new GroupedDumpsData
+            {
+                Groups = groups,
+                WeeksBack = weeksBack,
+                IssueData = issueData
+            };
+            return View(model);
+        }
+
         public IActionResult Privacy()
         {
             return View();

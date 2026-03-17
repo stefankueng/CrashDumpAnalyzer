@@ -1,0 +1,147 @@
+﻿@using CrashDumpAnalyzer.Utilities
+@model CrashDumpAnalyzer.Models.GroupedDumpsData
+@{
+    ViewData["Title"] = "Grouped Dumps";
+}
+
+<div class="text-center">
+    <h1 class="display-4 title">@ViewData["Title"]</h1>
+
+    <div style="margin: 20px 0; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
+        <label for="weeksSlider" style="display: block; margin-bottom: 10px;">
+            Show dumps from last <span id="weeksValue">@Model.WeeksBack</span> weeks
+        </label>
+        <input type="range" class="form-range" id="weeksSlider" min="1" max="52" value="@Model.WeeksBack" style="width: 100%;">
+    </div>
+
+    <table class="flowTable">
+        <thead>
+            <tr>
+                <th>Group Key</th>
+                <th style="width: 5%;">Callstacks</th>
+                <th style="width: 12%;">Dump Count (Last @Model.WeeksBack Weeks)</th>
+                <th>Tickets</th>
+                <th>Comments</th>
+                <th>Fixed Versions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var group in Model.Groups)
+            {
+                <tr>
+                    <!-- Group Key -->
+                    <td style="vertical-align: top;">
+                        <span>@group.GroupKey</span>
+                    </td>
+
+                    <!-- Callstacks -->
+                    <td style="vertical-align: top;">
+                        @foreach (var callstack in group.Callstacks)
+                        {
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <a href="/Home/Dump?callstackId=@callstack.DumpCallstackId" class="button-link">◎</a>
+                                </div>
+                            </div>
+                        }
+                    </td>
+
+                    <!-- Dump Count -->
+                    <td style="vertical-align: top; text-align: center;">
+                        <strong>@group.DumpCount</strong>
+                    </td>
+
+                    <!-- Tickets -->
+                    <td style="vertical-align: top; max-width: 400px; white-space: normal; word-break: break-word;">
+                        @if (group.Tickets.Count > 0)
+                        {
+                            foreach (var ticket in group.Tickets)
+                            {
+                                if (ticket == "(No Ticket)")
+                                {
+                                    <span>@ticket</span>
+                                }
+                                else
+                                {
+                                    CrashDumpAnalyzer.IssueTrackers.Data.IssueData issue = null;
+                                    @if (Model.IssueData != null && Model.IssueData.ContainsKey(ticket))
+                                    {
+                                        issue = Model.IssueData[ticket];
+                                    }
+                                    if (issue != null)
+                                    {
+                                        var className = "issue-" + issue.StateColor;
+                                        <a href="@Constants.TicketBaseUrl@ticket" target="_blank" data-bs-toggle="tooltip" title="@issue.Title" class="ticket">@ticket</a>
+                                        <div data-bs-toggle="tooltip" title="@issue.Title" class="@className" style="background-color: @issue.StateColor">@issue.State</div>
+                                    }
+                                    else
+                                    {
+                                        <a href="@Constants.TicketBaseUrl@ticket" target="_blank" class="ticket">@ticket</a>
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            <span style="color: #999;">No tickets</span>
+                        }
+                    </td>
+
+                    <!-- Comments -->
+                    <td style="vertical-align: top; max-width: 400px; white-space: normal; word-break: break-word;">
+                        @{
+                            var commentsToShow = group.Callstacks
+                                .Where(cs => string.IsNullOrEmpty(cs.Ticket) && !string.IsNullOrEmpty(cs.Comment))
+                                .Select(cs => cs.Comment.Trim())
+                                .Distinct(StringComparer.OrdinalIgnoreCase)
+                                .ToList();
+                        }
+                        @if (commentsToShow.Count > 0)
+                        {
+                            foreach (var comment in commentsToShow)
+                            {
+                                <div style="margin-bottom: 8px; padding: 5px; border-left: 3px solid #ffc107; border-radius: 3px;">
+                                    <span>@comment</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <span style="color: #999;">-</span>
+                        }
+                    </td>
+
+                    <!-- Fixed Versions -->
+                    <td style="vertical-align: top; max-width: 400px; white-space: normal; word-break: break-word;">
+                        @if (group.FixedVersions.Count > 0)
+                        {
+                            foreach (var version in group.FixedVersions)
+                            {
+                                <div style="margin-bottom: 8px; padding: 5px; border-left: 3px solid #28a745; border-radius: 3px;">
+                                    <span>@version</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <span style="color: #999;">-</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<script type="text/javascript">
+    const slider = document.getElementById('weeksSlider');
+    const weeksValue = document.getElementById('weeksValue');
+
+    slider.addEventListener('input', function() {
+        weeksValue.textContent = this.value;
+    });
+
+    slider.addEventListener('change', function() {
+        window.location.href = '/Home/GroupedDumps?weeksBack=' + this.value;
+    });
+</script>
