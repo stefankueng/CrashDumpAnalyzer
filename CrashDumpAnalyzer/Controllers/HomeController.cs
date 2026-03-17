@@ -258,7 +258,7 @@ namespace CrashDumpAnalyzer.Controllers
                     .Where(callstack => (!string.IsNullOrEmpty(callstack.Ticket) || !string.IsNullOrEmpty(callstack.Comment)) &&
                                        callstack.LinkedToDumpCallstackId == 0 &&
                                        callstack.ApplicationName != Constants.UnassignedDumpNames &&
-                                       callstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= dateLimit))
+                                       callstack.DumpInfos.Any(dumpInfo => dumpInfo.DumpTime >= dateLimit))
                     .ToList();
 
                 // Get linked callstacks with recent dumps
@@ -268,7 +268,7 @@ namespace CrashDumpAnalyzer.Controllers
                     .Where(callstack => (!string.IsNullOrEmpty(callstack.Ticket) || !string.IsNullOrEmpty(callstack.Comment)) &&
                                        callstack.LinkedToDumpCallstackId != 0 &&
                                        callstack.ApplicationName != Constants.UnassignedDumpNames &&
-                                       callstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= dateLimit))
+                                       callstack.DumpInfos.Any(dumpInfo => dumpInfo.DumpTime >= dateLimit))
                     .ToList();
 
                 // Get parent callstacks of linked callstacks (even if their dumps are older than dateLimit)
