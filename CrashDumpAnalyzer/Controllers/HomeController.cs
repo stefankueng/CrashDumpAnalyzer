@@ -48,9 +48,7 @@ namespace CrashDumpAnalyzer.Controllers
             _lastUploadsItems = configuration.GetValue<int>("LastUploadsItems") > 0 ? configuration.GetValue<int>("LastUploadsItems") : 20;
             Constants.TicketBaseUrl = configuration.GetValue<string>("TicketBaseUrl") ?? string.Empty;
             var logAnalyzer = new LogAnalyzer(_logger, _configuration);
-            _issueTypes = new List<string>();
-            _issueTypes.Add(DumpType);
-            _issueTypes.AddRange(logAnalyzer.IssueTypes);
+            _issueTypes = [DumpType, .. logAnalyzer.IssueTypes];
 
             // check the db if we have more issue types than the ones in the config
             // but only for those using log files
@@ -233,170 +231,94 @@ namespace CrashDumpAnalyzer.Controllers
             }
             return View();
         }
-        public async Task<IActionResult> RecentDumps(int weeksBack = 4)
+
+        [HttpGet]
+        public async Task<IActionResult> GroupedDumpsAsync(int weeksBack = 8)
         {
             if (_dbContext.DumpCallstacks != null)
             {
-                DateTime cutoffDate = DateTime.Now.AddDays(-weeksBack * 7);
-
-                var callstacks = await _dbContext.DumpCallstacks.AsNoTracking()
-                    .Include(callstack => callstack.DumpInfos)
+                var regexPattern = _configuration["DumpCommentGroupingRegex"] ?? "(?<GroupKey>.+)";
+                var regex = new Regex(regexPattern, RegexOptions.Compiled);
+                var dateLimit = DateTime.UtcNow.AddDays(-7 * weeksBack);
+                
+                // Get unlinked callstacks with recent dumps
+                var unlinkedCallstacks = _dbContext.DumpCallstacks
+                    .AsNoTracking()
+                    .Include(c => c.DumpInfos)
                     .Where(callstack => (!string.IsNullOrEmpty(callstack.Ticket) || !string.IsNullOrEmpty(callstack.Comment)) &&
                                        callstack.LinkedToDumpCallstackId == 0 &&
                                        callstack.ApplicationName != Constants.UnassignedDumpNames &&
-                                       callstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= cutoffDate))
-                    .AsSplitQuery()
-                    .ToListAsync();
+                                       callstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= dateLimit))
+                    .ToList();
 
-                callstacks = [.. callstacks.Where(cs => cs.LogFileDatas.Count == 0)];
+                // Get linked callstacks with recent dumps
+                var linkedCallstacks = _dbContext.DumpCallstacks
+                    .AsNoTracking()
+                    .Include(c => c.DumpInfos)
+                    .Where(callstack => (!string.IsNullOrEmpty(callstack.Ticket) || !string.IsNullOrEmpty(callstack.Comment)) &&
+                                       callstack.LinkedToDumpCallstackId != 0 &&
+                                       callstack.ApplicationName != Constants.UnassignedDumpNames &&
+                                       callstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= dateLimit))
+                    .ToList();
 
-                foreach (var callstack in callstacks)
+                // Get parent callstacks of linked callstacks (even if their dumps are older than dateLimit)
+                var parentCallstackIds = linkedCallstacks
+                    .Select(cs => cs.LinkedToDumpCallstackId)
+                    .Distinct()
+                    .ToList();
+                
+                var parentCallstacks = new List<DumpCallstack>();
+                if (parentCallstackIds.Count > 0)
                 {
-                    if (callstack.DumpInfos.Count > 0)
-                        callstack.DumpInfos.Sort((a, b) => b.UploadDate.CompareTo(a.UploadDate));
+                    parentCallstacks = await _dbContext.DumpCallstacks
+                        .AsNoTracking()
+                        .Include(c => c.DumpInfos)
+                        .Where(cs => parentCallstackIds.Contains(cs.DumpCallstackId))
+                        .ToListAsync();
                 }
 
-                var ticketGroups = new List<TicketGroupData>();
+                // Combine unlinked and parent callstacks, removing duplicates
+                var callstacks = unlinkedCallstacks
+                    .Concat(parentCallstacks)
+                    .DistinctBy(cs => cs.DumpCallstackId)
+                    .ToList();
 
-                var ticketsToCallstacks = new Dictionary<string, List<DumpCallstack>>();
-                foreach (var callstack in callstacks)
-                {
-                    var tickets = string.IsNullOrEmpty(callstack.Ticket) 
-                        ? new[] { "(No Ticket)" }
-                        : callstack.Ticket.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
+                var dumpFileInfos = callstacks
+                    .SelectMany(cs => cs.DumpInfos
+                        .Where(dump => dump.UploadDate >= dateLimit)
+                        .Select(dump => new { Callstack = cs, Dump = dump }))
+                    .ToList();
 
-                    foreach (var ticket in tickets)
+                var groups = dumpFileInfos
+                    .GroupBy(x =>
                     {
-                        if (!ticketsToCallstacks.ContainsKey(ticket))
-                            ticketsToCallstacks[ticket] = [];
-                        ticketsToCallstacks[ticket].Add(callstack);
-                    }
-                }
-
-                var orderedTickets = ticketsToCallstacks.Keys
-                    .OrderByDescending(t => t == "(No Ticket)")
-                    .ThenBy(t => t);
-
-                foreach (var ticket in orderedTickets)
-                {
-                    var groupCallstacks = ticketsToCallstacks[ticket];
-                    var recentDumpCount = 0;
-                    var commentCounts = new Dictionary<string, int>();
-                    var highestFixedVersion = new SemanticVersion(0, 0, 0, 0, -1);
-                    string highestFixedVersionString = string.Empty;
-                    int highestFixedBuildType = -1;
-
-                    foreach (var callstack in groupCallstacks)
+                        var match = regex.Match(x.Dump.Comment);
+                        var key = match.Success && match.Groups["GroupKey"].Value.Trim() != "" ? match.Groups["GroupKey"].Value.Trim() : "unknown";
+                        return key;
+                    })
+                    .Select(g => new GroupedDumpData
                     {
-                        var recentDumps = callstack.DumpInfos.Where(d => d.UploadDate >= cutoffDate).ToList();
-                        recentDumpCount += recentDumps.Count;
-
-                        foreach (var dump in recentDumps)
-                        {
-                            if (!string.IsNullOrEmpty(dump.Comment))
-                            {
-                                if (commentCounts.ContainsKey(dump.Comment))
-                                    commentCounts[dump.Comment]++;
-                                else
-                                    commentCounts[dump.Comment] = 1;
-                            }
-                        }
-
-                        if (!string.IsNullOrEmpty(callstack.FixedVersion))
-                        {
-                            var fixedVersion = new SemanticVersion(callstack.FixedVersion, callstack.FixedBuildType);
-                            if (fixedVersion > highestFixedVersion)
-                            {
-                                highestFixedVersion = fixedVersion;
-                                highestFixedVersionString = callstack.FixedVersion;
-                                highestFixedBuildType = callstack.FixedBuildType;
-                            }
-                        }
-                    }
-
-                    ticketGroups.Add(new TicketGroupData
-                    {
-                        Ticket = ticket,
-                        Callstacks = groupCallstacks,
-                        RecentDumpCount = recentDumpCount,
-                        CommentCounts = commentCounts,
-                        HighestFixedVersion = highestFixedVersionString,
-                        HighestFixedBuildType = highestFixedBuildType
-                    });
-                }
-
-                ticketGroups.Sort((a, b) =>
-                {
-                    if (a.Ticket == "(No Ticket)" && b.Ticket != "(No Ticket)")
-                        return -1;
-                    if (a.Ticket != "(No Ticket)" && b.Ticket == "(No Ticket)")
-                        return 1;
-
-                    return b.RecentDumpCount.CompareTo(a.RecentDumpCount);
-                });
-
+                        GroupKey = g.Key,
+                        Callstacks = [.. g.Select(x => x.Callstack).Distinct()],
+                        DumpCount = g.Count(),
+                        CommentCounts = g.GroupBy(x => x.Dump.Comment).ToDictionary(x => x.Key, x => x.Count()),
+                        HighestFixedVersion = g.Select(x => x.Callstack).Where(cs => !string.IsNullOrEmpty(cs.FixedVersion)).OrderByDescending(cs => cs.FixedVersion).FirstOrDefault()?.FixedVersion ?? string.Empty,
+                        HighestFixedBuildType = g.Select(x => x.Callstack).Where(cs => cs.FixedBuildType >= 0).OrderByDescending(cs => cs.FixedBuildType).FirstOrDefault()?.FixedBuildType ?? -1
+                    })
+                    .OrderBy(g => g.GroupKey == "unknown" ? 1 : 0)
+                    .ThenByDescending(g => g.DumpCount)
+                    .ToList();
                 var issueData = await GetIssueData(callstacks);
 
-                var data = new RecentDumpsData
+                var model = new GroupedDumpsData
                 {
-                    TicketGroups = ticketGroups,
-                    IssueData = issueData,
-                    WeeksBack = weeksBack
+                    Groups = groups,
+                    WeeksBack = weeksBack,
+                    IssueData = issueData
                 };
-
-                return View(data);
+                return View(model);
             }
             return View();
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GroupedDumpsAsync(int weeksBack = 4)
-        {
-            var regexPattern = _configuration["DumpCommentGroupingRegex"] ?? "(?<GroupKey>.+)";
-            var regex = new Regex(regexPattern, RegexOptions.Compiled);
-            var dateLimit = DateTime.UtcNow.AddDays(-7 * weeksBack);
-            var callstacks = _dbContext.DumpCallstacks
-                .AsNoTracking()
-                .Include(c => c.DumpInfos)
-                .Where(callstack => (!string.IsNullOrEmpty(callstack.Ticket) || !string.IsNullOrEmpty(callstack.Comment)) &&
-                                   callstack.LinkedToDumpCallstackId == 0 &&
-                                   callstack.ApplicationName != Constants.UnassignedDumpNames &&
-                                   callstack.DumpInfos.Any(dumpInfo => dumpInfo.UploadDate >= dateLimit))
-                .ToList();
-
-            var dumpFileInfos = callstacks
-                .SelectMany(cs => cs.DumpInfos
-                    .Where(dump => dump.UploadDate >= dateLimit)
-                    .Select(dump => new { Callstack = cs, Dump = dump }))
-                .ToList();
-
-            var groups = dumpFileInfos
-                .GroupBy(x => {
-                    var match = regex.Match(x.Dump.Comment);
-                    var key = match.Success && match.Groups["GroupKey"].Value.Trim() != "" ? match.Groups["GroupKey"].Value.Trim() : "unknown";
-                    return key;
-                })
-                .Select(g => new GroupedDumpData
-                {
-                    GroupKey = g.Key,
-                    Callstacks = g.Select(x => x.Callstack).Distinct().ToList(),
-                    DumpCount = g.Count(),
-                    CommentCounts = g.GroupBy(x => x.Dump.Comment).ToDictionary(x => x.Key, x => x.Count()),
-                    HighestFixedVersion = g.Select(x => x.Callstack).Where(cs => !string.IsNullOrEmpty(cs.FixedVersion)).OrderByDescending(cs => cs.FixedVersion).FirstOrDefault()?.FixedVersion ?? string.Empty,
-                    HighestFixedBuildType = g.Select(x => x.Callstack).Where(cs => cs.FixedBuildType >= 0).OrderByDescending(cs => cs.FixedBuildType).FirstOrDefault()?.FixedBuildType ?? -1
-                })
-                .OrderBy(g => g.GroupKey == "unknown" ? 1 : 0)
-                .ThenByDescending(g => g.DumpCount)
-                .ToList();
-            var issueData = await GetIssueData(callstacks);
-
-            var model = new GroupedDumpsData
-            {
-                Groups = groups,
-                WeeksBack = weeksBack,
-                IssueData = issueData
-            };
-            return View(model);
         }
 
         public IActionResult Privacy()
