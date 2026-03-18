@@ -30,6 +30,8 @@ namespace CrashDumpAnalyzer.Controllers
         private readonly string DumpType = "CrashDumps";
         private readonly int _lastUploadsDays;
         private readonly int _lastUploadsItems;
+        private readonly Regex _groupedDumpsRegex;
+
 
         public HomeController(IConfiguration configuration,
             ILogger<HomeController> logger,
@@ -49,6 +51,17 @@ namespace CrashDumpAnalyzer.Controllers
             Constants.TicketBaseUrl = configuration.GetValue<string>("TicketBaseUrl") ?? string.Empty;
             var logAnalyzer = new LogAnalyzer(_logger, _configuration);
             _issueTypes = [DumpType, .. logAnalyzer.IssueTypes];
+            var regexPattern = _configuration["DumpCommentGroupingRegex"] ?? "(?<GroupKey>.+)";
+            try
+            {
+                _groupedDumpsRegex = new Regex(regexPattern, RegexOptions.Compiled, TimeSpan.FromSeconds(Constants.RegexTimeoutInSeconds));
+            }
+            catch (RegexMatchTimeoutException ex)
+            {
+                _logger.LogError(ex, "Regex timeout for pattern: {Pattern}", regexPattern.Trim());
+                // Use fallback pattern
+                _groupedDumpsRegex = new Regex("(?<GroupKey>.+)");
+            }
 
             // check the db if we have more issue types than the ones in the config
             // but only for those using log files
@@ -237,18 +250,6 @@ namespace CrashDumpAnalyzer.Controllers
         {
             if (_dbContext.DumpCallstacks != null)
             {
-                var regexPattern = _configuration["DumpCommentGroupingRegex"] ?? "(?<GroupKey>.+)";
-                Regex regex;
-                try
-                {
-                    regex = new Regex(regexPattern, RegexOptions.Compiled, TimeSpan.FromSeconds(Constants.RegexTimeoutInSeconds));
-                }
-                catch (RegexMatchTimeoutException ex)
-                {
-                    _logger.LogError(ex, "Regex timeout for pattern: {Pattern}", regexPattern.Trim());
-                    // Use fallback pattern
-                    regex = new Regex("(?<GroupKey>.+)");
-                }
                 var dateLimit = DateTime.UtcNow.AddDays(-7 * weeksBack);
 
                 // Get unlinked callstacks with recent dumps
@@ -302,7 +303,7 @@ namespace CrashDumpAnalyzer.Controllers
                 var groups = dumpFileInfos
                     .GroupBy(x =>
                     {
-                        var match = regex.Match(x.Dump.Comment);
+                        var match = _groupedDumpsRegex.Match(x.Dump.Comment);
                         var key = match.Success && match.Groups["GroupKey"].Value.Trim() != "" ? match.Groups["GroupKey"].Value.Trim() : "unknown";
                         return key;
                     })
