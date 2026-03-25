@@ -1193,10 +1193,13 @@ namespace CrashDumpAnalyzer.Controllers
         {
             if (dbContext.DumpFileInfos == null)
                 return;
+            if (dbContext.DumpCallstacks == null)
+                return;
 
             // Get all DumpFileInfos with their relationships
             var allDumpFileInfos = await dbContext.DumpFileInfos
                 .Include(dfi => dfi.DumpCallstack)
+                .Where(dfi => !string.IsNullOrWhiteSpace(dfi.FilePath))
                 .ToListAsync(cancellationToken: token);
 
             // Get all DumpFileInfo IDs that are referenced by LogFileDatas
@@ -1219,9 +1222,14 @@ namespace CrashDumpAnalyzer.Controllers
 
             foreach (var dumpFileInfo in allDumpFileInfos)
             {
+                var dcs = dumpFileInfo.DumpCallstack;
+                if (dcs != null && dcs.LinkedToDumpCallstackId != 0)
+                {
+                    dcs = await dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == dcs.LinkedToDumpCallstackId, token);
+                }
                 bool isReferencedByLogFiles = referencedByLogFiles.Contains(dumpFileInfo.DumpFileInfoId);
-                bool isReferencedByActiveCallstack = dumpFileInfo.DumpCallstack != null && !dumpFileInfo.DumpCallstack.Deleted;
-                bool isReferencedByDeletedCallstack = dumpFileInfo.DumpCallstack != null && dumpFileInfo.DumpCallstack.Deleted;
+                bool isReferencedByActiveCallstack = dcs != null && !dcs.Deleted;
+                bool isReferencedByDeletedCallstack = dcs != null && dcs.Deleted;
 
                 // If not referenced by log files and not referenced by any active callstack
                 if (!isReferencedByLogFiles && !isReferencedByActiveCallstack)
