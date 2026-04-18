@@ -4,42 +4,45 @@ namespace CrashDumpAnalyzer.Utilities
 {
     public static class MinVersions
     {
-        private static Dictionary<Regex,Dictionary<Regex, SemanticVersion>> _minVersions = new Dictionary<Regex, Dictionary<Regex, SemanticVersion>>();
+        private static Dictionary<Regex, Dictionary<int, SemanticVersion>> _minVersions = [];
+
         public static void Initialize(ILogger logger, IConfiguration configuration)
         {
-            configuration.GetSection("MinVersions").GetChildren().ToList().ForEach(type =>
+            _minVersions.Clear();
+
+            configuration.GetSection("MinVersions").GetChildren().ToList().ForEach(appEntry =>
             {
-                if (type.Key != null)
+                if (appEntry.Key != null)
                 {
                     try
                     {
-                        var regex = new Regex(type.Key, RegexOptions.IgnoreCase);
-                        _minVersions[regex] = new Dictionary<Regex, SemanticVersion>();
-                        type.GetChildren().ToList().ForEach(subtype =>
+                        var regex = new Regex(appEntry.Key, RegexOptions.IgnoreCase);
+                        _minVersions[regex] = [];
+
+                        appEntry.GetChildren().ToList().ForEach(versionEntry =>
                         {
-                            if (subtype.Key != null && subtype.Value != null)
+                            if (versionEntry.Value != null )
                             {
                                 try
                                 {
-                                    var subregex = new Regex(subtype.Key, RegexOptions.IgnoreCase);
-                                    var versionString = subtype.Value;
+                                    var versionString = versionEntry.Value;
                                     versionString = versionString.Replace("*", "65535");
                                     if (string.IsNullOrEmpty(versionString))
                                         versionString = "65535.65535.65535.65535";
 
                                     var version = new SemanticVersion(versionString, -1);
-                                    _minVersions[regex][subregex] = version;
+                                    _minVersions[regex][version.Major] = version;
                                 }
                                 catch (Exception e)
                                 {
-                                    logger.LogError(e, "Error parsing min version regex");
+                                    logger.LogError(e, "Error parsing min version for app regex '{AppPattern}' major version {MajorVersion}", appEntry.Key, versionEntry.Key);
                                 }
                             }
                         });
                     }
                     catch (Exception e)
                     {
-                        logger.LogError(e, "Error parsing min version app regex");
+                        logger.LogError(e, "Error parsing min version for app regex '{AppPattern}'", appEntry.Key);
                     }
                 }
             });
@@ -51,15 +54,10 @@ namespace CrashDumpAnalyzer.Utilities
             {
                 if (kvp.Key.IsMatch(application))
                 {
-                    foreach (var kvp2 in kvp.Value)
+                    if (kvp.Value.TryGetValue(version.Major, out var minVersion))
                     {
-                        if (kvp2.Key.IsMatch(version.ToVersionString()))
-                        {
-                            if (version < kvp2.Value)
-                            {
-                                return false;
-                            }
-                        }
+                        if (version < minVersion)
+                            return false;
                     }
                 }
             }
