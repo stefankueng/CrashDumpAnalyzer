@@ -932,6 +932,7 @@ namespace CrashDumpAnalyzer.Controllers
                 entry.ExceptionType = dumpData.exceptionCode;
                 entry.ApplicationVersion = dumpData.version;
                 entry.DumpTime = dumpData.dumpTime;
+                entry.DumpTimeOffset = dumpData.dumpTimeOffset;
                 if (!string.IsNullOrEmpty(uploadedFromHostname))
                     entry.UploadedFromHostname = uploadedFromHostname;
                 entry.ComputerName = dumpData.computerName;

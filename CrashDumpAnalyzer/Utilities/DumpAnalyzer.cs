@@ -31,6 +31,7 @@ namespace CrashDumpAnalyzer.Utilities
         public string versionResource = string.Empty;
         public string commandLine = string.Empty;
         public DateTime dumpTime = DateTime.Now;
+        public TimeSpan dumpTimeOffset = TimeSpan.Zero;
     }
     public class DumpAnalyzer
     {
@@ -60,7 +61,7 @@ namespace CrashDumpAnalyzer.Utilities
             using Process process = new();
             process.StartInfo.FileName = _cdbExe;
             process.StartInfo.WorkingDirectory = Path.GetDirectoryName(_cdbExe);
-            process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \".logopen /u {tmpFilePath}; .time; !analyze -v; lm lv; .ecxr; kL; .cxr; kL; !peb; q\"";
+            process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \".logopen /u {tmpFilePath}; .time; .timezone; !analyze -v; lm lv; .ecxr; kL; .cxr; kL; !peb; q\"";
             process.StartInfo.EnvironmentVariables["_NT_SYMBOL_PATH"] = _symbolPath;
             process.StartInfo.EnvironmentVariables["_NT_SOURCE_PATH "] = "srv\\*";
             process.Start();
@@ -88,6 +89,7 @@ namespace CrashDumpAnalyzer.Utilities
             string versionResource = string.Empty;
             string commandLine = string.Empty;
             DateTime dumpTime = DateTime.Now;
+            TimeSpan dumpTimeOffset = TimeSpan.Zero;
             int childSpCount = 0;
             foreach (var lineStringOrig in output.Split(["\n"], StringSplitOptions.None))
             {
@@ -275,6 +277,29 @@ namespace CrashDumpAnalyzer.Utilities
                         _logger.LogError(ex, "Error parsing dump time");
                     }
                 }
+                if (lineString.Contains("Time zone:"))
+                {
+                    context = DumpContext.None;
+                    var utcOffsetMatch = Regex.Match(lineString, @"\(UTC\s*([+-])\s*(\d{1,2})(?::(\d{2}))?\)");
+                    if (utcOffsetMatch.Success)
+                    {
+                        var offsetSign = utcOffsetMatch.Groups[1].Value == "-" ? -1 : 1;
+                        var offsetHours = int.Parse(utcOffsetMatch.Groups[2].Value, CultureInfo.InvariantCulture);
+                        var offsetMinutes = utcOffsetMatch.Groups[3].Success
+                            ? int.Parse(utcOffsetMatch.Groups[3].Value, CultureInfo.InvariantCulture)
+                            : 0;
+                        dumpTimeOffset = TimeSpan.FromMinutes(offsetSign * ((offsetHours * 60) + offsetMinutes));
+                        // adjust to local utc offset
+                        var utcOffset = DateTime.Now - DateTime.UtcNow;
+                        utcOffset = TimeSpan.FromMinutes(Math.Round(utcOffset.TotalMinutes));
+                        dumpTimeOffset -= utcOffset;
+                        // example:
+                        // dump in my time (UTC+2): 3:00
+                        // dump local time: UTC-3
+                        // utcOffset = 2
+                        // dumpTimeOffset = -3 - 2 = -5
+                    }
+                }
                 if (lineString.Contains("Child-SP"))
                 {
                     if (childSpCount == 0)
@@ -328,6 +353,7 @@ namespace CrashDumpAnalyzer.Utilities
             dumpData.cleanCallstackString = cleanCallstackString;
             dumpData.versionResource = versionResource;
             dumpData.dumpTime = dumpTime;
+            dumpData.dumpTimeOffset = dumpTimeOffset;
             dumpData.commandLine = commandLine;
 
             return dumpData;
