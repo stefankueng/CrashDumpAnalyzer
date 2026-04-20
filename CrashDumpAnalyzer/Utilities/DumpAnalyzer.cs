@@ -266,6 +266,7 @@ namespace CrashDumpAnalyzer.Utilities
                     var dateString = lineString.Substring(lineString.IndexOf(':') + 1).Trim();
                     dateString = dateString.Replace("UTC + ", "UTC +");
                     dateString = dateString.Replace("UTC - ", "UTC -");
+                    dateString = dateString.Replace(".00)", ":00)");
                     dateString = dateString.Replace("  ", " ");
                     try
                     {
