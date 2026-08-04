@@ -222,7 +222,7 @@ $(function () {
         let btn = $(e.relatedTarget); // e.related here is the element that opened the modal (the button)
         let id = btn.data('id');
         $('.saveTicket').data('id', id); // then pass it to the button inside the modal
-        let ticket = btn.closest('td').find('.ticket').text().trim();
+        let ticket = btn.closest('td').find('.ticket').map(function() { return $(this).text().trim(); }).get().join(' ');
         $('.modalTicketInput').val(ticket);
     })
 
