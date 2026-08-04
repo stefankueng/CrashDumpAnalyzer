@@ -1,0 +1,31 @@
+﻿<Project>
+  <PropertyGroup>
+	<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+	<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageVersion Include="Google.Apis.Auth.AspNetCore3" Version="1.75.0" />
+	<PackageVersion Include="log4net" Version="3.3.2" />
+	<PackageVersion Include="Microsoft.AspNetCore.Authentication.Facebook" Version="10.0.10" />
+	<PackageVersion Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="10.0.10" />
+	<PackageVersion Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.10" />
+	<PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.10" />
+	<PackageVersion Include="Microsoft.AspNetCore.Identity.UI" Version="10.0.10" />
+	<PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+	<PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
+	<PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10" />
+	<PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
+	<PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.10" />
+	<PackageVersion Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.10" />
+	<PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.10" />
+	<PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.10" />
+	<PackageVersion Include="Microsoft.Extensions.Logging.Log4Net.AspNetCore" Version="10.0.0" />
+	<PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.22.0" />
+	<PackageVersion Include="Moq" Version="4.20.72" />
+	<PackageVersion Include="MSTest.Analyzers" Version="4.3.3" />
+	<PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
+	<PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.3" />
+	<PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
+  </ItemGroup>
+</Project>
