@@ -569,6 +569,11 @@ input.nosubmit {
     display: block;
 }
 
+.crash-list a[data-bs-toggle=popover] {
+    color: inherit;
+    text-decoration: none;
+}
+
 .dump-file-preview {
     max-width: 600px;
 }
