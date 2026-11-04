@@ -574,7 +574,7 @@ namespace CrashDumpAnalyzer.Controllers
                     while (await reader.ReadLineAsync() is { } line)
                     {
                         ++lineNumber;
-                        await writer.WriteLineAsync($"<div id=\"{lineNumber}\">" + line + "</div>");
+                        await writer.WriteLineAsync($"<div id=\"{lineNumber}\">{WebUtility.HtmlEncode(line)}</div>");
                     }
                     // close the body and html tags
                     await writer.WriteLineAsync("</body></html>");
