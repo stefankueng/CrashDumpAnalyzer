@@ -1,11 +1,32 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+﻿function postCallstackAction(action, parameters) {
+    return $.ajax({
+        url: '/Api/' + action + '?' + $.param(parameters),
+        processData: false,
+        contentType: false,
+        type: 'POST'
+    });
+}
 
-function changeTheme(isDark) {
-    const theme = isDark ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-bs-theme', theme);
-    localStorage.setItem('theme', theme);
-    initTooltips();
+function reloadAfterActions(...requests) {
+    $.when(...requests).done(() => location.reload()).fail(error => {
+        alert('The action failed: ' + (error.responseText || error.statusText || 'Unknown error'));
+    });
+}
+
+function deleteCallstack(id, reallyDelete) {
+    reloadAfterActions(postCallstackAction('DeleteDumpCallstack', { id, reallyDelete: Boolean(reallyDelete) }));
+}
+
+function deleteDump(callstackId, dumpId) {
+    reloadAfterActions(postCallstackAction('DeleteDumpFile', { dumpId }));
+}
+
+function unlinkCallstack(id) {
+    reloadAfterActions(postCallstackAction('UnlinkDumpCallstack', { id }));
+}
+
+function reAnalyzeDump(callstackId) {
+    reloadAfterActions(postCallstackAction('ReAnalyzeDumpFile', { callstackId }));
 }
 
 $(document).ready(function () {
@@ -16,6 +37,12 @@ $(document).ready(function () {
     });
     const checkbox = document.getElementById('flexSwitchCheckDefault');
     checkbox.checked = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    checkbox.addEventListener('change', () => {
+        const theme = checkbox.checked ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('theme', theme);
+        initTooltips();
+    });
 });
 
 const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
@@ -125,23 +152,10 @@ function deleteAllSelectedEntries(reallyDelete) {
         return;
     }
 
-    let ajaxCalls = [];
-    checkedIds.forEach(function (checkedId) {
-        ajaxCalls.push(
-            $.ajax({
-                url: '/Api/DeleteDumpCallstack?id=' + checkedId + '&reallyDelete=' + (reallyDelete || false),
-                processData: false,
-                contentType: false,
-                type: 'POST',
-            })
-        );
-    });
-
-    // Wait for all AJAX calls to complete before reloading
-    $.when(...ajaxCalls).done(function () {
-        location.reload();
-    });
+    reloadAfterActions(...checkedIds.map(id =>
+        postCallstackAction('DeleteDumpCallstack', { id, reallyDelete: Boolean(reallyDelete) })));
 }
+
 function combineAllSelectedEntries() {
     let checkedIds = [];
     document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
@@ -161,27 +175,8 @@ function combineAllSelectedEntries() {
         return;
     }
 
-    let toId = -1;
-    let ajaxCalls = [];
-    checkedIds.forEach(function (checkedId) {
-        if (toId === -1) {
-            toId = checkedId;
-        } else if (checkedId !== toId) {
-            ajaxCalls.push(
-                $.ajax({
-                    url: '/Api/LinkCallstack?id=' + checkedId + '&toId=' + toId,
-                    processData: false,
-                    contentType: false,
-                    type: 'POST',
-                })
-            );
-        }
-    });
-
-    // Wait for all AJAX calls to complete before reloading
-    $.when(...ajaxCalls).done(function () {
-        location.reload();
-    });
+    const [toId, ...sourceIds] = checkedIds;
+    reloadAfterActions(...sourceIds.map(id => postCallstackAction('LinkCallstack', { id, toId })));
 }
 
 $(function () {
@@ -343,25 +338,9 @@ $(function () {
                     checkedIds.push(id);
                 }
                 
-                // Collect all AJAX calls
-                let ajaxCalls = [];
-                checkedIds.forEach(function (checkedId) {
-                    if (checkedId !== toId) {
-                        ajaxCalls.push(
-                            $.ajax({
-                                url: '/Api/LinkCallstack?id=' + checkedId + '&toId=' + toId,
-                                processData: false,
-                                contentType: false,
-                                type: 'POST',
-                            })
-                        );
-                    }
-                });
+                reloadAfterActions(...checkedIds.filter(checkedId => checkedId !== toId)
+                    .map(id => postCallstackAction('LinkCallstack', { id, toId })));
 
-                // Wait for all AJAX calls to complete before reloading
-                $.when(...ajaxCalls).done(function () {
-                    location.reload();
-                });
             }
 
 
@@ -370,187 +349,21 @@ $(function () {
     })
 })
 function saveFixedVersion(id) {
-    console.debug("Saving fixed version for " + id);
-    let text = $('.modalTextInput').val();
-    let buildType = $('#filterBuildTypes input:radio:checked').val();
-    console.log(text + ' --> ' + buildType + ' --> ' + id);
-    $.ajax({
-        url: '/Api/SetFixedVersion?id=' + id + '&version=' + encodeURIComponent(text) +'&buildType=' + buildType,
-        processData: false,
-        contentType: false,
-        type: 'POST',
-        complete: function (data) {
-            location.reload();
-        },
-    });
+    reloadAfterActions(postCallstackAction('SetFixedVersion', {
+        id, version: $('.modalTextInput').val(), buildType: $('#filterBuildTypes input:radio:checked').val()
+    }));
 }
+
 function saveApplicationVersion(id) {
-    console.debug("Saving application version for " + id);
-    let text = $('.modalAppVersionInput').val();
-    let buildType = $('#filterAppBuildTypes input:radio:checked').val();
-    console.log(text + ' --> ' + buildType + ' --> ' + id);
-    $.ajax({
-        url: '/Api/SetApplicationVersion?id=' + id + '&version=' + encodeURIComponent(text) +'&buildType=' + buildType,
-        processData: false,
-        contentType: false,
-        type: 'POST',
-        complete: function (data) {
-            location.reload();
-        },
-    });
+    reloadAfterActions(postCallstackAction('SetApplicationVersion', {
+        id, version: $('.modalAppVersionInput').val(), buildType: $('#filterAppBuildTypes input:radio:checked').val()
+    }));
 }
+
 function saveTicket(id) {
-    console.debug("Saving ticket for " + id);
-    let text = $('.modalTicketInput').val();
-    console.log(text + ' --> ' + id);
-    $.ajax({
-        url: '/Api/SetTicket?id=' + id + '&ticket=' + encodeURIComponent(text),
-        processData: false,
-        contentType: false,
-        type: 'POST',
-        complete: function (data) {
-            location.reload();
-        },
-    });
+    reloadAfterActions(postCallstackAction('SetTicket', { id, ticket: $('.modalTicketInput').val() }));
 }
 
 function saveComment(id) {
-    console.debug("Saving comment for " + id);
-    let text = $('.modalCommentInput').val();
-    console.log(text + ' --> ' + id);
-    $.ajax({
-        url: '/Api/SetComment?id=' + id + '&comment=' + encodeURIComponent(text),
-        processData: false,
-        contentType: false,
-        type: 'POST',
-        complete: function (data) {
-            location.reload();
-        },
-    });
+    reloadAfterActions(postCallstackAction('SetComment', { id, comment: $('.modalCommentInput').val() }));
 }
-
-async function deleteOldEntries() {
-    const versionInput = document.getElementById('deleteVersionInput');
-    const version = versionInput.value.trim();
-    const inputSection = document.getElementById('deleteInputSection');
-    const progressSection = document.getElementById('deleteProgressSection');
-    const resultMessage = document.getElementById('deleteResultMessage');
-    const progressBar = document.getElementById('deleteProgressBar');
-    const progressText = document.getElementById('deleteProgressText');
-    const progressCounter = document.getElementById('deleteProgressCounter');
-    const progressDetails = document.getElementById('deleteProgressDetails');
-    const startBtn = document.getElementById('deleteStartBtn');
-    const cancelBtn = document.getElementById('deleteCancelBtn');
-    const closeBtn = document.getElementById('deleteModalCloseBtn');
-    const reloadBtn = document.getElementById('deleteReloadBtn');
-    
-    if (!version) {
-        alert('Please enter a version number');
-        return;
-    }
-
-    if (!/^(\d+\.\d+\.\d+\.\d+)$/.test(version)) {
-        alert('Please enter a valid version number in the format 1.2.3.4');
-        return;
-    }
-
-    const confirmMessage = `Are you sure you want to delete all entries with version lower than ${version} that don't have tickets assigned?`;
-    if (!confirm(confirmMessage)) {
-        return;
-    }
-
-    inputSection.style.display = 'none';
-    progressSection.style.display = 'block';
-    resultMessage.style.display = 'none';
-    startBtn.style.display = 'none';
-    cancelBtn.disabled = true;
-    closeBtn.disabled = true;
-
-    progressText.textContent = 'Counting entries to delete...';
-    progressCounter.textContent = '0 / ?';
-    progressBar.style.width = '0%';
-    progressBar.textContent = '0%';
-    progressBar.setAttribute('aria-valuenow', 0);
-
-    try {
-        const countResponse = await $.ajax({
-            url: '/Api/CountOldEntries?version=' + encodeURIComponent(version),
-            type: 'GET'
-        });
-
-        const totalCount = countResponse.count;
-        
-        if (totalCount === 0) {
-            progressSection.style.display = 'none';
-            resultMessage.className = 'alert alert-info';
-            resultMessage.textContent = 'No entries found to delete.';
-            resultMessage.style.display = 'block';
-            cancelBtn.disabled = false;
-            closeBtn.disabled = false;
-            return;
-        }
-
-        progressText.textContent = `Deleting ${totalCount} entries...`;
-        progressCounter.textContent = `0 / ${totalCount}`;
-        
-        let deletedCount = 0;
-        const batchSize = 10;
-        const startTime = new Date();
-        
-        while (deletedCount < totalCount) {
-            const batchResponse = await $.ajax({
-                url: '/Api/DeleteOldEntries?version=' + encodeURIComponent(version) + '&batchSize=' + batchSize,
-                type: 'POST'
-            });
-
-            deletedCount += batchResponse.deletedCount;
-            
-            const progress = Math.min(100, Math.round((deletedCount / totalCount) * 100));
-            progressBar.style.width = progress + '%';
-            progressBar.textContent = progress + '%';
-            progressBar.setAttribute('aria-valuenow', progress);
-            progressCounter.textContent = `${deletedCount} / ${totalCount}`;
-            
-            const elapsed = (new Date() - startTime) / 1000;
-            const rate = deletedCount / elapsed;
-            const remaining = totalCount - deletedCount;
-            const eta = remaining > 0 ? Math.round(remaining / rate) : 0;
-            
-            progressDetails.textContent = `Deleted ${deletedCount} entries (${rate.toFixed(1)} per second). ETA: ${eta} seconds`;
-            
-            if (batchResponse.deletedCount === 0) {
-                break;
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-        progressBar.classList.remove('progress-bar-animated');
-        progressSection.style.display = 'none';
-        resultMessage.className = 'alert alert-success';
-        resultMessage.textContent = `Successfully deleted ${deletedCount} entries.`;
-        resultMessage.style.display = 'block';
-        reloadBtn.style.display = 'inline-block';
-        closeBtn.disabled = false;
-        
-    } catch (error) {
-        progressSection.style.display = 'none';
-        resultMessage.className = 'alert alert-danger';
-        resultMessage.textContent = 'Error deleting entries: ' + (error.responseText || error.statusText || error);
-        resultMessage.style.display = 'block';
-        cancelBtn.disabled = false;
-        closeBtn.disabled = false;
-    }
-}
-
-$('#deleteOldEntriesModal').on('hidden.bs.modal', function () {
-    document.getElementById('deleteInputSection').style.display = 'block';
-    document.getElementById('deleteProgressSection').style.display = 'none';
-    document.getElementById('deleteResultMessage').style.display = 'none';
-    document.getElementById('deleteVersionInput').value = '';
-    document.getElementById('deleteStartBtn').style.display = 'inline-block';
-    document.getElementById('deleteReloadBtn').style.display = 'none';
-    document.getElementById('deleteCancelBtn').disabled = false;
-    document.getElementById('deleteModalCloseBtn').disabled = false;
-});
-

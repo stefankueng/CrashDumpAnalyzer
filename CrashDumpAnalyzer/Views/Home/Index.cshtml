@@ -10,18 +10,14 @@
         <div class="upload-overview">
             <div>
                 <h1 class="display-4 title">@ViewData["Title"]</h1>
-                <form action="/Api/UploadFiles" method="post" enctype="multipart/form-data" onsubmit="return submitFilesForm(this);">
-                    <input type="file" class="visually-hidden" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
-                    <label for="files-field" id="files-label"
-                           ondragover="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
-                           ondragenter="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
-                           ondragleave="stopDefault(event);dragLeave(this);"
-                           ondrop="stopDefault(event);dragLeave(this);addFilesAndSubmit(event);">Click to choose dump files or drag-n-drop them here</label>
+                <form id="upload-form" action="/Api/UploadFiles" method="post" enctype="multipart/form-data">
+                    <input type="file" class="visually-hidden" name="files" id="files-field" accept="*.dmp;*.dump" multiple />
+                    <label for="files-field" id="files-label">Click to choose dump files or drag-n-drop them here</label>
                 </form>
-                <div style="text-align: left;"><div id="files-progress"></div></div>
-                <div style="text-align: left; padding-bottom: 10px; padding-top: 5px">
+                <div class="text-start"><div id="files-progress"></div></div>
+                <div class="callstack-search text-start">
                     <form action="/" method="get" class="nosubmit">
-                        <div style="display: flex;">
+                        <div class="d-flex">
                             <input type="text" class="nosubmit" name="searchstring" aria-label="Search callstacks" placeholder="Search... (wildcards * ? supported, start with '/' for regex)" value="@Model.ActiveFilterString" autocomplete='off' />
                             <input type="hidden" name="activeTab" value="@Model.ActiveTab" />
                         </div>
@@ -129,7 +125,7 @@
                             dumpCountInfo += " in " + item.LogFileDatas.Count + " file" + (@item.LogFileDatas.Count == 1 ? "" : "s");
                         }
                         <tr>
-                            <td style="text-align: center; vertical-align: middle;"><input type="checkbox" class="row-checkbox" data-id="@item.DumpCallstackId" aria-label="Select @item.ApplicationName callstack @item.DumpCallstackId" /></td>
+                            <td class="text-center align-middle"><input type="checkbox" class="row-checkbox" data-id="@item.DumpCallstackId" aria-label="Select @item.ApplicationName callstack @item.DumpCallstackId" /></td>
                             <!-- application name -->
                             <td class="@stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">
                                 @{
@@ -143,7 +139,7 @@
                                 <span data-bs-toggle="tooltip" title="@cmdTooltip">
                                     @Html.DisplayFor(modelItem => item.ApplicationName)
                                 </span>
-                                <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;" class="button-link" aria-label="View @item.ApplicationName callstack @item.DumpCallstackId">◎</a>
+                                <a href="/Home/Dump?callstackId=@item.DumpCallstackId" class="button-link float-end" aria-label="View @item.ApplicationName callstack @item.DumpCallstackId">◎</a>
                             </td>
                             <!-- application version -->
                             <td class="@stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion) @BuildTypes.BuildTypeString(item.BuildType)</td>
@@ -173,40 +169,40 @@
                                 }
                                 @if (item.ApplicationName != Constants.UnassignedDumpNames)
                                 {
-                                    <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId" aria-label="Set ticket for callstack @item.DumpCallstackId">Set</button>
+                                    <button type="button" class="btn btn-primary float-end" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId" aria-label="Set ticket for callstack @item.DumpCallstackId">Set</button>
                                 }
                             </td>
                             <!-- fixed version -->
                             <td class="@stateClass">
-                                <table style="border: none; margin:0; padding:0;">
-                                    <tr style="background-color: transparent; margin:0; padding:0;">
-                                        <td style="width: 100%; border: none; margin:0; padding:0;">
+                                <table class="version-table borderless-table">
+                                    <tr>
+                                        <td class="version-value">
                                             @if (item.FixedVersion.Length > 0)
                                             {
                                                 <p class="version">@Html.DisplayFor(modelItem => item.FixedVersion)</p>
                                                 <p class="buildType">@BuildTypes.BuildTypeString(item.FixedBuildType)</p>
                                             }
                                         </td>
-                                        <td style="border: none;">
+                                        <td>
                                             @if (item.ApplicationName != Constants.UnassignedDumpNames)
                                             {
-                                                <button type="button" style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId" aria-label="Set fixed version for callstack @item.DumpCallstackId">Set</button>
+                                                <button type="button" class="btn btn-primary float-end" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId" aria-label="Set fixed version for callstack @item.DumpCallstackId">Set</button>
                                             }
                                         </td>
                                     </tr>
                                 </table>
                             </td>
                             <!-- exception type and comment -->
-                            <td class="@stateClass" style="max-width: 300px; white-space: normal; word-break: break-word;">
+                            <td class="issue-comment-cell @stateClass">
                                 @Html.DisplayFor(modelItem => item.ExceptionType)
-                                <button type="button" style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" aria-label="Edit comment for callstack @item.DumpCallstackId" title="add comment">🗨</button>
+                                <button type="button" class="btn btn-primary float-end" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" aria-label="Edit comment for callstack @item.DumpCallstackId" title="add comment">🗨</button>
                                 @{
                                     var comment = item.Comment;
                                     @if (comment.Length > 0)
                                     {
-                                        <div style="display: flex; flex-direction: column;">
+                                        <div class="d-flex flex-column">
                                             <hr />
-                                            <p class="comment @stateClass"><a style="display:block;max-width: 300px; max-height: 1.5em; white-space: nowrap; word-break: break-word; overflow: hidden; text-overflow: ellipsis;" role="button" tabindex="0" aria-label="Show comment for callstack @item.DumpCallstackId" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Comment" data-bs-content="<span class='comment'>@Html.DisplayFor(modelItem => item.Comment)</span>">@Html.DisplayFor(modelItem => item.Comment)</a></p>
+                                            <p class="comment @stateClass"><a class="comment-preview" role="button" tabindex="0" aria-label="Show comment for callstack @item.DumpCallstackId" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Comment" data-bs-content="<span class='comment'>@Html.DisplayFor(modelItem => item.Comment)</span>">@Html.DisplayFor(modelItem => item.Comment)</a></p>
                                         </div>
                                     }
                                 }
@@ -232,7 +228,7 @@
                                         content.AppendLine($"<p>{del} dump files deleted</p>");
                                     }
                                     var contentS = content.ToString();
-                                    <a style="display:block; max-width: 600px;" role="button" tabindex="0" aria-label="Show dump files for callstack @item.DumpCallstackId" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS'>@dumpCountInfo</a>
+                                    <a class="dump-file-preview" role="button" tabindex="0" aria-label="Show dump files for callstack @item.DumpCallstackId" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS'>@dumpCountInfo</a>
                                 }
                                 @if (item.LogFileDatas.Count > 0)
                                 {
@@ -253,12 +249,12 @@
                                         content.AppendLine($"<p>{del} entries deleted</p>");
                                     }
                                     var contentS = content.ToString();
-                                    <a style="display:block;" role="button" tabindex="0" aria-label="Show log files for callstack @item.DumpCallstackId" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS'>@dumpCountInfo</a>
+                                    <a role="button" tabindex="0" aria-label="Show log files for callstack @item.DumpCallstackId" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS'>@dumpCountInfo</a>
                                 }
                             </td>
 
                             <!-- call stack -->
-                            <td class="collapsed callstack @stateClass"><a style="display:block;" role="button" tabindex="0" aria-label="Show callstack @item.DumpCallstackId" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Callstack" data-bs-content="<span class='callstack'>@Html.DisplayFor(modelItem => item.Callstack)</span>">@Html.DisplayFor(modelItem => item.Callstack)</a></td>
+                            <td class="collapsed callstack @stateClass"><a role="button" tabindex="0" aria-label="Show callstack @item.DumpCallstackId" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Callstack" data-bs-content="<span class='callstack'>@Html.DisplayFor(modelItem => item.Callstack)</span>">@Html.DisplayFor(modelItem => item.Callstack)</a></td>
                             <!-- delete and ungroup buttons -->
                             <td class="@stateClass">
                                 <button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId, event.shiftKey)" aria-label="Delete callstack @item.DumpCallstackId" title="delete callstack">❌</button>
@@ -279,64 +275,6 @@
 </div>
 <partial name="_CallStackHelpers" />
 
-<script type="text/javascript">
-    function stopDefault(event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    function dragOver(label, text) {
-        label.style.animationName = "dropbox";
-        label.innerText = text;
-    }
-    function dragLeave(label) {
-        label.style.animationName = "";
-        label.innerText = "Click to choose dump files or drag-n-drop them here";
-    }
-    function addFilesAndSubmit(event) {
-        var files = event.target.files || event.dataTransfer.files;
-        var field = document.getElementById("files-field");
-        field.files = files;
-        submitFilesForm(field.form);
-    }
-    function submitFilesForm(form) {
-        var label = document.getElementById("files-label");
-        dragOver(label, "Uploading dump files..."); // set the drop zone text and styling
-        if (!FormData) {
-            alert("Function not supported by this browser.")
-            return false;
-        }
-        var fd = new FormData();
-        //fd.append(form.elements[0].name, form.elements[0].value); // must append the AntiForgeryToken to the form data
-        for (var i = 0; i < form.files.files.length; i++) {
-            var field = form.files;
-            fd.append(field.name, field.files[i], field.files[i].name);
-        }
-        var progress = document.getElementById("files-progress");
-        var x = new XMLHttpRequest();
-        if (x.upload) {
-            x.upload.addEventListener("progress", function (event) {
-                var percentage = Math.round(event.loaded / event.total * 100);
-                progress.innerText = progress.style.width = percentage + "%";
-            });
-        }
-        x.onreadystatechange = function () {
-            if (x.readyState == 4) {
-                progress.innerText = progress.style.width = "";
-                form.files.value = "";
-                dragLeave(label); // this will reset the text and styling of the drop zone
-                if (x.status == 201) {
-                    location.reload();
-                }
-                else if (x.status == 500) {
-                    alert(x.responseText); // do something with the server error
-                }
-                else {
-                    alert(x.status + ": " + x.statusText + x.responseText + x);
-                }
-            }
-        };
-        x.open(form.method, form.action, true);
-        x.send(fd);
-        return false; // do not forget this
-    }
-</script>
+@section Scripts {
+    <script src="~/js/upload.js" asp-append-version="true"></script>
+}

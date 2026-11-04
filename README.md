@@ -44,6 +44,10 @@ The singleton `DumpAnalysisQueue` captures filenames and IDs, not request servic
 
 Run the regression tests with `dotnet test .\TestProject\TestProject.csproj -p:OpenApiGenerateDocuments=false`. Service tests use isolated SQLite databases and temporary directories; external debugger and issue-tracker services are not required. Disabling OpenAPI generation avoids starting the application to generate documents during test builds.
 
+Frontend dependencies are pinned in `CrashDumpAnalyzer\libman.json`. Restore them with Visual Studio's **Restore Client-Side Libraries** command. Only the referenced minified builds and their source maps are selected; keep the accompanying license files. jQuery validation remains available for Identity forms through `_ValidationScriptsPartial`.
+
+Shared interactions and mutation requests live in `wwwroot\js\site.js`; theme initialization runs early from `theme.js` to avoid a light-theme flash. Upload, grouped-filter, and statistics scripts load only on their respective pages through the layout's `Scripts` section. Keep reusable presentation in `wwwroot\css\site.css`, using Bootstrap utilities where appropriate; inline styles are reserved for dynamic issue-tracker colors.
+
 ## Setting Up CrashDumpAnalyzer
 
 - clone the repository, open solution in VisualStudio, right-click on Solution and click "Publish". This will build the CrashDumpAnalyzer.

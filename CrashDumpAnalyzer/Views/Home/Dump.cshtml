@@ -30,7 +30,7 @@
             <table>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.ApplicationName)</td>
-                    <td>@Html.DisplayFor(modelItem => item.ApplicationName)<p Style="float: right;"><button type="button" class="btn btn-primary" onclick="reAnalyzeDump(@item.DumpCallstackId)" aria-label="Re-analyze callstack @item.DumpCallstackId" title="re-analyze dump file">↻</button><button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId, event.shiftKey)" aria-label="Delete callstack @item.DumpCallstackId" title="delete callstack">❌</button></p></td>
+                    <td>@Html.DisplayFor(modelItem => item.ApplicationName)<p class="float-end"><button type="button" class="btn btn-primary" onclick="reAnalyzeDump(@item.DumpCallstackId)" aria-label="Re-analyze callstack @item.DumpCallstackId" title="re-analyze dump file">↻</button><button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId, event.shiftKey)" aria-label="Delete callstack @item.DumpCallstackId" title="delete callstack">❌</button></p></td>
                 </tr>
                 <tr>
                     <td class="@stateClass">@Html.DisplayNameFor(modelItem => item.ApplicationVersion)</td>
@@ -39,13 +39,13 @@
                         <p class="buildType">@BuildTypes.BuildTypeString(item.BuildType)</p>
                         @if (item.LogFileDatas.Count > 0)
                         {
-                            <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setApplicationVersionModal" data-id="@item.DumpCallstackId" aria-label="Set application version for callstack @item.DumpCallstackId">Set</button>
+                            <button type="button" class="btn btn-primary float-end" data-bs-toggle="modal" data-bs-target="#setApplicationVersionModal" data-id="@item.DumpCallstackId" aria-label="Set application version for callstack @item.DumpCallstackId">Set</button>
                         }
                     </td>
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Comment)</td>
-                    <td style="white-space: pre;"><p class="comment">@Html.DisplayFor(modelItem => item.Comment)</p><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" aria-label="Edit comment for callstack @item.DumpCallstackId" title="add comment">🗨</button></td>
+                    <td class="preformatted"><p class="comment">@Html.DisplayFor(modelItem => item.Comment)</p><button type="button" class="btn btn-primary float-end" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" aria-label="Edit comment for callstack @item.DumpCallstackId" title="add comment">🗨</button></td>
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Ticket)</td>
@@ -74,7 +74,7 @@
                         }
                         @if (item.ApplicationName != Constants.UnassignedDumpNames)
                         {
-                            <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId" aria-label="Set ticket for callstack @item.DumpCallstackId">Set</button>
+                            <button type="button" class="btn btn-primary float-end" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId" aria-label="Set ticket for callstack @item.DumpCallstackId">Set</button>
                         }
                     </td>
                 </tr>
@@ -85,48 +85,48 @@
                         <p class="buildType">@BuildTypes.BuildTypeString(item.FixedBuildType)</p>
                         @if (item.ApplicationName != Constants.UnassignedDumpNames)
                         {
-                            <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId" aria-label="Set fixed version for callstack @item.DumpCallstackId">Set</button>
+                            <button type="button" class="btn btn-primary float-end" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId" aria-label="Set fixed version for callstack @item.DumpCallstackId">Set</button>
                         }
                     </td>
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.ExceptionType)</td>
-                    <td style="white-space: pre-line;">@Html.DisplayFor(modelItem => item.ExceptionType)</td>
+                    <td class="pre-line">@Html.DisplayFor(modelItem => item.ExceptionType)</td>
                 </tr>
                 <tr>
                     <td>Dumps</td>
-                    <td style="padding:0">
-                        <table style="border-style:none;border-width:0">
+                    <td class="p-0">
+                        <table class="borderless-table">
                             @if (item.DumpInfos.Count > 0 && item.LogFileDatas.Count == 0)
                             {
                                 @foreach (var dumpInfo in item.DumpInfos)
                                 {
                                     var popContent = "<div><strong>Command line:</strong> " + System.Text.Encodings.Web.HtmlEncoder.Default.Encode(dumpInfo.CommandLine ?? string.Empty) + "</div>"
-                                    + "<div><strong>VersionResource:</strong> <pre style='white-space:pre-wrap;margin:0'>" + System.Text.Encodings.Web.HtmlEncoder.Default.Encode(dumpInfo.VersionResource ?? string.Empty) + "</pre></div>";
-                                    <tr style="border-style:none;border-width:0">
+                                    + "<div><strong>VersionResource:</strong> <pre>" + System.Text.Encodings.Web.HtmlEncoder.Default.Encode(dumpInfo.VersionResource ?? string.Empty) + "</pre></div>";
+                                    <tr>
 
                                         @if (dumpInfo.FilePath.Length > 0)
                                         {
-                                            <td style="border-style:none;border-width:0" data-bs-toggle="tooltip" title="@popContent">
+                                            <td data-bs-toggle="tooltip" title="@popContent">
                                                 <a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
                                                 <button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" aria-label="Delete dump file @dumpInfo.DumpFileInfoId" title="delete dump file">❌</button>
                                             </td>
                                         }
                                         else
                                         {
-                                            <td style="border-style:none;border-width:0" data-bs-toggle="tooltip" title="@popContent">
+                                            <td data-bs-toggle="tooltip" title="@popContent">
                                                 dump file deleted
                                             </td>
                                         }
-                                        <td style="border-style:none;border-width:0">@dumpInfo.Comment</td>
-                                        <td style="border-style:none;border-width:0">Dump from @dumpInfo.DumpTime (@dumpInfo.DumpTime.AsTimeAgo())
+                                        <td>@dumpInfo.Comment</td>
+                                        <td>Dump from @dumpInfo.DumpTime (@dumpInfo.DumpTime.AsTimeAgo())
                                             @if (dumpInfo.DumpTimeOffset != TimeSpan.Zero)
                                             {
                                                 <br /><p>local time @(dumpInfo.DumpTime + dumpInfo.DumpTimeOffset)</p>
                                             }
                                         </td>
-                                        <td style="border-style:none;border-width:0">Uploaded @dumpInfo.UploadDate (@dumpInfo.UploadDate.AsTimeAgo())<br />from ip: @dumpInfo.UploadedFromIp, hostname: @dumpInfo.UploadedFromHostname</td>
-                                        <td style="border-style:none;border-width:0">Hostname: @dumpInfo.ComputerName, domain: @dumpInfo.Domain</td>
+                                        <td>Uploaded @dumpInfo.UploadDate (@dumpInfo.UploadDate.AsTimeAgo())<br />from ip: @dumpInfo.UploadedFromIp, hostname: @dumpInfo.UploadedFromHostname</td>
+                                        <td>Hostname: @dumpInfo.ComputerName, domain: @dumpInfo.Domain</td>
                                     </tr>
                                 }
                             }
@@ -134,29 +134,29 @@
                             {
                                 @foreach (var dumpInfo in item.LogFileDatas)
                                 {
-                                    <tr style="border-style:none;border-width:0">
+                                    <tr>
                                         @if (dumpInfo.DumpFileInfo != null && dumpInfo.DumpFileInfo.FilePath.Length > 0 && dumpInfo.LineNumbers != null)
                                         {
                                             var lnk = @dumpInfo.DumpFileInfo.DumpFileInfoId + "#" + @dumpInfo.LineNumbers[0];
-                                            <td style="border-style:none;border-width:0"><a href="/Api/DownloadFile/@lnk" target="_blank">@dumpInfo.LineNumbers.Count lines (@SizeFormatter.SizeSuffix(dumpInfo.DumpFileInfo.FileSize))</a></td>
+                                            <td><a href="/Api/DownloadFile/@lnk" target="_blank">@dumpInfo.LineNumbers.Count lines (@SizeFormatter.SizeSuffix(dumpInfo.DumpFileInfo.FileSize))</a></td>
                                         }
                                         else
                                         {
-                                            <td style="border-style:none;border-width:0">log file deleted</td>
+                                            <td>log file deleted</td>
                                         }
                                         @if (dumpInfo.DumpFileInfo != null)
                                         {
-                                            <td style="border-style:none;border-width:0">@dumpInfo.DumpFileInfo.Comment</td>
+                                            <td>@dumpInfo.DumpFileInfo.Comment</td>
                                         }
                                         else
                                         {
-                                            <td style="border-style:none;border-width:0"></td>
+                                            <td></td>
                                         }
-                                        <td style="border-style:none;border-width:0">Entry from @dumpInfo.LatestTime (@dumpInfo.LatestTime.AsTimeAgo())</td>
+                                        <td>Entry from @dumpInfo.LatestTime (@dumpInfo.LatestTime.AsTimeAgo())</td>
                                         @if (dumpInfo.DumpFileInfo != null)
                                         {
-                                            <td style="border-style:none;border-width:0">Uploaded @dumpInfo.DumpFileInfo.UploadDate (@dumpInfo.DumpFileInfo.UploadDate.AsTimeAgo())<br />from ip: @dumpInfo.DumpFileInfo.UploadedFromIp, hostname: @dumpInfo.DumpFileInfo.UploadedFromHostname</td>
-                                            <td style="border-style:none;border-width:0">Hostname: @dumpInfo.DumpFileInfo.ComputerName, domain: @dumpInfo.DumpFileInfo.Domain</td>
+                                            <td>Uploaded @dumpInfo.DumpFileInfo.UploadDate (@dumpInfo.DumpFileInfo.UploadDate.AsTimeAgo())<br />from ip: @dumpInfo.DumpFileInfo.UploadedFromIp, hostname: @dumpInfo.DumpFileInfo.UploadedFromHostname</td>
+                                            <td>Hostname: @dumpInfo.DumpFileInfo.ComputerName, domain: @dumpInfo.DumpFileInfo.Domain</td>
                                         }
                                     </tr>
                                 }
@@ -166,7 +166,7 @@
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Callstack)</td>
-                    <td style="white-space: pre-line;">
+                    <td class="pre-line">
                         <span data-bs-toggle="tooltip" data-bs-placement="top" title="@item.CleanCallstack">
                             @Html.DisplayFor(modelItem => item.Callstack)
                         </span>

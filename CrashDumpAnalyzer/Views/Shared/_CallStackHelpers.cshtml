@@ -11,7 +11,7 @@
             <div class="modal-body">
                 <label for="fixedVersionEdit">fixed as of version:</label>
                 <input class="modalTextInput" type="text" id="fixedVersionEdit" name="fixedVersionEdit" autocomplete='off'>
-                <p id="fixedVersionError" style="color: red;"></p>
+                <p id="fixedVersionError" class="text-danger"></p>
                 <div id="filterBuildTypes" data-toggle="buttons">
                     @foreach (var buildType in BuildTypes.BuildTypeStrings())
                     {
@@ -38,7 +38,7 @@
             <div class="modal-body">
                 <label for="appVersionEdit">version:</label>
                 <input class="modalAppVersionInput" type="text" id="appVersionEdit" name="appVersionEdit" autocomplete='off'>
-                <p id="appVersionError" style="color: red;"></p>
+                <p id="appVersionError" class="text-danger"></p>
                 <div id="filterAppBuildTypes" data-toggle="buttons">
                     @foreach (var buildType in BuildTypes.BuildTypeStrings())
                     {
@@ -84,7 +84,7 @@
             <div class="modal-body">
                 <label for="commentEdit">Comment:</label><br />
                 <textarea class="modalCommentInput" id="commentEdit" name="commentEdit" cols="40" rows="5"></textarea>
-                <p id="commentError" style="color: red;"></p>
+                <p id="commentError" class="text-danger"></p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary saveComment">Save changes</button>
@@ -93,55 +93,3 @@
         </div>
     </div>
 </div>
-
-<script type="text/javascript">
-    function deleteCallstack(id, reallyDelete) {
-        console.debug("deleting callstack for " + id + ", reallyDelete is " + reallyDelete);
-        $.ajax({
-            url: '/Api/DeleteDumpCallstack?id=' + id + '&reallyDelete=' + reallyDelete,
-            processData: false,
-            contentType: false,
-            type: 'POST',
-            complete: function (data) {
-                location.reload();
-            },
-        });
-    }
-    function deleteDump(callstackId, dumpId) {
-        console.debug("deleting dump " + dumpId + " of callstack " + callstackId);
-        $.ajax({
-            url: '/Api/DeleteDumpFile?dumpId=' + dumpId,
-            processData: false,
-            contentType: false,
-            type: 'POST',
-            complete: function (data) {
-                location.reload();
-            },
-        });
-    }
-    function unlinkCallstack(id) {
-        console.debug("unlinking callstack for " + id);
-        $.ajax({
-            url: '/Api/UnlinkDumpCallstack?id=' + id,
-            processData: false,
-            contentType: false,
-            type: 'POST',
-            complete: function (data) {
-                location.reload();
-            },
-        });
-    }
-    function reAnalyzeDump(callstackId) {
-    console.debug("reanalyzing first dump of callstack " + callstackId);
-    $.ajax({
-        url: '/Api/ReAnalyzeDumpFile?callstackId=' + callstackId,
-        processData: false,
-        contentType: false,
-        type: 'POST',
-        complete: function (data) {
-            location.reload();
-        },
-    });
-    }
-
-</script>

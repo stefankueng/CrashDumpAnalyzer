@@ -9,7 +9,7 @@
 <div class="table-responsive" role="region" aria-label="Crash statistics" tabindex="0">
         @if (Model != null)
         {
-            <table style="width:100%">
+            <table>
                 <tr>
                     <th></th>
                     @foreach (var issueType in Model.IssueTypes)
@@ -92,7 +92,7 @@
 
     </div>
 </div>
-<div style="margin-top: 20px;text-align: center;">
+<div class="deletion-actions">
     <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteOldEntriesModal">
         Delete Old Entries
     </button>
@@ -114,30 +114,32 @@
                         <input type="text" class="form-control" id="deleteVersionInput" placeholder="e.g., 1.2.3.4">
                     </div>
                 </div>
-                <div id="deleteProgressSection" style="display: none;">
+                <div id="deleteProgressSection" hidden>
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-2">
                             <span id="deleteProgressText">Preparing to delete entries...</span>
                             <span id="deleteProgressCounter">0 / 0</span>
                         </div>
-                        <div class="progress" style="height: 25px;">
-                            <div id="deleteProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
-                                 role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress deletion-progress">
+                            <div id="deleteProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                                 role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                                 0%
                             </div>
                         </div>
                     </div>
                     <div id="deleteProgressDetails" class="small text-muted"></div>
                 </div>
-                <div id="deleteResultMessage" class="alert" style="display: none;"></div>
+                <div id="deleteResultMessage" class="alert" hidden></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="deleteCancelBtn">Cancel</button>
-                <button type="button" class="btn btn-danger" onclick="deleteOldEntries()" id="deleteStartBtn">Delete</button>
-                <button type="button" class="btn btn-primary" onclick="location.reload()" id="deleteReloadBtn" style="display: none;">Refresh Page</button>
+                <button type="button" class="btn btn-danger" id="deleteStartBtn">Delete</button>
+                <button type="button" class="btn btn-primary" id="deleteReloadBtn" hidden>Refresh Page</button>
             </div>
         </div>
     </div>
 </div>
 
-<partial name="_CallStackHelpers" />
+@section Scripts {
+    <script src="~/js/statistics.js" asp-append-version="true"></script>
+}

@@ -7,20 +7,20 @@
 <div class="text-center">
     <h1 class="display-4 title">@ViewData["Title"]</h1>
 
-    <div style="margin: 20px 0; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
-        <label for="weeksSlider" style="display: block; margin-bottom: 10px;">
+    <div class="grouped-weeks-filter">
+        <label for="weeksSlider" class="d-block">
             Show dumps from last <span id="weeksValue">@Model.WeeksBack</span> weeks
         </label>
-        <input type="range" class="form-range" id="weeksSlider" min="1" max="52" value="@Model.WeeksBack" style="width: 100%;">
+        <input type="range" class="form-range" id="weeksSlider" min="1" max="52" value="@Model.WeeksBack">
     </div>
 
     <div class="table-responsive" role="region" aria-label="Grouped dumps" tabindex="0">
-    <table class="flowTable">
+    <table class="flowTable grouped-dumps-table">
         <thead>
             <tr>
                 <th>Group Key</th>
-                <th style="width: 5%;">Callstacks</th>
-                <th style="width: 12%;">Dump Count (Last @Model.WeeksBack Weeks)</th>
+                <th class="group-callstacks-column">Callstacks</th>
+                <th class="group-count-column">Dump Count (Last @Model.WeeksBack Weeks)</th>
                 <th>Tickets</th>
                 <th>Comments</th>
                 <th>Fixed Versions</th>
@@ -31,15 +31,15 @@
             {
                 <tr>
                     <!-- Group Key -->
-                    <td style="vertical-align: top;">
+                    <td>
                         <span>@group.GroupKey</span>
                     </td>
 
                     <!-- Callstacks -->
-                    <td style="vertical-align: top;">
+                    <td>
                         @foreach (var callstack in group.Callstacks)
                         {
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <a href="/Home/Dump?callstackId=@callstack.DumpCallstackId" class="button-link" aria-label="View @callstack.ApplicationName callstack @callstack.DumpCallstackId">◎</a>
                                 </div>
@@ -48,12 +48,12 @@
                     </td>
 
                     <!-- Dump Count -->
-                    <td style="vertical-align: top; text-align: center;">
+                    <td class="text-center">
                         <strong>@group.DumpCount</strong>
                     </td>
 
                     <!-- Tickets -->
-                    <td style="vertical-align: top; max-width: 400px; white-space: normal; word-break: break-word;">
+                    <td class="group-details-cell">
                         @if (group.Tickets.Count > 0)
                         {
                             foreach (var ticket in group.Tickets)
@@ -84,12 +84,12 @@
                         }
                         else
                         {
-                            <span style="color: #999;">No tickets</span>
+                            <span class="text-body-secondary">No tickets</span>
                         }
                     </td>
 
                     <!-- Comments -->
-                    <td style="vertical-align: top; max-width: 400px; white-space: normal; word-break: break-word;">
+                    <td class="group-details-cell">
                         @{
                             var commentsToShow = group.Callstacks
                                 .Where(cs => string.IsNullOrEmpty(cs.Ticket) && !string.IsNullOrEmpty(cs.Comment))
@@ -101,31 +101,31 @@
                         {
                             foreach (var comment in commentsToShow)
                             {
-                                <div style="margin-bottom: 8px; padding: 5px; border-left: 3px solid #ffc107; border-radius: 3px;">
+                                <div class="group-detail group-comment">
                                     <span>@comment</span>
                                 </div>
                             }
                         }
                         else
                         {
-                            <span style="color: #999;">-</span>
+                            <span class="text-body-secondary">-</span>
                         }
                     </td>
 
                     <!-- Fixed Versions -->
-                    <td style="vertical-align: top; max-width: 400px; white-space: normal; word-break: break-word;">
+                    <td class="group-details-cell">
                         @if (group.FixedVersions.Count > 0)
                         {
                             foreach (var version in group.FixedVersions)
                             {
-                                <div style="margin-bottom: 8px; padding: 5px; border-left: 3px solid #28a745; border-radius: 3px;">
+                                <div class="group-detail group-fixed-version">
                                     <span>@version</span>
                                 </div>
                             }
                         }
                         else
                         {
-                            <span style="color: #999;">-</span>
+                            <span class="text-body-secondary">-</span>
                         }
                     </td>
                 </tr>
@@ -135,15 +135,6 @@
     </div>
 </div>
 
-<script type="text/javascript">
-    const slider = document.getElementById('weeksSlider');
-    const weeksValue = document.getElementById('weeksValue');
-
-    slider.addEventListener('input', function() {
-        weeksValue.textContent = this.value;
-    });
-
-    slider.addEventListener('change', function() {
-        window.location.href = '/Home/GroupedDumps?weeksBack=' + this.value;
-    });
-</script>
+@section Scripts {
+    <script src="~/js/grouped-dumps.js" asp-append-version="true"></script>
+}
