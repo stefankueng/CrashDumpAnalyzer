@@ -16,8 +16,8 @@
                     @foreach (var buildType in BuildTypes.BuildTypeStrings())
                     {
                         <div>
-                            <input type="radio" id="@buildType" name="buildType" value="@buildType">
-                            <label for="@buildType">@buildType</label>
+                            <input type="radio" id="fixed-build-@buildType" name="buildType" value="@buildType">
+                            <label for="fixed-build-@buildType">@buildType</label>
                         </div>
                     }
                 </div>
@@ -43,8 +43,8 @@
                     @foreach (var buildType in BuildTypes.BuildTypeStrings())
                     {
                         <div>
-                            <input type="radio" id="@buildType" name="buildType" value="@buildType">
-                            <label for="@buildType">@buildType</label>
+                            <input type="radio" id="app-build-@buildType" name="appBuildType" value="@buildType">
+                            <label for="app-build-@buildType">@buildType</label>
                         </div>
                     }
                 </div>
@@ -75,7 +75,7 @@
     </div>
 </div>
 
-<div class="modal fade" id="setCommentModal" tabindex="-1" role="dialog" aria-labelledby="setCommentModallLabel" aria-hidden="true">
+<div class="modal fade" id="setCommentModal" tabindex="-1" role="dialog" aria-labelledby="setCommentModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">

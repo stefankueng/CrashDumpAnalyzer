@@ -11,7 +11,7 @@
             <div>
                 <h1 class="display-4 title">@ViewData["Title"]</h1>
                 <form action="/Api/UploadFiles" method="post" enctype="multipart/form-data" onsubmit="return submitFilesForm(this);">
-                    <input type="file" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
+                    <input type="file" class="visually-hidden" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
                     <label for="files-field" id="files-label"
                            ondragover="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
                            ondragenter="stopDefault(event);dragOver(this, 'Drop the dump files to upload them.');"
@@ -22,7 +22,7 @@
                 <div style="text-align: left; padding-bottom: 10px; padding-top: 5px">
                     <form action="/" method="get" class="nosubmit">
                         <div style="display: flex;">
-                            <input type="text" class="nosubmit" name="searchstring" placeholder="Search... (wildcards * ? supported, start with '/' for regex)" value="@Model.ActiveFilterString" autocomplete='off' />
+                            <input type="text" class="nosubmit" name="searchstring" aria-label="Search callstacks" placeholder="Search... (wildcards * ? supported, start with '/' for regex)" value="@Model.ActiveFilterString" autocomplete='off' />
                             <input type="hidden" name="activeTab" value="@Model.ActiveTab" />
                         </div>
                     </form>
@@ -59,13 +59,10 @@
                 </table>
             </div>
         </div>
-        @if (!string.IsNullOrEmpty(Model.ActiveFilterString))
-        {
-            <div style="float: right; margin-top: 10px;">
-                <button type="button" class="btn btn-primary" title="delete all selected callstacks" onclick="deleteAllSelectedEntries(event.shiftKey)">❌</button>
-                <button type="button" class="btn btn-primary" title="combine all selected callstacks" onclick="combineAllSelectedEntries()">⅄</button>
-            </div>
-        }
+        <div class="text-end mb-2">
+            <button type="button" class="btn btn-primary" aria-label="Delete selected callstacks" title="delete all selected callstacks" onclick="deleteAllSelectedEntries(event.shiftKey)">❌</button>
+            <button type="button" class="btn btn-primary" aria-label="Combine selected callstacks" title="combine all selected callstacks" onclick="combineAllSelectedEntries()">⅄</button>
+        </div>
         <div>
             @if (Model.Tabs.Count > 1)
             {
@@ -88,7 +85,7 @@
             <div class="table-responsive" role="region" aria-label="Crash callstacks" tabindex="0">
             <table class="flowTable">
                 <tr>
-                   <th><input type="checkbox" id="select-all" onclick="toggleAllRows(this)" /></th>
+                   <th><input type="checkbox" id="select-all" aria-label="Select all callstacks" onclick="toggleAllRows(this)" /></th>
                    <th>@Html.DisplayNameFor(model => model.Callstacks.First().ApplicationName)</th>
                    <th>@Html.DisplayNameFor(model => model.Callstacks.First().ApplicationVersion)</th>
                    <th>@Html.DisplayNameFor(model => model.Callstacks.First().Ticket)</th>
@@ -132,7 +129,7 @@
                             dumpCountInfo += " in " + item.LogFileDatas.Count + " file" + (@item.LogFileDatas.Count == 1 ? "" : "s");
                         }
                         <tr>
-                            <td style="text-align: center; vertical-align: middle;"><input type="checkbox" class="row-checkbox" data-id="@item.DumpCallstackId"/></td>
+                            <td style="text-align: center; vertical-align: middle;"><input type="checkbox" class="row-checkbox" data-id="@item.DumpCallstackId" aria-label="Select @item.ApplicationName callstack @item.DumpCallstackId" /></td>
                             <!-- application name -->
                             <td class="@stateClass draggable" draggable="true" data-id="@item.DumpCallstackId">
                                 @{
@@ -146,7 +143,7 @@
                                 <span data-bs-toggle="tooltip" title="@cmdTooltip">
                                     @Html.DisplayFor(modelItem => item.ApplicationName)
                                 </span>
-                                <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;" class="button-link">◎</a>
+                                <a href="/Home/Dump?callstackId=@item.DumpCallstackId" Style="float: right;" class="button-link" aria-label="View @item.ApplicationName callstack @item.DumpCallstackId">◎</a>
                             </td>
                             <!-- application version -->
                             <td class="@stateClass">@Html.DisplayFor(modelItem => item.ApplicationVersion) @BuildTypes.BuildTypeString(item.BuildType)</td>
@@ -176,7 +173,7 @@
                                 }
                                 @if (item.ApplicationName != Constants.UnassignedDumpNames)
                                 {
-                                    <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button>
+                                    <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId" aria-label="Set ticket for callstack @item.DumpCallstackId">Set</button>
                                 }
                             </td>
                             <!-- fixed version -->
@@ -193,7 +190,7 @@
                                         <td style="border: none;">
                                             @if (item.ApplicationName != Constants.UnassignedDumpNames)
                                             {
-                                                <button type="button" style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
+                                                <button type="button" style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId" aria-label="Set fixed version for callstack @item.DumpCallstackId">Set</button>
                                             }
                                         </td>
                                     </tr>
@@ -202,14 +199,14 @@
                             <!-- exception type and comment -->
                             <td class="@stateClass" style="max-width: 300px; white-space: normal; word-break: break-word;">
                                 @Html.DisplayFor(modelItem => item.ExceptionType)
-                                <button type="button" style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">🗨</button>
+                                <button type="button" style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" aria-label="Edit comment for callstack @item.DumpCallstackId" title="add comment">🗨</button>
                                 @{
                                     var comment = item.Comment;
                                     @if (comment.Length > 0)
                                     {
                                         <div style="display: flex; flex-direction: column;">
                                             <hr />
-                                            <p class="comment @stateClass"><a style="display:block;max-width: 300px; max-height: 1.5em; white-space: nowrap; word-break: break-word; overflow: hidden; text-overflow: ellipsis;" tabindex="0" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Comment" data-bs-content="<span class='comment'>@Html.DisplayFor(modelItem => item.Comment)</span>">@Html.DisplayFor(modelItem => item.Comment)</a></p>
+                                            <p class="comment @stateClass"><a style="display:block;max-width: 300px; max-height: 1.5em; white-space: nowrap; word-break: break-word; overflow: hidden; text-overflow: ellipsis;" role="button" tabindex="0" aria-label="Show comment for callstack @item.DumpCallstackId" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Comment" data-bs-content="<span class='comment'>@Html.DisplayFor(modelItem => item.Comment)</span>">@Html.DisplayFor(modelItem => item.Comment)</a></p>
                                         </div>
                                     }
                                 }
@@ -225,7 +222,7 @@
                                     {
                                         if (dumpInfo.FilePath.Length > 0)
                                         {
-                                            content.AppendLine($@"<span><p data-bs-toggle=""tooltip"" title=""{@dumpInfo.DumpTime}""><a href=""/Api/DownloadFile/{@dumpInfo.DumpFileInfoId}"">dump {@dumpInfo.ApplicationVersion} ({@SizeFormatter.SizeSuffix(dumpInfo.FileSize)})</a> Dump from {@dumpInfo.DumpTime.AsTimeAgo()}<button type=""button"" class=""btn btn-primary"" onclick=""deleteDump({@item.DumpCallstackId}, {@dumpInfo.DumpFileInfoId})"" title=""delete dump file"">❌</button></p></span>");
+                                            content.AppendLine($@"<span><p data-bs-toggle=""tooltip"" title=""{@dumpInfo.DumpTime}""><a href=""/Api/DownloadFile/{@dumpInfo.DumpFileInfoId}"">dump {@dumpInfo.ApplicationVersion} ({@SizeFormatter.SizeSuffix(dumpInfo.FileSize)})</a> Dump from {@dumpInfo.DumpTime.AsTimeAgo()}<button type=""button"" class=""btn btn-primary"" onclick=""deleteDump({@item.DumpCallstackId}, {@dumpInfo.DumpFileInfoId})"" aria-label=""Delete dump file {@dumpInfo.DumpFileInfoId}"" title=""delete dump file"">❌</button></p></span>");
                                         }
                                         else
                                             ++del;
@@ -235,7 +232,7 @@
                                         content.AppendLine($"<p>{del} dump files deleted</p>");
                                     }
                                     var contentS = content.ToString();
-                                    <a style="display:block; max-width: 600px;" tabindex="0" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS'>@dumpCountInfo</a>
+                                    <a style="display:block; max-width: 600px;" role="button" tabindex="0" aria-label="Show dump files for callstack @item.DumpCallstackId" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS'>@dumpCountInfo</a>
                                 }
                                 @if (item.LogFileDatas.Count > 0)
                                 {
@@ -256,18 +253,18 @@
                                         content.AppendLine($"<p>{del} entries deleted</p>");
                                     }
                                     var contentS = content.ToString();
-                                    <a style="display:block;" tabindex="0" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS'>@dumpCountInfo</a>
+                                    <a style="display:block;" role="button" tabindex="0" aria-label="Show log files for callstack @item.DumpCallstackId" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Dump file list" data-bs-content='@contentS'>@dumpCountInfo</a>
                                 }
                             </td>
 
                             <!-- call stack -->
-                            <td class="collapsed callstack @stateClass"><a style="display:block;" tabindex="0" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Callstack" data-bs-content="<span class='callstack'>@Html.DisplayFor(modelItem => item.Callstack)</span>">@Html.DisplayFor(modelItem => item.Callstack)</a></td>
+                            <td class="collapsed callstack @stateClass"><a style="display:block;" role="button" tabindex="0" aria-label="Show callstack @item.DumpCallstackId" data-bs-html="true" data-bs-sanitize="false" data-bs-toggle="popover" data-bs-placement="top" data-bs-trigger="click" title="Callstack" data-bs-content="<span class='callstack'>@Html.DisplayFor(modelItem => item.Callstack)</span>">@Html.DisplayFor(modelItem => item.Callstack)</a></td>
                             <!-- delete and ungroup buttons -->
                             <td class="@stateClass">
-                                <button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId, event.shiftKey)" title="delete callstack">❌</button>
+                                <button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId, event.shiftKey)" aria-label="Delete callstack @item.DumpCallstackId" title="delete callstack">❌</button>
                                 @if (item.Callstack.Contains("--------------"))
                                 {
-                                    <button type="button" class="btn btn-primary" onclick="unlinkCallstack(@item.DumpCallstackId)" title="ungroup callstacks">🔗</button>
+                                    <button type="button" class="btn btn-primary" onclick="unlinkCallstack(@item.DumpCallstackId)" aria-label="Ungroup callstack @item.DumpCallstackId" title="ungroup callstacks">🔗</button>
                                 }
                             </td>
                         </tr>

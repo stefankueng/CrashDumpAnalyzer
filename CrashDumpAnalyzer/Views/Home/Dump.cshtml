@@ -30,7 +30,7 @@
             <table>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.ApplicationName)</td>
-                    <td>@Html.DisplayFor(modelItem => item.ApplicationName)<p Style="float: right;"><button type="button" class="btn btn-primary" onclick="reAnalyzeDump(@item.DumpCallstackId)" title="re-analyze dump file">↻</button><button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId, event.shiftKey)" title="delete callstack">❌</button></p></td>
+                    <td>@Html.DisplayFor(modelItem => item.ApplicationName)<p Style="float: right;"><button type="button" class="btn btn-primary" onclick="reAnalyzeDump(@item.DumpCallstackId)" aria-label="Re-analyze callstack @item.DumpCallstackId" title="re-analyze dump file">↻</button><button type="button" class="btn btn-primary" onclick="deleteCallstack(@item.DumpCallstackId, event.shiftKey)" aria-label="Delete callstack @item.DumpCallstackId" title="delete callstack">❌</button></p></td>
                 </tr>
                 <tr>
                     <td class="@stateClass">@Html.DisplayNameFor(modelItem => item.ApplicationVersion)</td>
@@ -39,13 +39,13 @@
                         <p class="buildType">@BuildTypes.BuildTypeString(item.BuildType)</p>
                         @if (item.LogFileDatas.Count > 0)
                         {
-                            <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setApplicationVersionModal" data-id="@item.DumpCallstackId">Set</button>
+                            <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setApplicationVersionModal" data-id="@item.DumpCallstackId" aria-label="Set application version for callstack @item.DumpCallstackId">Set</button>
                         }
                     </td>
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Comment)</td>
-                    <td style="white-space: pre;"><p class="comment">@Html.DisplayFor(modelItem => item.Comment)</p><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" title="add comment">🗨</button></td>
+                    <td style="white-space: pre;"><p class="comment">@Html.DisplayFor(modelItem => item.Comment)</p><button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setCommentModal" data-id="@item.DumpCallstackId" aria-label="Edit comment for callstack @item.DumpCallstackId" title="add comment">🗨</button></td>
                 </tr>
                 <tr>
                     <td>@Html.DisplayNameFor(modelItem => item.Ticket)</td>
@@ -74,7 +74,7 @@
                         }
                         @if (item.ApplicationName != Constants.UnassignedDumpNames)
                         {
-                            <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId">Set</button>
+                            <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setTicketModal" data-id="@item.DumpCallstackId" aria-label="Set ticket for callstack @item.DumpCallstackId">Set</button>
                         }
                     </td>
                 </tr>
@@ -85,7 +85,7 @@
                         <p class="buildType">@BuildTypes.BuildTypeString(item.FixedBuildType)</p>
                         @if (item.ApplicationName != Constants.UnassignedDumpNames)
                         {
-                            <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId">Set</button>
+                            <button type="button" Style="float: right;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setFixedVersionModal" data-id="@item.DumpCallstackId" aria-label="Set fixed version for callstack @item.DumpCallstackId">Set</button>
                         }
                     </td>
                 </tr>
@@ -109,7 +109,7 @@
                                         {
                                             <td style="border-style:none;border-width:0" data-bs-toggle="tooltip" title="@popContent">
                                                 <a href="/Api/DownloadFile/@dumpInfo.DumpFileInfoId">dump @dumpInfo.ApplicationVersion (@SizeFormatter.SizeSuffix(dumpInfo.FileSize))</a>
-                                                <button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" title="delete dump file">❌</button>
+                                                <button type="button" class="btn btn-primary" onclick="deleteDump(@item.DumpCallstackId, @dumpInfo.DumpFileInfoId)" aria-label="Delete dump file @dumpInfo.DumpFileInfoId" title="delete dump file">❌</button>
                                             </td>
                                         }
                                         else

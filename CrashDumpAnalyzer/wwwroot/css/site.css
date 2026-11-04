@@ -182,8 +182,19 @@ body {
     animation-iteration-count: infinite;
 }
 
-#files-field { /* hide the files input field; use files-label to access it */
-    display: none;
+[data-bs-theme] :is(a, button, input, select, textarea, [tabindex]):focus-visible,
+[data-bs-theme] #files-field:focus-visible + #files-label {
+    outline: 3px solid #005fcc;
+    outline-offset: 3px;
+}
+
+[data-bs-theme=dark] :is(a, button, input, select, textarea, [tabindex]):focus-visible,
+[data-bs-theme=dark] #files-field:focus-visible + #files-label {
+    outline-color: #ffdf5d;
+}
+
+.collapsed [role=button]:focus-visible {
+    outline-offset: -3px;
 }
 
 #files-progress {

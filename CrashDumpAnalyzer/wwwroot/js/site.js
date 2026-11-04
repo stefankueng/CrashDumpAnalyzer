@@ -1,8 +1,8 @@
 ﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
-function changeTheme() {
-    const theme = document.documentElement.getAttribute('data-bs-theme') === 'light' ? 'dark' : 'light';
+function changeTheme(isDark) {
+    const theme = isDark ? 'dark' : 'light';
     document.documentElement.setAttribute('data-bs-theme', theme);
     localStorage.setItem('theme', theme);
     initTooltips();
@@ -15,14 +15,37 @@ $(document).ready(function () {
         }
     });
     const checkbox = document.getElementById('flexSwitchCheckDefault');
-    const theme = localStorage.getItem('theme');
-    if (theme !== null) {
-        checkbox.checked = !(theme === "light");
-    }
+    checkbox.checked = document.documentElement.getAttribute('data-bs-theme') === 'dark';
 });
 
-const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]')
-const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl, { html: true, sanitize: false, container: 'body' }))
+const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
+const popoverList = [...popoverTriggerList].map(popoverTriggerEl => {
+    const popover = new bootstrap.Popover(popoverTriggerEl, { html: true, sanitize: false, container: 'body', trigger: 'manual' });
+    popoverTriggerEl.setAttribute('aria-expanded', 'false');
+    popoverTriggerEl.addEventListener('shown.bs.popover', () => popoverTriggerEl.setAttribute('aria-expanded', 'true'));
+    popoverTriggerEl.addEventListener('hidden.bs.popover', () => popoverTriggerEl.setAttribute('aria-expanded', 'false'));
+    popoverTriggerEl.addEventListener('click', event => {
+        event.preventDefault();
+        popoverList.forEach(other => {
+            if (other !== popover) other.hide();
+        });
+        popover.toggle();
+    });
+    popoverTriggerEl.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            popoverTriggerEl.click();
+        } else if (event.key === 'Tab' && !event.shiftKey && popoverTriggerEl.getAttribute('aria-expanded') === 'true') {
+            const panel = document.getElementById(popoverTriggerEl.getAttribute('aria-describedby'));
+            const firstControl = panel?.querySelector('a[href], button');
+            if (firstControl) {
+                event.preventDefault();
+                firstControl.focus();
+            }
+        }
+    });
+    return popover;
+});
 
 // AllowList used for tooltip sanitizer (keep sanitize enabled)
 const tooltipAllowList = {
@@ -60,14 +83,24 @@ function initTooltips() {
 }
 initTooltips();
 
-$('[data-bs-toggle="popover"]').click(function (e) {
-    e.preventDefault();
-    $('[data-bs-toggle="popover"]').not(this).popover('hide');
-    $(this).popover('toggle');
+document.addEventListener('click', event => {
+    if (!event.target.closest('[data-bs-toggle="popover"], .popover')) {
+        popoverList.forEach(popover => popover.hide());
+    }
 });
-$(document).click(function (e) {
-    $('[data-bs-toggle="popover"]').popover('hide');
-
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+        popoverTriggerList.forEach((trigger, index) => {
+            if (trigger.getAttribute('aria-expanded') === 'true') {
+                const panel = document.getElementById(trigger.getAttribute('aria-describedby'));
+                if (trigger === document.activeElement || panel?.contains(document.activeElement)) {
+                    trigger.focus();
+                    event.preventDefault();
+                }
+                popoverList[index].hide();
+            }
+        });
+    }
 });
 function toggleAllRows(checkbox) {
     var checkboxes = document.querySelectorAll('.row-checkbox');
