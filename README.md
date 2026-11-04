@@ -13,6 +13,7 @@ Additionally, CrashDumpAnalyzer provides a symbol server to resolve symbols duri
 ## Features
 - dump files can be uploaded via web frontend or via REST-Api
 - the upload overview stacks on narrow screens, and wide data tables can be scrolled horizontally without scrolling the whole page
+- long crash lists scroll inside a panel capped at 70% of the viewport height, with sticky column headers and a keyboard-focusable scrolling region
 - keyboard navigation includes visible focus outlines, a labeled dark-mode switch, and popovers opened with Enter or Space and dismissed with Escape; select rows and use Combine to link callstacks without dragging
 - each dump is analyzed in the background, and once analysis is finished either a new report entry is created or the dump file is assigned to an existing entry matching the callstack of the crash
 - Users can add comments to report entries, set a version where the crash is fixed and set a ticket/issue number

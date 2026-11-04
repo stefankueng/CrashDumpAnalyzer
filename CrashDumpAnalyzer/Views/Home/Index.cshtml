@@ -78,20 +78,22 @@
             }
 
 
-            <div class="table-responsive" role="region" aria-label="Crash callstacks" tabindex="0">
+            <div class="table-responsive crash-list" role="region" aria-label="Crash callstacks" tabindex="0">
             <table class="flowTable">
-                <tr>
-                   <th><input type="checkbox" id="select-all" aria-label="Select all callstacks" onclick="toggleAllRows(this)" /></th>
-                   <th>@Html.DisplayNameFor(model => model.Callstacks.First().ApplicationName)</th>
-                   <th>@Html.DisplayNameFor(model => model.Callstacks.First().ApplicationVersion)</th>
-                   <th>@Html.DisplayNameFor(model => model.Callstacks.First().Ticket)</th>
-                   <th>@Html.DisplayNameFor(model => model.Callstacks.First().FixedVersion)</th>
-                   <th>@Html.DisplayNameFor(model => model.Callstacks.First().ExceptionType)</th>
-                   <th>Dumps</th>
-                   <th>@Html.DisplayNameFor(model => model.Callstacks.First().Callstack)</th>
-                   <th></th>
-                </tr>
-
+                <thead>
+                    <tr>
+                        <th scope="col"><input type="checkbox" id="select-all" aria-label="Select all callstacks" onclick="toggleAllRows(this)" /></th>
+                        <th scope="col">@Html.DisplayNameFor(model => model.Callstacks.First().ApplicationName)</th>
+                        <th scope="col">@Html.DisplayNameFor(model => model.Callstacks.First().ApplicationVersion)</th>
+                        <th scope="col">@Html.DisplayNameFor(model => model.Callstacks.First().Ticket)</th>
+                        <th scope="col">@Html.DisplayNameFor(model => model.Callstacks.First().FixedVersion)</th>
+                        <th scope="col">@Html.DisplayNameFor(model => model.Callstacks.First().ExceptionType)</th>
+                        <th scope="col">Dumps</th>
+                        <th scope="col">@Html.DisplayNameFor(model => model.Callstacks.First().Callstack)</th>
+                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
                 @foreach (var item in Model.Callstacks)
                 {
                     @if (item.DumpInfos.Count == 0 && item is { Deleted: false, LogFileDatas.Count: 0 })
@@ -266,6 +268,7 @@
                         </tr>
                     }
                 }
+                </tbody>
             </table>
             </div>
 

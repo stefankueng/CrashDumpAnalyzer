@@ -64,6 +64,19 @@ namespace CrashDumpAnalyzer.Tests
             }
         }
 
+        [TestMethod]
+        public void CrashList_HasSemanticHeadersAndFocusableScrollRegion()
+        {
+            var view = File.ReadAllText(Path.Combine(ProjectDirectory(), "Views", "Home", "Index.cshtml"));
+            StringAssert.Contains(view, "class=\"table-responsive crash-list\" role=\"region\" aria-label=\"Crash callstacks\" tabindex=\"0\"");
+            var header = Regex.Match(view, "<thead>([\\s\\S]*?)</thead>");
+            Assert.IsTrue(header.Success);
+            Assert.AreEqual(9, Regex.Matches(header.Value, "<th scope=\"col\">").Count);
+            StringAssert.Contains(header.Value, "id=\"select-all\"");
+            StringAssert.Contains(view, "<tbody>");
+            StringAssert.Contains(view, "</tbody>");
+        }
+
         private static string ProjectDirectory()
         {
             for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent)
