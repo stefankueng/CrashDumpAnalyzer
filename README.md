@@ -1,4 +1,4 @@
-# CrashDumpAnalyzer
+﻿# CrashDumpAnalyzer
 
 CrashDumpAnalyzer is a tool designed to automatically analyze crash dump files and organize them based on their callstacks.
 
@@ -12,6 +12,7 @@ Additionally, CrashDumpAnalyzer provides a symbol server to resolve symbols duri
 
 ## Features
 - dump files can be uploaded via web frontend or via REST-Api
+- the upload overview stacks on narrow screens, and wide data tables can be scrolled horizontally without scrolling the whole page
 - each dump is analyzed in the background, and once analysis is finished either a new report entry is created or the dump file is assigned to an existing entry matching the callstack of the crash
 - Users can add comments to report entries, set a version where the crash is fixed and set a ticket/issue number
 - integration with Jira

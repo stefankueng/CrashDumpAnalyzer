@@ -7,8 +7,8 @@
 
 <div class="text-center">
     <div>
-        <div style="display: flex; width: 100%;">
-            <div style="width: 60%;">
+        <div class="upload-overview">
+            <div>
                 <h1 class="display-4 title">@ViewData["Title"]</h1>
                 <form action="/Api/UploadFiles" method="post" enctype="multipart/form-data" onsubmit="return submitFilesForm(this);">
                     <input type="file" name="files" id="files-field" accept="*.dmp;*.dump" onchange="submitFilesForm(this.form);" multiple />
@@ -28,8 +28,7 @@
                     </form>
                 </div>
             </div>
-            <div style="width: 5%"></div>
-            <div style="min-width: 600px; width: 35%; height: 240px; overflow-y: auto;">
+            <div class="recent-uploads table-responsive" role="region" aria-label="Recently uploaded dumps" tabindex="0">
                 <h4>last @Model.UploadedDumps.Count() uploaded dumps</h4>
                 <table class="flowTable">
                     <tr>
@@ -86,6 +85,7 @@
             }
 
 
+            <div class="table-responsive" role="region" aria-label="Crash callstacks" tabindex="0">
             <table class="flowTable">
                 <tr>
                    <th><input type="checkbox" id="select-all" onclick="toggleAllRows(this)" /></th>
@@ -274,6 +274,7 @@
                     }
                 }
             </table>
+            </div>
 
 
         </div>

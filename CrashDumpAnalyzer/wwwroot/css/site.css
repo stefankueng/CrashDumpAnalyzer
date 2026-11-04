@@ -118,12 +118,38 @@ body {
     margin-bottom: 60px;
 }
 
+.upload-overview {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.upload-overview > div {
+    min-width: 0;
+}
+
+@media (min-width: 1200px) {
+    .upload-overview {
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    }
+}
+
+.recent-uploads {
+    max-height: 15rem;
+    overflow-y: auto;
+}
+
+#files-label {
+    min-height: 10vh;
+    padding: 1rem;
+}
+
 [data-bs-theme=light]
 #files-label {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 10vh;
     width: 100%;
     background-color: bisque;
     color: black;
@@ -142,7 +168,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 10vh;
     width: 100%;
     background-color: #411;
     color: white;
@@ -267,24 +292,8 @@ body {
 
 .flowTable {
     display: table;
-    overflow-x: auto;
     white-space: nowrap;
     border-collapse: collapse;
-}
-
-[data-bs-theme=light]
-.flowTable td, th {
-    display: table-cell;
-    border: 1px solid black;
-    text-align: left;
-    padding: 2px;
-}
-[data-bs-theme=dark]
-.flowTable td, th {
-    display: table-cell;
-    border: 1px solid gray;
-    text-align: left;
-    padding: 2px;
 }
 
 .callstack {
@@ -349,23 +358,20 @@ table {
     width: 100%;
 }
 
-[data-bs-theme=light]
-table, th, td {
-    border: 1px solid black;
+th, td {
     text-align: left;
     padding: 8px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
-[data-bs-theme=dark]
-table, th, td {
+
+[data-bs-theme=light] table,
+[data-bs-theme=light] th,
+[data-bs-theme=light] td {
+    border: 1px solid black;
+}
+[data-bs-theme=dark] table,
+[data-bs-theme=dark] th,
+[data-bs-theme=dark] td {
     border: 1px solid gray;
-    text-align: left;
-    padding: 8px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 [data-bs-theme=light]
