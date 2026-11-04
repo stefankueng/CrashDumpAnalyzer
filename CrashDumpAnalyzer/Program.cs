@@ -24,7 +24,11 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    if (builder.Configuration.GetValue<bool>("UserAuthEnabled"))
+        options.Filters.Add(new Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter());
+});
 
 IConfigurationSection googleAuthNSection =
 builder.Configuration.GetSection("Authentication:Google");
@@ -173,6 +177,7 @@ MinVersions.Initialize(app.Logger, builder.Configuration);
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

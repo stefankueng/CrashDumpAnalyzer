@@ -6,7 +6,7 @@ By grouping similar crashes together, it helps developers focus on analyzing uni
 
 Additionally, CrashDumpAnalyzer provides a symbol server to resolve symbols during the analysis process.
 
-**Important**: This project is intended for use within a company network only and should not be exposed to the internet.
+**Important**: This project is intended for use within a company network only and should not be exposed to the internet. Set `UserAuthEnabled` to `true` to require sign-in for MVC/API controller endpoints; when it is `false`, those endpoints remain anonymous.
 ![mainpage](https://github.com/user-attachments/assets/304c935e-56d8-4a91-9f34-d33e202d00d3)
 ![dumppage](https://github.com/user-attachments/assets/ed4ff05e-051e-4a15-8827-4978999fe60e)
 
