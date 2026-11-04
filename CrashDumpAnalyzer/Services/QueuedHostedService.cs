@@ -2,14 +2,10 @@
 
 namespace CrashDumpAnalyzer.Services
 {
-
-	public class QueuedHostedService : IHostedService
+	public class QueuedHostedService : BackgroundService
 	{
 		private readonly ILogger _logger;
-
-		private readonly Task[] _executors;
-		private readonly int _executorsCount = 1; //--default value: 1
-		private CancellationTokenSource? _tokenSource;
+		private readonly int _executorsCount = 1;
 		public IBackgroundTaskQueue TaskQueue { get; }
 
 		public QueuedHostedService(IBackgroundTaskQueue taskQueue,
@@ -18,60 +14,46 @@ namespace CrashDumpAnalyzer.Services
 		{
 			TaskQueue = taskQueue;
 			_logger = loggerFactory.CreateLogger<QueuedHostedService>();
-
-			if (ushort.TryParse(configuration["MaxNumOfParallelOperations"], out var ct))
+			if (ushort.TryParse(configuration["MaxNumOfParallelOperations"], out var count))
 			{
-				_executorsCount = ct;
+				if (count == 0)
+					throw new ArgumentOutOfRangeException(nameof(configuration), "MaxNumOfParallelOperations must be greater than zero.");
+				_executorsCount = count;
 			}
-			_executors = new Task[_executorsCount];
 		}
 
-		public Task StartAsync(CancellationToken cancellationToken)
+		protected override Task ExecuteAsync(CancellationToken stoppingToken)
 		{
 			_logger.LogInformation("Queued Hosted Service is starting.");
-
-			_tokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-			for (var i = 0; i < _executorsCount; i++)
-			{
-				var executorTask = new Task(
-					async () =>
-					{
-						while (!cancellationToken.IsCancellationRequested)
-						{
-							_logger.LogInformation("Waiting background task...");
-							var workItem = await TaskQueue.DequeueAsync(cancellationToken);
-
-							try
-							{
-								_logger.LogInformation("Got background task, executing...");
-								await workItem(cancellationToken);
-							}
-							catch (Exception ex)
-							{
-								_logger.LogError(ex,
-									"Error occurred executing {WorkItem}.", nameof(workItem)
-								);
-							}
-						}
-					}, _tokenSource.Token);
-
-				_executors[i] = executorTask;
-				executorTask.Start();
-			}
-
-			return Task.CompletedTask;
+			return Task.WhenAll(Enumerable.Range(0, _executorsCount).Select(_ => ExecuteWorker(stoppingToken)));
 		}
 
-		public Task StopAsync(CancellationToken cancellationToken)
+		private async Task ExecuteWorker(CancellationToken stoppingToken)
+		{
+			while (!stoppingToken.IsCancellationRequested)
+			{
+				try
+				{
+					_logger.LogInformation("Waiting background task...");
+					var workItem = await TaskQueue.DequeueAsync(stoppingToken);
+					_logger.LogInformation("Got background task, executing...");
+					await workItem(stoppingToken);
+				}
+				catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+				{
+					break;
+				}
+				catch (Exception ex)
+				{
+					_logger.LogError(ex, "Error occurred executing background work item.");
+				}
+			}
+		}
+
+		public override async Task StopAsync(CancellationToken cancellationToken)
 		{
 			_logger.LogInformation("Queued Hosted Service is stopping.");
-			_tokenSource?.Cancel(); // send the cancellation signal
-
-			// wait for _executors completion
-			Task.WaitAll(_executors, cancellationToken);
-
-			return Task.CompletedTask;
+			await base.StopAsync(cancellationToken);
 		}
 	}
 }

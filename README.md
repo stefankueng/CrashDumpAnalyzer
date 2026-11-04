@@ -30,6 +30,20 @@ CrashDumpAnalyzer needs access to your symbol store to properly analyze the cras
 
 
 
+## Development
+
+Controllers handle HTTP validation and responses; scoped application services own the application logic:
+
+- `DumpFileService`: uploaded-file metadata and download preparation.
+- `CallstackService` and `DumpCleanupService`: mutations, linking, deletion, retention, and orphan cleanup.
+- `AnalysisResultService`: persistence and matching of dump/log analysis results.
+- `CallstackQueryService`: filtering, sorting, linked-callstack aggregation, and recent uploads.
+- `HomePageService`: page models, statistics, grouping, and issue-tracker enrichment.
+
+The singleton `DumpAnalysisQueue` captures filenames and IDs, not request services. Each executing job creates and disposes its own service scope. `QueuedHostedService` awaits workers and propagates shutdown cancellation to active work. `MaxNumOfParallelOperations` defaults to 1 and must be greater than zero. The queue is in-memory, not durable. Persistence and file-deletion failures are surfaced to HTTP error handling or worker logging rather than reported as successful mutations.
+
+Run the regression tests with `dotnet test .\TestProject\TestProject.csproj -p:OpenApiGenerateDocuments=false`. Service tests use isolated SQLite databases and temporary directories; external debugger and issue-tracker services are not required. Disabling OpenAPI generation avoids starting the application to generate documents during test builds.
+
 ## Setting Up CrashDumpAnalyzer
 
 - clone the repository, open solution in VisualStudio, right-click on Solution and click "Publish". This will build the CrashDumpAnalyzer.

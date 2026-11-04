@@ -102,6 +102,13 @@ builder.Services.AddAntiforgery(options =>
     options.SuppressXFrameOptionsHeader = false;
 });
 builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+builder.Services.AddSingleton<DumpAnalysisQueue>();
+builder.Services.AddScoped<DumpFileService>();
+builder.Services.AddScoped<CallstackService>();
+builder.Services.AddScoped<DumpCleanupService>();
+builder.Services.AddScoped<AnalysisResultService>();
+builder.Services.AddScoped<CallstackQueryService>();
+builder.Services.AddScoped<HomePageService>();
 builder.Services.AddWindowsService();
 builder.Services.AddHostedService<QueuedHostedService>();
 builder.Logging.AddLog4Net();
@@ -174,6 +181,7 @@ builder.Configuration.GetSection("StaticFolders").GetChildren().ToList().ForEach
 });
 BuildTypes.Initialize(app.Logger, builder.Configuration);
 MinVersions.Initialize(app.Logger, builder.Configuration);
+Constants.TicketBaseUrl = builder.Configuration.GetValue<string>("TicketBaseUrl") ?? string.Empty;
 
 app.UseRouting();
 
