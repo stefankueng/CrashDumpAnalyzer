@@ -16,6 +16,7 @@ Additionally, CrashDumpAnalyzer provides a symbol server to resolve symbols duri
 - long crash lists scroll inside a panel capped at 70% of the viewport height, with sticky column headers and a keyboard-focusable scrolling region
 - keyboard navigation includes visible focus outlines, a labeled dark-mode switch, and popovers opened with Enter or Space and dismissed with Escape; select rows and use Combine to link callstacks without dragging
 - each dump is analyzed in the background, and once analysis is finished either a new report entry is created or the dump file is assigned to an existing entry matching the callstack of the crash
+- each dump has an expandable diagnostic report with OS/effective processor architecture, system/process uptime and virtual memory usage
 - Users can add comments to report entries, set a version where the crash is fixed and set a ticket/issue number
 - integration with Jira
 - basic log file analysis 
@@ -44,6 +45,10 @@ Controllers handle HTTP validation and responses; scoped application services ow
 The singleton `DumpAnalysisQueue` captures filenames and IDs, not request services. Each executing job creates and disposes its own service scope. `QueuedHostedService` awaits workers and propagates shutdown cancellation to active work. `MaxNumOfParallelOperations` defaults to 1 and must be greater than zero. The queue is in-memory, not durable. Persistence and file-deletion failures are surfaced to HTTP error handling or worker logging rather than reported as successful mutations.
 
 Run the regression tests with `dotnet test .\TestProject\TestProject.csproj -p:OpenApiGenerateDocuments=false`. Service tests use isolated SQLite databases and temporary directories; external debugger and issue-tracker services are not required. Disabling OpenAPI generation avoids starting the application to generate documents during test builds.
+
+Dump analysis retains the crash stack, exception code, executable/product version, dump time/timezone, command line, and PEB environment information. Additional diagnostics use `vertarget`, `.effmach`, `.time`, `.exr -1`, `.ecxr`, `r`, `~* kL`, `!runaway 7`, `!address -summary`, and `lm v`. They are stored per dump, not used for crash grouping, and replaced on re-analysis. Existing dumps need re-analysis to populate the report; the database column is added automatically on application startup. Small minidumps may lack exception context, memory-region data, or thread timings (`!runaway` needs thread-time data, such as dumps created with `.dump /mt` or `.dump /ma`). The memory summary also requires OS symbols. Debugger errors remain visible rather than being presented as zero usage or missing threads. Registers in a dump without exception context reflect the debugger's current context. Diagnostics can contain sensitive paths and memory addresses; they have the same access controls as other dump details.
+
+To also run the optional debugger integration tests, set `CDB_TEST_EXE` to the full path of `cdb.exe` before running the tests. They create and analyze their own temporary dump, including paths containing spaces. The no-symbol test runs offline; set `CDB_TEST_SYMBOL_PATH` to an OS symbol path to also verify successful memory-summary output.
 
 Frontend dependencies are pinned in `CrashDumpAnalyzer\libman.json`. Restore them with Visual Studio's **Restore Client-Side Libraries** command. Only the referenced minified builds and their source maps are selected; keep the accompanying license files. jQuery validation remains available for Identity forms through `_ValidationScriptsPartial`.
 

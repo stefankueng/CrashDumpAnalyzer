@@ -228,6 +228,7 @@ namespace CrashDumpAnalyzer.Services
                 entry.Environment = dumpData.environment;
                 entry.VersionResource = dumpData.versionResource;
                 entry.CommandLine = dumpData.commandLine;
+                entry.Diagnostics = dumpData.diagnostics;
 
                 // find out if we already have this callstack
                 DumpCallstack callstack = new DumpCallstack

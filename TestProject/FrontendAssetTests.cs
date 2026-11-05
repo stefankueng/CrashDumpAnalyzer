@@ -77,6 +77,19 @@ namespace CrashDumpAnalyzer.Tests
             StringAssert.Contains(view, "</tbody>");
         }
 
+        [TestMethod]
+        public void DumpDiagnostics_AreCollapsedEncodedAndKeyboardScrollable()
+        {
+            var root = ProjectDirectory();
+            var view = File.ReadAllText(Path.Combine(root, "Views", "Home", "Dump.cshtml"));
+            StringAssert.Contains(view, "!string.IsNullOrEmpty(dumpInfo.Diagnostics)");
+            StringAssert.Contains(view, "<details>");
+            StringAssert.Contains(view, "<summary>Diagnostics for dump @dumpInfo.DumpFileInfoId");
+            StringAssert.Contains(view, "<pre class=\"dump-diagnostics\" tabindex=\"0\" aria-label=\"Dump @dumpInfo.DumpFileInfoId diagnostics\">@dumpInfo.Diagnostics</pre>");
+            var styles = File.ReadAllText(Path.Combine(root, "wwwroot", "css", "site.css"));
+            StringAssert.Contains(styles, ".dump-diagnostics {");
+        }
+
         private static string ProjectDirectory()
         {
             for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent)

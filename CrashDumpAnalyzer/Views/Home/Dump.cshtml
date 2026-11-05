@@ -128,6 +128,18 @@
                                         <td>Uploaded @dumpInfo.UploadDate (@dumpInfo.UploadDate.AsTimeAgo())<br />from ip: @dumpInfo.UploadedFromIp, hostname: @dumpInfo.UploadedFromHostname</td>
                                         <td>Hostname: @dumpInfo.ComputerName, domain: @dumpInfo.Domain</td>
                                     </tr>
+                                    @if (!string.IsNullOrEmpty(dumpInfo.Diagnostics))
+                                    {
+                                        <tr>
+                                            <td colspan="6" class="text-start">
+                                                <details>
+                                                    <summary>Diagnostics for dump @dumpInfo.DumpFileInfoId (@dumpInfo.ApplicationVersion)</summary>
+                                                    <p>Availability depends on the dump type, captured memory, and symbols. Debugger warnings are included below.</p>
+                                                    <pre class="dump-diagnostics" tabindex="0" aria-label="Dump @dumpInfo.DumpFileInfoId diagnostics">@dumpInfo.Diagnostics</pre>
+                                                </details>
+                                            </td>
+                                        </tr>
+                                    }
                                 }
                             }
                             @if (item.LogFileDatas.Count > 0)

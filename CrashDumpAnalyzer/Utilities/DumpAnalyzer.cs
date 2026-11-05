@@ -30,11 +30,14 @@ namespace CrashDumpAnalyzer.Utilities
         public string environment = string.Empty;
         public string versionResource = string.Empty;
         public string commandLine = string.Empty;
+        public string diagnostics = string.Empty;
         public DateTime dumpTime = DateTime.Now;
         public TimeSpan dumpTimeOffset = TimeSpan.Zero;
     }
     public class DumpAnalyzer
     {
+        private const string DiagnosticsStart = "=== CDA_DIAGNOSTICS_BEGIN ===";
+        private const string DiagnosticsEnd = "=== CDA_DIAGNOSTICS_END ===";
         private readonly Regex _cleanCallstackRegex;
         private readonly string _cdbExe;
         private readonly string _symbolPath;
@@ -55,27 +58,54 @@ namespace CrashDumpAnalyzer.Utilities
         }
         public async Task<DumpData> AnalyzeDump(string dumpFilePath, CancellationToken token)
         {
-            DumpData dumpData = new DumpData();
-
             var tmpFilePath = Path.GetTempFileName();
-            using Process process = new();
-            process.StartInfo.FileName = _cdbExe;
-            process.StartInfo.WorkingDirectory = Path.GetDirectoryName(_cdbExe);
-            process.StartInfo.Arguments = $"-netsyms:yes -lines -z {dumpFilePath} -c \".logopen /u {tmpFilePath}; .time; .timezone; !analyze -v; lm lv; .ecxr; kL; .cxr; kL; !peb; q\"";
-            process.StartInfo.EnvironmentVariables["_NT_SYMBOL_PATH"] = _symbolPath;
-            process.StartInfo.EnvironmentVariables["_NT_SOURCE_PATH "] = "srv\\*";
-            process.Start();
+            try
+            {
+                using Process process = new();
+                process.StartInfo.FileName = _cdbExe;
+                process.StartInfo.WorkingDirectory = Path.GetDirectoryName(_cdbExe);
+                process.StartInfo.ArgumentList.Add("-netsyms:yes");
+                process.StartInfo.ArgumentList.Add("-lines");
+                process.StartInfo.ArgumentList.Add("-z");
+                process.StartInfo.ArgumentList.Add(dumpFilePath);
+                process.StartInfo.ArgumentList.Add("-c");
+                process.StartInfo.ArgumentList.Add($".logopen /u \"{tmpFilePath}\"; .time; .timezone; !analyze -v; lm lv; .ecxr; kL; .cxr; kL; !peb; " +
+                    $".echo {DiagnosticsStart}; " +
+                    ".echo === System and process ===; vertarget; .effmach; .time; " +
+                    ".echo === Virtual memory summary ===; !address -summary; " +
+                    $".echo {DiagnosticsEnd}; .logclose; q");
+                process.StartInfo.EnvironmentVariables["_NT_SYMBOL_PATH"] = _symbolPath;
+                process.StartInfo.EnvironmentVariables["_NT_SOURCE_PATH "] = "srv\\*";
+                process.Start();
+                try
+                {
+                    await process.WaitForExitAsync(token);
+                }
+                catch (OperationCanceledException)
+                {
+                    if (!process.HasExited)
+                        process.Kill(entireProcessTree: true);
+                    await process.WaitForExitAsync(CancellationToken.None);
+                    throw;
+                }
+                if (process.ExitCode != 0)
+                    throw new InvalidOperationException($"CDB exited with code {process.ExitCode} while analyzing {dumpFilePath}.");
 
-            //string output = await process.StandardOutput.ReadToEndAsync(token);
-            await process.WaitForExitAsync(token);
+                string output = await File.ReadAllTextAsync(tmpFilePath, Encoding.Unicode, token);
+                _logger.LogInformation(output);
+                return ParseOutput(output);
+            }
+            finally
+            {
+                File.Delete(tmpFilePath);
+            }
+        }
 
-            // read the unicode text in tmpFilePath into a string
-            string output = await File.ReadAllTextAsync(tmpFilePath, Encoding.Unicode, token);
-            // delete the temp file
-            File.Delete(tmpFilePath);
-
-            // go through the output and find the important bits
-            _logger.LogInformation(output);
+        public DumpData ParseOutput(string output)
+        {
+            DumpData dumpData = new DumpData();
+            var diagnostics = new StringBuilder();
+            bool inDiagnostics = false;
             DumpContext context = DumpContext.None;
             string callstackString = string.Empty;
             string alternateCallstackString = string.Empty;
@@ -96,6 +126,22 @@ namespace CrashDumpAnalyzer.Utilities
                 // count whitespaces at start of lineString
                 var whitespaceCount = lineStringOrig.Length - lineStringOrig.TrimStart().Length;
                 var lineString = lineStringOrig.Trim();
+                if (lineString == DiagnosticsStart)
+                {
+                    inDiagnostics = true;
+                    context = DumpContext.None;
+                    continue;
+                }
+                if (lineString == DiagnosticsEnd)
+                {
+                    inDiagnostics = false;
+                    continue;
+                }
+                if (inDiagnostics)
+                {
+                    diagnostics.AppendLine(lineStringOrig.TrimEnd('\r'));
+                    continue;
+                }
                 switch (context)
                 {
                     case DumpContext.StackText:
@@ -324,6 +370,9 @@ namespace CrashDumpAnalyzer.Utilities
                 if (lineString.Length <= 1 && context != DumpContext.None && context != DumpContext.Modules)
                     context = DumpContext.None;
             }
+            if (inDiagnostics)
+                _logger.LogWarning("CDB diagnostic output is incomplete: the end marker is missing.");
+            dumpData.diagnostics = diagnostics.ToString().Trim();
             var csLength = callstackString.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
             var alternateCsLength = alternateCallstackString.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
             if (csLength < 3 && alternateCsLength > 3)

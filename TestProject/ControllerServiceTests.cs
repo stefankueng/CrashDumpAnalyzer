@@ -252,14 +252,17 @@ namespace CrashDumpAnalyzer.Tests
             {
                 processName = "App", version = "2.0.0.0", callstackString = "raw stack", cleanCallstackString = "stack",
                 exceptionCode = "c0000005", computerName = "workstation", domain = "domain", environment = "env",
-                versionResource = "resource", commandLine = "App --option", dumpTimeOffset = TimeSpan.FromHours(2)
+                versionResource = "resource", commandLine = "App --option", dumpTimeOffset = TimeSpan.FromHours(2),
+                diagnostics = "first diagnostic report"
             }, null, CancellationToken.None);
             await files.RegisterUpload("second.dmp", 10, "", "", "", "");
             await results.UpdateDumpDataInDatabase("second.dmp", "host", new DumpData
             {
-                processName = "App", version = "1.0.0.0", callstackString = "another raw stack", cleanCallstackString = "stack", exceptionCode = "c0000005"
+                processName = "App", version = "1.0.0.0", callstackString = "another raw stack", cleanCallstackString = "stack", exceptionCode = "c0000005",
+                diagnostics = "second diagnostic report"
             }, null, CancellationToken.None);
 
+            fixture.Db.ChangeTracker.Clear();
             var callstack = await fixture.Db.Set<DumpCallstack>().Include(c => c.DumpInfos).SingleAsync(c => c.ApplicationName == "App");
             Assert.AreEqual(2, callstack.DumpInfos.Count);
             Assert.AreEqual("2.0.0.0", callstack.ApplicationVersion);
@@ -271,6 +274,8 @@ namespace CrashDumpAnalyzer.Tests
             Assert.AreEqual("resource", first.VersionResource);
             Assert.AreEqual("App --option", first.CommandLine);
             Assert.AreEqual(TimeSpan.FromHours(2), first.DumpTimeOffset);
+            Assert.AreEqual("first diagnostic report", first.Diagnostics);
+            Assert.AreEqual("second diagnostic report", callstack.DumpInfos.Single(f => f.FilePath == "second.dmp").Diagnostics);
             Assert.AreEqual(2, await fixture.Db.Set<DumpFileInfo>().CountAsync());
         }
 
@@ -280,17 +285,20 @@ namespace CrashDumpAnalyzer.Tests
             await using var fixture = await Fixture.Create();
             var original = fixture.Callstack("App", "1.0.0.0", "reanalyze.dmp");
             original.CleanCallstack = "old";
+            original.DumpInfos[0].Diagnostics = "old diagnostic report";
             fixture.Db.Add(original);
             await fixture.Db.SaveChangesAsync();
 
             await fixture.Get<AnalysisResultService>().UpdateDumpDataInDatabase("reanalyze.dmp", null,
-                new DumpData { processName = "App", version = "2.0.0.0", callstackString = "new raw", cleanCallstackString = "new" },
+                new DumpData { processName = "App", version = "2.0.0.0", callstackString = "new raw", cleanCallstackString = "new", diagnostics = "new diagnostic report" },
                 original.DumpCallstackId, CancellationToken.None);
 
             Assert.AreEqual(1, await fixture.Db.Set<DumpCallstack>().CountAsync());
             Assert.AreEqual("new", original.CleanCallstack);
             Assert.AreEqual("new raw", original.Callstack);
             Assert.AreEqual("2.0.0.0", original.ApplicationVersion);
+            fixture.Db.ChangeTracker.Clear();
+            Assert.AreEqual("new diagnostic report", (await fixture.Db.Set<DumpFileInfo>().SingleAsync()).Diagnostics);
         }
 
         [TestMethod]
