@@ -12,6 +12,8 @@ namespace CrashDumpAnalyzer.IssueTrackers
             {
                 case "Jira":
                     return new Integrations.Jira(configuration);
+                case "GitHub":
+                    return new Integrations.GitHub(configuration);
                 default:
                     return new DummyIssueTracker();
             }

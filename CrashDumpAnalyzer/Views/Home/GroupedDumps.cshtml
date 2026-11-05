@@ -72,7 +72,8 @@
                                     if (issue != null)
                                     {
                                         var className = "issue-" + issue.StateColor;
-                                        <a href="@Constants.TicketBaseUrl@ticket" target="_blank" data-bs-toggle="tooltip" title="@issue.Title" class="ticket">@ticket</a>
+                                        var ticketUrl = string.IsNullOrEmpty(issue.Url) ? $"{Constants.TicketBaseUrl}{ticket}" : issue.Url;
+                                        <a href="@ticketUrl" target="_blank" data-bs-toggle="tooltip" title="@issue.Title" class="ticket">@ticket</a>
                                         <div data-bs-toggle="tooltip" title="@issue.Title" class="@className" style="background-color: @issue.StateColor">@issue.State</div>
                                     }
                                     else

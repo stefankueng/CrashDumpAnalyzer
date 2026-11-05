@@ -8,5 +8,6 @@ namespace CrashDumpAnalyzer.IssueTrackers.Data
         public string Title { get; set; } = string.Empty;
         public string State { get; set; } = string.Empty;
         public string StateColor { get; set; } = string.Empty;
+        public string? Url { get; set; }
     }
 }
