@@ -1,0 +1,68 @@
+﻿@model SetupModel
+@{
+    Layout = "_SetupLayout";
+    ViewData["Title"] = "CrashDumpAnalyzer setup";
+}
+<h1>Welcome to CrashDumpAnalyzer</h1>
+<p>Complete this one-time setup on the server using localhost. Settings are saved to <code>appsettings.json</code>; restart the application afterwards.</p>
+<form asp-controller="Setup" asp-action="Index" method="post">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    <fieldset class="mb-4">
+        <legend>1. Database</legend>
+        <label asp-for="DefaultConnection" class="form-label"></label>
+        <input asp-for="DefaultConnection" class="form-control" aria-describedby="database-help" required />
+        <p id="database-help" class="form-text">Use a writable SQLite database file. Relative paths are resolved against the installation folder. The database and its tables will be created automatically; the parent folder must exist.</p>
+    </fieldset>
+    <fieldset class="mb-4">
+        <legend>2. User authentication</legend>
+        <div class="form-check mb-3">
+            <input asp-for="UserAuthEnabled" class="form-check-input" />
+            <label asp-for="UserAuthEnabled" class="form-check-label"></label>
+        </div>
+        <p>When enabled, create the first administrator below. This account is confirmed automatically and assigned the Admin role. Other accounts use the existing registration and email confirmation flow.</p>
+        <p>Disabling authentication allows anonymous access to controller and API endpoints. Use only on a trusted company network.</p>
+        <div class="mb-3">
+            <label asp-for="AdminEmail" class="form-label"></label>
+            <input asp-for="AdminEmail" class="form-control" autocomplete="username" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="AdminPassword" class="form-label"></label>
+            <input asp-for="AdminPassword" class="form-control" autocomplete="new-password" aria-describedby="password-help" />
+            <p id="password-help" class="form-text">Use at least six characters, including uppercase, lowercase, a digit, and a non-alphanumeric character.</p>
+        </div>
+        <div class="mb-3">
+            <label asp-for="ConfirmPassword" class="form-label"></label>
+            <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" />
+        </div>
+    </fieldset>
+    <fieldset class="mb-4">
+        <legend>3. Outgoing email (SMTP)</legend>
+        <p>Required when authentication is enabled, for account confirmation and password resets. Setup saves these settings but does not send a test email.</p>
+        <div class="mb-3">
+            <label asp-for="SmtpHost" class="form-label"></label>
+            <input asp-for="SmtpHost" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="SmtpPort" class="form-label"></label>
+            <input asp-for="SmtpPort" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="SmtpUsername" class="form-label"></label>
+            <input asp-for="SmtpUsername" class="form-control" autocomplete="off" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="SmtpPassword" class="form-label"></label>
+            <input asp-for="SmtpPassword" class="form-control" autocomplete="new-password" />
+        </div>
+        <div class="form-check mb-3">
+            <input asp-for="SmtpEnableSsl" class="form-check-input" />
+            <label asp-for="SmtpEnableSsl" class="form-check-label"></label>
+        </div>
+        <div class="mb-3">
+            <label asp-for="SmtpFrom" class="form-label"></label>
+            <input asp-for="SmtpFrom" class="form-control" />
+        </div>
+    </fieldset>
+    <p>Existing unrelated settings are preserved, but JSON comments are removed. Environment variables, user secrets, and environment-specific settings still take precedence. Protect appsettings.json: it contains the SMTP credentials, but never the administrator password.</p>
+    <button type="submit" class="btn btn-primary">Save and finish setup</button>
+</form>

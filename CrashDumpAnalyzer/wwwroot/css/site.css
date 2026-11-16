@@ -65,6 +65,12 @@
         color: gray;
     }
 
+.setup-page .form-control,
+.setup-page .form-control:focus {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
 [data-bs-theme=light]
 a.button-link {
     background-color: transparent;

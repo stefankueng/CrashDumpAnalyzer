@@ -1,0 +1,8 @@
+﻿@{
+    Layout = "_SetupLayout";
+    ViewData["Title"] = "Setup complete";
+}
+<h1>Setup complete</h1>
+<p>Your settings have been saved to <code>appsettings.json</code> and the database is ready.</p>
+<p>Restart CrashDumpAnalyzer (or its Windows service) to activate the configuration. The setup wizard is now locked.</p>
+<p>After restarting, <a href="@Url.Content("~/")">open CrashDumpAnalyzer</a> and sign in with the administrator account if authentication was enabled.</p>

@@ -15,6 +15,38 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddWindowsService();
+builder.Services.AddSingleton<SetupService>();
+
+// Bootstrap without opening a database or starting analysis workers.
+if (SetupService.IsRequired(builder.Configuration))
+{
+    builder.Services.AddControllersWithViews();
+    var setupApp = builder.Build();
+    setupApp.Use(async (context, next) =>
+    {
+        context.Response.Headers.CacheControl = "no-store";
+        context.Response.Headers.ContentSecurityPolicy = "frame-ancestors 'none'; form-action 'self'; base-uri 'self'";
+        if (!SetupService.IsLocalRequest(context))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+        if (!context.Request.Path.StartsWithSegments("/Setup")
+            && !context.Request.Path.StartsWithSegments("/css")
+            && !context.Request.Path.StartsWithSegments("/lib"))
+        {
+            context.Response.Redirect(context.Request.PathBase.Add("/Setup"));
+            return;
+        }
+        await next(context);
+    });
+    setupApp.UseStaticFiles();
+    setupApp.MapControllers();
+    setupApp.Lifetime.ApplicationStarted.Register(() => SetupBrowser.Open(setupApp.Urls, setupApp.Logger));
+    setupApp.Run();
+    return;
+}
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=./webapplication.db";
@@ -23,6 +55,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews(options =>
 {
@@ -109,7 +142,6 @@ builder.Services.AddScoped<DumpCleanupService>();
 builder.Services.AddScoped<AnalysisResultService>();
 builder.Services.AddScoped<CallstackQueryService>();
 builder.Services.AddScoped<HomePageService>();
-builder.Services.AddWindowsService();
 builder.Services.AddHostedService<QueuedHostedService>();
 builder.Logging.AddLog4Net();
 builder.Services.AddOpenApi();
