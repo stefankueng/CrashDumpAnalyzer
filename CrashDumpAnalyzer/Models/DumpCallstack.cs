@@ -30,6 +30,7 @@ namespace CrashDumpAnalyzer.Models
         public int BuildType { get; set; } = -1;
         public string FixedVersion { get; set; } = string.Empty;
         public int FixedBuildType { get; set; } = -1;
+        public DateTime? FixedVersionSetAt { get; set; }
         public string ExceptionType { get; set; } = string.Empty;
         public string Ticket { get; set; } = string.Empty;
         public string Comment { get; set; } = string.Empty;

@@ -60,6 +60,7 @@ namespace CrashDumpAnalyzer.Services
                     callstack.Deleted = false;
                     callstack.FixedVersion = string.Empty;
                     callstack.FixedBuildType = -1;
+                    callstack.FixedVersionSetAt = null;
                     callstack.Ticket = string.Empty;
                     callstack.Comment = string.Empty;
                     doUpdate = true;

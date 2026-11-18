@@ -11,6 +11,7 @@ namespace CrashDumpAnalyzer.Services
         private readonly ILogger<DumpCleanupService> _logger;
         private readonly string _dumpPath;
         private readonly long _deleteDumpsUploadedBeforeDays;
+        private readonly long _deleteDumpsAfterFixedDays;
 
         public DumpCleanupService(ApplicationDbContext dbContext, IConfiguration configuration, ILogger<DumpCleanupService> logger)
         {
@@ -20,11 +21,12 @@ namespace CrashDumpAnalyzer.Services
             _deleteDumpsUploadedBeforeDays = configuration.GetValue<long>("DeleteDumpsUploadedBeforeDays");
             if (_deleteDumpsUploadedBeforeDays == 0)
                 _deleteDumpsUploadedBeforeDays = 30;
+            _deleteDumpsAfterFixedDays = configuration.GetValue<long?>("DeleteDumpsAfterFixedDays") ?? 14;
         }
 
         public async Task CleanupTask(CancellationToken token)
         {
-            // get all callstacks that do have a FixedVersion set and remove all dump files that are older than 30 days
+            // Remove dump files after the fixed-version grace period, or after the upload retention period for deleted callstacks.
             if (_dbContext.DumpCallstacks == null)
                 return;
             var callstacks = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
@@ -38,7 +40,10 @@ namespace CrashDumpAnalyzer.Services
             {
                 foreach (var dumpInfo in callstack.DumpInfos)
                 {
-                    if (dumpInfo.UploadDate.AddDays(_deleteDumpsUploadedBeforeDays) < DateTime.Now)
+                    var shouldDelete = callstack.Deleted
+                        ? dumpInfo.UploadDate.AddDays(_deleteDumpsUploadedBeforeDays) < DateTime.Now
+                        : !string.IsNullOrEmpty(callstack.FixedVersion) && callstack.FixedVersionSetAt.HasValue && callstack.FixedVersionSetAt.Value.AddDays(_deleteDumpsAfterFixedDays) < DateTime.UtcNow;
+                    if (shouldDelete)
                     {
                         try
                         {

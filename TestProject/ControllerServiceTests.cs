@@ -34,6 +34,7 @@ namespace CrashDumpAnalyzer.Tests
             var unassigned = await fixture.Db.Set<DumpCallstack>().SingleAsync();
             unassigned.Deleted = true;
             unassigned.FixedVersion = "1.0.0.0";
+            unassigned.FixedVersionSetAt = DateTime.UtcNow.AddDays(-1);
             unassigned.Ticket = "OLD-1";
             unassigned.Comment = "old";
             await fixture.Db.SaveChangesAsync();
@@ -43,6 +44,7 @@ namespace CrashDumpAnalyzer.Tests
             Assert.AreEqual(1, await fixture.Db.Set<DumpCallstack>().CountAsync());
             Assert.IsFalse(unassigned.Deleted);
             Assert.AreEqual(string.Empty, unassigned.FixedVersion);
+            Assert.IsNull(unassigned.FixedVersionSetAt);
             Assert.AreEqual(string.Empty, unassigned.Ticket);
             Assert.AreEqual(string.Empty, unassigned.Comment);
             var stored = await fixture.Db.Set<DumpFileInfo>().SingleAsync(f => f.FilePath == "second.dmp");
@@ -143,6 +145,7 @@ namespace CrashDumpAnalyzer.Tests
             child.LinkedToDumpCallstackId = parent.DumpCallstackId;
             child.FixedVersion = "0.9.0.0";
             child.FixedBuildType = 3;
+            child.FixedVersionSetAt = DateTime.UtcNow.AddDays(-1);
             child.Ticket = "OLD-1";
             child.Comment = "old";
             fixture.Db.Add(child);
@@ -155,12 +158,14 @@ namespace CrashDumpAnalyzer.Tests
             await service.SetApplicationVersion(parent.DumpCallstackId, "1.5.0.0", "release");
 
             Assert.AreEqual("2.0.0.0", parent.FixedVersion);
+            Assert.IsTrue(parent.FixedVersionSetAt.HasValue);
             Assert.AreEqual("APP-123", parent.Ticket);
             Assert.AreEqual("new\ncomment", parent.Comment);
             Assert.AreEqual("1.5.0.0", parent.ApplicationVersion);
             Assert.AreEqual(BuildTypes.ParseBuildType("release"), parent.BuildType);
             Assert.AreEqual(string.Empty, child.FixedVersion);
             Assert.AreEqual(-1, child.FixedBuildType);
+            Assert.IsNull(child.FixedVersionSetAt);
             Assert.AreEqual(string.Empty, child.Ticket);
             Assert.AreEqual(string.Empty, child.Comment);
         }
@@ -679,11 +684,14 @@ namespace CrashDumpAnalyzer.Tests
             await using var fixture = await Fixture.Create();
             var oldClosed = fixture.Callstack("App", "1.0.0.0", "old-closed.dmp");
             oldClosed.FixedVersion = "2.0.0.0";
+            oldClosed.FixedVersionSetAt = DateTime.UtcNow.AddDays(-15);
             oldClosed.DumpInfos[0].UploadDate = DateTime.Now.AddDays(-31);
             var oldOpen = fixture.Callstack("App", "1.0.0.0", "old-open.dmp");
             oldOpen.DumpInfos[0].UploadDate = DateTime.Now.AddDays(-31);
             var recent = fixture.Callstack("App", "1.0.0.0", "recent.dmp");
             recent.FixedVersion = "2.0.0.0";
+            recent.FixedVersionSetAt = DateTime.UtcNow.AddDays(-7);
+            recent.DumpInfos[0].UploadDate = DateTime.Now.AddDays(-31);
             fixture.Db.AddRange(oldClosed, oldOpen, recent);
             await fixture.Db.SaveChangesAsync();
             foreach (var callstack in new[] { oldClosed, oldOpen, recent })
@@ -704,6 +712,7 @@ namespace CrashDumpAnalyzer.Tests
             await using var fixture = await Fixture.Create();
             var callstack = fixture.Callstack("App", "1.0.0.0", "directory.dmp");
             callstack.FixedVersion = "2.0.0.0";
+            callstack.FixedVersionSetAt = DateTime.UtcNow.AddDays(-15);
             callstack.DumpInfos[0].UploadDate = DateTime.Now.AddDays(-31);
             fixture.Db.Add(callstack);
             await fixture.Db.SaveChangesAsync();

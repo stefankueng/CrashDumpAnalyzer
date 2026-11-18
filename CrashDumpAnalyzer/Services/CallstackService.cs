@@ -125,11 +125,13 @@ namespace CrashDumpAnalyzer.Services
             {
                 entry.FixedVersion = version ?? string.Empty;
                 entry.FixedBuildType = buildType != null ? BuildTypes.ParseBuildType(buildType) : -1;
+                entry.FixedVersionSetAt = string.IsNullOrEmpty(entry.FixedVersion) ? null : DateTime.UtcNow;
                 var linkedList = await _dbContext.DumpCallstacks.Where(x => x.LinkedToDumpCallstackId == id).ToListAsync();
                 foreach (var linked in linkedList)
                 {
                     linked.FixedVersion = string.Empty;
                     linked.FixedBuildType = -1;
+                    linked.FixedVersionSetAt = null;
                 }
                 await _dbContext.SaveChangesAsync();
             }

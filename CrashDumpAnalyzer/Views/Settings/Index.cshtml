@@ -15,7 +15,7 @@
     <input asp-for="Revision" type="hidden" />
     <div class="mb-3">
         <label asp-for="General" class="form-label">General analysis and display settings</label>
-        <p class="form-text">Available keys: DumpPath, CdbExe, AgestoreExe, MaxNumOfParallelOperations, MaxCacheSize, CachePath, TicketBaseUrl, DeleteDumpsUploadedBeforeDays, ShowEntriesForDaysBack, ShowMaxFixedEntries, LastUploadsDays, LastUploadsItems, BuildTypeRegex, DumpCommentGroupingRegex, and SymbolPath. The grouping regex must contain a named GroupKey capture.</p>
+        <p class="form-text">Available keys: DumpPath, CdbExe, AgestoreExe, MaxNumOfParallelOperations, MaxCacheSize, CachePath, TicketBaseUrl, DeleteDumpsUploadedBeforeDays, DeleteDumpsAfterFixedDays, ShowEntriesForDaysBack, ShowMaxFixedEntries, LastUploadsDays, LastUploadsItems, BuildTypeRegex, DumpCommentGroupingRegex, and SymbolPath. The grouping regex must contain a named GroupKey capture. DeleteDumpsAfterFixedDays controls the grace period after setting a fixed version and defaults to 14 days.</p>
         <textarea asp-for="General" class="form-control font-monospace" rows="16" spellcheck="false"></textarea>
     </div>
     <div class="mb-3">

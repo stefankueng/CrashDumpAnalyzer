@@ -60,6 +60,9 @@ namespace CrashDumpAnalyzer.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("FixedVersionSetAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("LinkedToDumpCallstackId")
                         .HasColumnType("INTEGER");
 

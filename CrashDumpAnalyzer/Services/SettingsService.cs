@@ -12,7 +12,7 @@ namespace CrashDumpAnalyzer.Services
 {
     public sealed class SettingsService(IWebHostEnvironment environment)
     {
-        private static readonly string[] GeneralKeys = ["DumpPath", "CdbExe", "AgestoreExe", "MaxNumOfParallelOperations", "MaxCacheSize", "CachePath", "TicketBaseUrl", "DeleteDumpsUploadedBeforeDays", "ShowEntriesForDaysBack", "ShowMaxFixedEntries", "LastUploadsDays", "LastUploadsItems", "BuildTypeRegex", "DumpCommentGroupingRegex", "SymbolPath"];
+        private static readonly string[] GeneralKeys = ["DumpPath", "CdbExe", "AgestoreExe", "MaxNumOfParallelOperations", "MaxCacheSize", "CachePath", "TicketBaseUrl", "DeleteDumpsUploadedBeforeDays", "DeleteDumpsAfterFixedDays", "ShowEntriesForDaysBack", "ShowMaxFixedEntries", "LastUploadsDays", "LastUploadsItems", "BuildTypeRegex", "DumpCommentGroupingRegex", "SymbolPath"];
         private static readonly string[] IssueKeys = ["Type", "Url", "Username", "Owner", "Repository"];
         private static readonly string[] SmtpKeys = ["Host", "Port", "Username", "EnableSsl", "From"];
         private static readonly string[] SecretKeys = ["Password", "BearerToken", "Token"];
@@ -202,7 +202,7 @@ namespace CrashDumpAnalyzer.Services
             {
                 if (!GeneralKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
                     throw new ValidationException($"Unknown general setting: {key}.");
-                if (key.Equals("MaxNumOfParallelOperations", StringComparison.OrdinalIgnoreCase) || key.Equals("MaxCacheSize", StringComparison.OrdinalIgnoreCase) || key.Equals("DeleteDumpsUploadedBeforeDays", StringComparison.OrdinalIgnoreCase) || key.Equals("ShowEntriesForDaysBack", StringComparison.OrdinalIgnoreCase) || key.Equals("ShowMaxFixedEntries", StringComparison.OrdinalIgnoreCase) || key.Equals("LastUploadsDays", StringComparison.OrdinalIgnoreCase) || key.Equals("LastUploadsItems", StringComparison.OrdinalIgnoreCase))
+                if (key.Equals("MaxNumOfParallelOperations", StringComparison.OrdinalIgnoreCase) || key.Equals("MaxCacheSize", StringComparison.OrdinalIgnoreCase) || key.Equals("DeleteDumpsUploadedBeforeDays", StringComparison.OrdinalIgnoreCase) || key.Equals("DeleteDumpsAfterFixedDays", StringComparison.OrdinalIgnoreCase) || key.Equals("ShowEntriesForDaysBack", StringComparison.OrdinalIgnoreCase) || key.Equals("ShowMaxFixedEntries", StringComparison.OrdinalIgnoreCase) || key.Equals("LastUploadsDays", StringComparison.OrdinalIgnoreCase) || key.Equals("LastUploadsItems", StringComparison.OrdinalIgnoreCase))
                 {
                     var number = value?.ToString();
                     if (!long.TryParse(number, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) || n < 0 || (key.Equals("MaxNumOfParallelOperations", StringComparison.OrdinalIgnoreCase) && (n == 0 || n > ushort.MaxValue)) || (key.StartsWith("Show", StringComparison.OrdinalIgnoreCase) || key.StartsWith("LastUploads", StringComparison.OrdinalIgnoreCase)) && n > int.MaxValue)
