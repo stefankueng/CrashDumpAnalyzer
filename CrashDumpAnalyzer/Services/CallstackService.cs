@@ -278,7 +278,7 @@ namespace CrashDumpAnalyzer.Services
                 if (deletedIds.Count >= batchSize)
                     break;
             }
-            _logger.LogInformation("Deleted {Count} old entries without tickets in this batch (older than {Version})", deletedIds.Count, version);
+            _logger.LogInformation("Deleted {Count} old entries without tickets in this batch (older than {Version})", deletedIds.Count, version.Replace(Environment.NewLine, ""));
             return deletedIds;
         }
 
