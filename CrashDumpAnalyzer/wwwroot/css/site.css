@@ -66,7 +66,8 @@
     }
 
 .setup-page .form-control,
-.setup-page .form-control:focus {
+.setup-page .form-control:focus,
+.settings-page .form-control:focus {
     background-color: var(--bs-body-bg);
     color: var(--bs-body-color);
 }

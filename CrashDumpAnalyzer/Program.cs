@@ -13,10 +13,22 @@ using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Configuration.Json;
 
 var builder = WebApplication.CreateBuilder(args);
+// Settings include startup-only services and middleware; apply base-file changes together on restart.
+for (var i = 0; i < builder.Configuration.Sources.Count; i++)
+{
+    if (builder.Configuration.Sources[i] is JsonConfigurationSource source &&
+        string.Equals(source.Path, "appsettings.json", StringComparison.OrdinalIgnoreCase))
+    {
+        source.ReloadOnChange = false;
+        builder.Configuration.Sources[i] = source;
+    }
+}
 builder.Services.AddWindowsService();
 builder.Services.AddSingleton<SetupService>();
+builder.Services.AddSingleton<SettingsService>();
 
 // Bootstrap without opening a database or starting analysis workers.
 if (SetupService.IsRequired(builder.Configuration))

@@ -1,0 +1,52 @@
+﻿@model SettingsModel
+@{
+    ViewData["Title"] = "Settings";
+}
+<h1>Settings</h1>
+@if (TempData["SettingsSaved"] is string message)
+{
+    <div class="alert alert-success" role="status">@message</div>
+}
+<p>Edit the JSON objects below. Remove an entry to remove it from appsettings.json. See <code>appsettings_example.json</code> for examples. Changes require an application restart.</p>
+<p>These fields use JSON syntax: write each regex or path backslash as <code>\\</code> (for example, <code>"\\d+"</code> represents the regex <code>\d+</code>). Do not escape the JSON a second time.</p>
+<p>Environment-specific JSON, user secrets, environment variables, and command-line arguments can override these settings. This page shows the base file, not those overrides. Restrict access to the installation folder because it may contain credentials. Saving changes removes JSON comments.</p>
+<form asp-controller="Settings" asp-action="Index" method="post" class="settings-page">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    <input asp-for="Revision" type="hidden" />
+    <div class="mb-3">
+        <label asp-for="General" class="form-label">General analysis and display settings</label>
+        <p class="form-text">Available keys: DumpPath, CdbExe, AgestoreExe, MaxNumOfParallelOperations, MaxCacheSize, CachePath, TicketBaseUrl, DeleteDumpsUploadedBeforeDays, ShowEntriesForDaysBack, ShowMaxFixedEntries, LastUploadsDays, LastUploadsItems, BuildTypeRegex, DumpCommentGroupingRegex, and SymbolPath. The grouping regex must contain a named GroupKey capture.</p>
+        <textarea asp-for="General" class="form-control font-monospace" rows="16" spellcheck="false"></textarea>
+    </div>
+    <div class="mb-3">
+        <label asp-for="StaticFolders" class="form-label">Static folders</label>
+        <p class="form-text">Map URL path segments to existing server folders.</p>
+        <textarea asp-for="StaticFolders" class="form-control font-monospace" rows="6" spellcheck="false"></textarea>
+    </div>
+    <div class="mb-3">
+        <label asp-for="LogFileAnalyzer" class="form-label">Log file analyzer</label>
+        <textarea asp-for="LogFileAnalyzer" class="form-control font-monospace" rows="12" spellcheck="false"></textarea>
+    </div>
+    <div class="mb-3">
+        <label asp-for="IssueTracker" class="form-label">Issue tracker</label>
+        <p class="form-text">Configure Type, Url, Username, Owner and Repository here. Credentials are managed separately below.</p>
+        <textarea asp-for="IssueTracker" class="form-control font-monospace" rows="7" spellcheck="false"></textarea>
+    </div>
+    <fieldset class="mb-3">
+        <legend>Issue tracker credentials</legend>
+        <p class="form-text">Credentials are never displayed. Leave blank to keep the value in appsettings.json; use Clear to remove it. Overrides from other configuration sources are not changed.</p>
+        <div class="mb-2"><label asp-for="IssuePassword" class="form-label">Jira password</label><input asp-for="IssuePassword" class="form-control" autocomplete="new-password" /><input asp-for="ClearIssuePassword" class="form-check-input" /> <label asp-for="ClearIssuePassword">Clear password</label></div>
+        <div class="mb-2"><label asp-for="IssueBearerToken" class="form-label">Jira bearer token</label><input asp-for="IssueBearerToken" class="form-control" autocomplete="new-password" /><input asp-for="ClearIssueBearerToken" class="form-check-input" /> <label asp-for="ClearIssueBearerToken">Clear bearer token</label></div>
+        <div class="mb-2"><label asp-for="IssueToken" class="form-label">GitHub token</label><input asp-for="IssueToken" class="form-control" autocomplete="new-password" /><input asp-for="ClearIssueToken" class="form-check-input" /> <label asp-for="ClearIssueToken">Clear GitHub token</label></div>
+    </fieldset>
+    <div class="mb-3">
+        <label asp-for="Smtp" class="form-label">SMTP</label>
+        <p class="form-text">Configure Host, Port, Username, EnableSsl, and From. The password is managed separately and is never displayed; leave it blank to keep it.</p>
+        <textarea asp-for="Smtp" class="form-control font-monospace" rows="6" spellcheck="false"></textarea>
+        <label asp-for="SmtpPassword" class="form-label">SMTP password</label><input asp-for="SmtpPassword" class="form-control" autocomplete="new-password" />
+        <input asp-for="ClearSmtpPassword" class="form-check-input" /> <label asp-for="ClearSmtpPassword">Clear SMTP password</label>
+    </div>
+    <div class="mb-3"><label asp-for="BuildTypes" class="form-label">Build types</label><textarea asp-for="BuildTypes" class="form-control font-monospace" rows="6" spellcheck="false"></textarea></div>
+    <div class="mb-3"><label asp-for="MinVersions" class="form-label">Minimum versions</label><textarea asp-for="MinVersions" class="form-control font-monospace" rows="8" spellcheck="false"></textarea></div>
+    <button type="submit" class="btn btn-primary">Save settings</button>
+</form>

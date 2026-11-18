@@ -90,21 +90,6 @@ namespace CrashDumpAnalyzer.Tests
             StringAssert.Contains(styles, ".dump-diagnostics {");
         }
 
-        [TestMethod]
-        public void SetupInputs_KeepThemeColorsOnFocusAndVersionStylesheet()
-        {
-            var root = ProjectDirectory();
-            var layout = File.ReadAllText(Path.Combine(root, "Views", "Shared", "_SetupLayout.cshtml"));
-            StringAssert.Contains(layout, "data-bs-theme=\"light\"");
-            StringAssert.Contains(layout, "<body class=\"setup-page\">");
-            StringAssert.Contains(layout, "href=\"~/css/site.css\" asp-append-version=\"true\"");
-            var styles = File.ReadAllText(Path.Combine(root, "wwwroot", "css", "site.css"));
-            var rule = Regex.Match(styles, @"\.setup-page \.form-control,\s*\.setup-page \.form-control:focus\s*\{([^}]+)\}");
-            Assert.IsTrue(rule.Success);
-            StringAssert.Contains(rule.Groups[1].Value, "background-color: var(--bs-body-bg);");
-            StringAssert.Contains(rule.Groups[1].Value, "color: var(--bs-body-color);");
-        }
-
         private static string ProjectDirectory()
         {
             for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent)

@@ -36,6 +36,12 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Statistics">Statistics</a>
                         </li>
+                        @if (CrashDumpAnalyzer.Controllers.SettingsController.CanAccess(Context, Configuration))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Settings" asp-action="Index">Settings</a>
+                            </li>
+                        }
                     </ul>
                     @if (Configuration.GetValue<bool>("UserAuthEnabled"))
                     {

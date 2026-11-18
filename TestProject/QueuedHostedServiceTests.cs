@@ -52,15 +52,34 @@ namespace CrashDumpAnalyzer.Tests
             var logger = new Mock<ILogger<QueuedHostedService>>();
             var factory = new Mock<ILoggerFactory>();
             factory.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(logger.Object);
-            using var worker = new QueuedHostedService(new BackgroundTaskQueue(), factory.Object, new ConfigurationBuilder().Build());
+            var queue = new BackgroundTaskQueue();
+            var observedQueue = new Mock<IBackgroundTaskQueue>();
+            var dequeueStarted = new TaskCompletionSource<Task<Func<CancellationToken, ValueTask>>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            observedQueue.Setup(q => q.DequeueAsync(It.IsAny<CancellationToken>())).Returns((CancellationToken token) =>
+            {
+                var pending = queue.DequeueAsync(token).AsTask();
+                dequeueStarted.TrySetResult(pending);
+                return new ValueTask<Func<CancellationToken, ValueTask>>(pending);
+            });
+            using var worker = new QueuedHostedService(observedQueue.Object, factory.Object, new ConfigurationBuilder().Build());
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await worker.StartAsync(timeout.Token);
+            try
+            {
+                var pending = await dequeueStarted.Task.WaitAsync(timeout.Token);
+                Assert.IsFalse(pending.IsCompleted);
 
-            await worker.StopAsync(timeout.Token);
+                await worker.StopAsync(timeout.Token);
 
-            Assert.IsNotNull(worker.ExecuteTask);
-            Assert.IsTrue(worker.ExecuteTask.IsCompletedSuccessfully);
-            VerifyErrorCount(logger, Times.Never());
+                Assert.IsTrue(pending.IsCanceled);
+                Assert.IsNotNull(worker.ExecuteTask);
+                Assert.IsTrue(worker.ExecuteTask.IsCompletedSuccessfully);
+                VerifyErrorCount(logger, Times.Never());
+            }
+            finally
+            {
+                await worker.StopAsync(timeout.Token);
+            }
         }
 
         [TestMethod]
