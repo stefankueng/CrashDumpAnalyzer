@@ -1,8 +1,10 @@
 ﻿using CrashDumpAnalyzer.Data;
 using CrashDumpAnalyzer.Models;
 using CrashDumpAnalyzer.Utilities;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
+using System.Security.Cryptography;
 
 namespace CrashDumpAnalyzer.Services
 {
@@ -19,13 +21,21 @@ namespace CrashDumpAnalyzer.Services
             _logfileFileExts = configuration.GetSection("LogFileAnalyzer").GetValue<string>("FileExtensions", ".txt;.log").Split(';');
         }
 
-        public async Task RegisterUpload(string fileName, long fileSize, string uploadedFromIp, string fileComment, string username, string email)
+        public async Task<bool> RegisterUpload(string fileName, long fileSize, string uploadedFromIp, string fileComment, string username, string email, string? checksum = null)
         {
+            var uploadDate = DateTime.Now;
+            if (checksum != null && await FindDuplicateDumpIdAsync(fileSize, checksum) is int existingId)
+            {
+                await RecordDuplicateUploadAsync(existingId, uploadDate, uploadedFromIp);
+                return false;
+            }
+
             DumpFileInfo entry = new DumpFileInfo
             {
                 FilePath = fileName,
                 FileSize = fileSize,
-                UploadDate = DateTime.Now,
+                Checksum = checksum,
+                UploadDate = uploadDate,
                 UploadedFromIp = uploadedFromIp,
                 Comment = fileComment,
                 UploadedFromUsername = username,
@@ -61,7 +71,97 @@ namespace CrashDumpAnalyzer.Services
                 _dbContext.Update(callstack);
             else
                 _dbContext.Add(callstack);
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+                return true;
+            }
+            catch (DbUpdateException ex) when (checksum != null && IsChecksumConstraintViolation(ex))
+            {
+                callstack.DumpInfos.Remove(entry);
+                _dbContext.Entry(entry).State = EntityState.Detached;
+                if (doUpdate)
+                    await _dbContext.Entry(callstack).ReloadAsync();
+                else
+                    _dbContext.Entry(callstack).State = EntityState.Detached;
+
+                if (await FindDumpIdByChecksumAsync(checksum) is not int duplicateOfId)
+                    throw;
+                await RecordDuplicateUploadAsync(duplicateOfId, uploadDate, uploadedFromIp);
+                return false;
+            }
+        }
+
+        private async Task<int?> FindDuplicateDumpIdAsync(long fileSize, string checksum)
+        {
+            if (await FindDumpIdByChecksumAsync(checksum) is int id)
+                return id;
+
+            var candidates = await _dbContext.Set<DumpFileInfo>()
+                .Where(file => file.Checksum == null && file.FileSize == fileSize && file.FilePath != string.Empty)
+                .ToListAsync();
+            foreach (var candidate in candidates)
+            {
+                if (!IsDumpFile(candidate.FilePath))
+                    continue;
+
+                var existingPath = Path.Combine(_dumpPath, candidate.FilePath);
+                if (!File.Exists(existingPath))
+                    continue;
+
+                await using var stream = File.OpenRead(existingPath);
+                var existingChecksum = Convert.ToHexString(await SHA256.HashDataAsync(stream));
+                if (existingChecksum != checksum)
+                    continue;
+
+                candidate.Checksum = checksum;
+                try
+                {
+                    await _dbContext.SaveChangesAsync();
+                    return candidate.DumpFileInfoId;
+                }
+                catch (DbUpdateException ex) when (IsChecksumConstraintViolation(ex))
+                {
+                    await _dbContext.Entry(candidate).ReloadAsync();
+                    if (await FindDumpIdByChecksumAsync(checksum) is int duplicateOfId)
+                        return duplicateOfId;
+                    throw;
+                }
+            }
+
+            return null;
+        }
+
+        private Task<int?> FindDumpIdByChecksumAsync(string checksum) => _dbContext.Set<DumpFileInfo>()
+            .Where(file => file.Checksum == checksum)
+            .Select(file => (int?)file.DumpFileInfoId)
+            .SingleOrDefaultAsync();
+
+        private async Task RecordDuplicateUploadAsync(int dumpFileInfoId, DateTime uploadDate, string uploadedFromIp)
+        {
+            _dbContext.Add(new DuplicateDumpUpload
+            {
+                DumpFileInfoId = dumpFileInfoId,
+                UploadDate = uploadDate,
+                UploadedFromIp = uploadedFromIp
+            });
             await _dbContext.SaveChangesAsync();
+        }
+
+        private static bool IsDumpFile(string filePath)
+        {
+            var extension = Path.GetExtension(filePath);
+            return extension.Equals(".dmp", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".dump", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsChecksumConstraintViolation(DbUpdateException exception)
+        {
+            return exception.InnerException is SqliteException
+            {
+                SqliteErrorCode: 19,
+                SqliteExtendedErrorCode: 2067
+            };
         }
 
         public async Task<DumpDownload?> OpenDownload(int id)

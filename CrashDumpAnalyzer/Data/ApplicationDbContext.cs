@@ -23,6 +23,8 @@ namespace CrashDumpAnalyzer.Data
             modelBuilder.Entity<DumpFileInfo>().ToTable("DumpFileInfo");
             modelBuilder.Entity<DumpCallstack>().ToTable("DumpCallstack");
             modelBuilder.Entity<LogFileData>().ToTable("LogFileData");
+            modelBuilder.Entity<DuplicateDumpUpload>().ToTable("DuplicateDumpUpload");
+            modelBuilder.Entity<DuplicateDumpUpload>().HasIndex(upload => upload.UploadDate);
 
             // Configure cascade delete for all foreign key relationships
 

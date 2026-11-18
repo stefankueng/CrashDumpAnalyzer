@@ -118,6 +118,9 @@ namespace CrashDumpAnalyzer.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Checksum")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("CommandLine")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -193,6 +196,9 @@ namespace CrashDumpAnalyzer.Data.Migrations
 
                     b.HasIndex("ApplicationName");
 
+                    b.HasIndex("Checksum")
+                        .IsUnique();
+
                     b.HasIndex("ComputerName");
 
                     b.HasIndex("Domain");
@@ -216,6 +222,31 @@ namespace CrashDumpAnalyzer.Data.Migrations
                     b.HasIndex("UploadDate", "DumpCallstackId");
 
                     b.ToTable("DumpFileInfo", (string)null);
+                });
+
+            modelBuilder.Entity("CrashDumpAnalyzer.Models.DuplicateDumpUpload", b =>
+                {
+                    b.Property<int>("DuplicateDumpUploadId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DumpFileInfoId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UploadDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UploadedFromIp")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("DuplicateDumpUploadId");
+
+                    b.HasIndex("DumpFileInfoId");
+
+                    b.HasIndex("UploadDate");
+
+                    b.ToTable("DuplicateDumpUpload", (string)null);
                 });
 
             modelBuilder.Entity("CrashDumpAnalyzer.Models.LogFileData", b =>
@@ -452,6 +483,17 @@ namespace CrashDumpAnalyzer.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("DumpCallstack");
+                });
+
+            modelBuilder.Entity("CrashDumpAnalyzer.Models.DuplicateDumpUpload", b =>
+                {
+                    b.HasOne("CrashDumpAnalyzer.Models.DumpFileInfo", "DumpFileInfo")
+                        .WithMany()
+                        .HasForeignKey("DumpFileInfoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DumpFileInfo");
                 });
 
             modelBuilder.Entity("CrashDumpAnalyzer.Models.LogFileData", b =>

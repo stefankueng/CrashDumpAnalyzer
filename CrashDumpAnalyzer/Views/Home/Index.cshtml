@@ -35,7 +35,11 @@
                     {
                         <tr>
                             <td>@item.UploadDate (@item.UploadDate.AsTimeAgo()), from @item.UploadedFromIp (@item.UploadedFromHostname)</td>
-                            @if (item.CallStack.Length == 0 && item.LogSummary.Length == 0)
+                            @if (item.IsDuplicate)
+                            {
+                                <td class="text-center"><a asp-controller="Home" asp-action="Dump" asp-route-callstackId="@item.DumpCallstackId">duplicate dump</a></td>
+                            }
+                            else if (item.CallStack.Length == 0 && item.LogSummary.Length == 0)
                             {
                                 <td>still analyzing...</td>
                             }

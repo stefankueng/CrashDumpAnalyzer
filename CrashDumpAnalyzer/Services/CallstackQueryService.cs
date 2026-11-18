@@ -48,50 +48,56 @@ namespace CrashDumpAnalyzer.Services
             return issueTypes;
         }
 
-        public async Task<List<DumpFileInfo>> FetchLastDumpFileInfos()
+        public async Task<List<RecentUpload>> FetchRecentUploads()
         {
-            if (_dbContext.DumpFileInfos != null)
+            var files = _dbContext.Set<DumpFileInfo>().Select(file => new RecentUpload
             {
-                // Calculate the cutoff date for the last x days
-                DateTime daysAgo = DateTime.Now.AddDays(-_lastUploadsDays);
+                Id = file.DumpFileInfoId,
+                UploadDate = file.UploadDate,
+                UploadedFromIp = file.UploadedFromIp,
+                UploadedFromHostname = file.UploadedFromHostname,
+                DumpCallstackId = file.DumpCallstackId,
+                CallStack = file.CallStack,
+                LogSummary = file.LogSummary,
+                IsDuplicate = false
+            });
+            var duplicates = _dbContext.Set<DuplicateDumpUpload>().Select(upload => new RecentUpload
+            {
+                Id = upload.DuplicateDumpUploadId,
+                UploadDate = upload.UploadDate,
+                UploadedFromIp = upload.UploadedFromIp,
+                UploadedFromHostname = string.Empty,
+                DumpCallstackId = upload.DumpFileInfo.DumpCallstackId,
+                CallStack = upload.DumpFileInfo.CallStack,
+                LogSummary = upload.DumpFileInfo.LogSummary,
+                IsDuplicate = true
+            });
+            var uploads = files.Concat(duplicates).OrderByDescending(upload => upload.UploadDate)
+                .ThenByDescending(upload => upload.IsDuplicate).ThenByDescending(upload => upload.Id);
 
-                // Fetch the last X items
-                var lastXItems = await _dbContext.DumpFileInfos.AsNoTracking()
-                    .OrderByDescending(dumpFileInfo => dumpFileInfo.UploadDate)
-                    .Take(_lastUploadsItems)
-                    .ToListAsync();
+            var daysAgo = DateTime.Now.AddDays(-_lastUploadsDays);
+            var result = await uploads.Where(upload => upload.UploadDate >= daysAgo).ToListAsync();
+            if (result.Count < _lastUploadsItems)
+                result = await uploads.Take(_lastUploadsItems).ToListAsync();
 
-                // Fetch all items uploaded in the last two days
-                var recentItems = await _dbContext.DumpFileInfos.AsNoTracking()
-                    .Where(dumpFileInfo => dumpFileInfo.UploadDate >= daysAgo)
-                    .OrderByDescending(dumpFileInfo => dumpFileInfo.UploadDate)
-                    .ToListAsync();
-
-                // use the larger list
-                var resultList = recentItems.Count > lastXItems.Count ? recentItems : lastXItems;
-
-                // Resolve hostnames for items without a hostname
-                foreach (var dumpFileInfo in resultList)
+            foreach (var upload in result)
+            {
+                if (string.IsNullOrEmpty(upload.UploadedFromHostname) &&
+                    !string.IsNullOrWhiteSpace(upload.UploadedFromIp))
                 {
-                    if (string.IsNullOrEmpty(dumpFileInfo.UploadedFromHostname) &&
-                        !string.IsNullOrWhiteSpace(dumpFileInfo.UploadedFromIp))
+                    try
                     {
-                        try
-                        {
-                            var myIp = IPAddress.Parse(dumpFileInfo.UploadedFromIp);
-                            var getIpHost = await Dns.GetHostEntryAsync(myIp);
-                            List<string> compName = [.. getIpHost.HostName.Split('.')];
-                            dumpFileInfo.UploadedFromHostname = compName.First();
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Failed to resolve hostname for IP {IpAddress}", dumpFileInfo.UploadedFromIp);
-                        }
+                        var ip = IPAddress.Parse(upload.UploadedFromIp);
+                        var host = await Dns.GetHostEntryAsync(ip);
+                        upload.UploadedFromHostname = host.HostName.Split('.')[0];
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to resolve hostname for IP {IpAddress}", upload.UploadedFromIp);
                     }
                 }
-                return resultList;
             }
-            return [];
+            return result;
         }
 
         public async Task<List<DumpCallstack>> FetchCallStacks(int? id, int? deleted, string searchString = "", int activeTab = -1)

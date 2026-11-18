@@ -19,11 +19,13 @@ namespace CrashDumpAnalyzer.Models
     [Index(nameof(Environment))]
     [Index(nameof(ComputerName))]
     [Index(nameof(Domain))]
+    [Index(nameof(Checksum), IsUnique = true)]
     public class DumpFileInfo
     {
         public int DumpFileInfoId { get; set; }
         public string FilePath { get; set; } = string.Empty;
         public long FileSize { get; set; } = 0;
+        public string? Checksum { get; set; }
         public DateTime UploadDate { get; set; }
         public DateTime DumpTime { get; set; }
         public TimeSpan DumpTimeOffset { get; set; }

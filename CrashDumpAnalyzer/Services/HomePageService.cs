@@ -1,4 +1,4 @@
-using CrashDumpAnalyzer.Data;
+﻿using CrashDumpAnalyzer.Data;
 using CrashDumpAnalyzer.Models;
 using CrashDumpAnalyzer.Utilities;
 using Microsoft.EntityFrameworkCore;
@@ -36,7 +36,7 @@ namespace CrashDumpAnalyzer.Services
             return new IndexPageData
             {
                 Callstacks = callstacks,
-                UploadedDumps = await _queries.FetchLastDumpFileInfos(),
+                UploadedDumps = await _queries.FetchRecentUploads(),
                 ActiveFilterString = searchString,
                 IssueData = await GetIssueData(callstacks),
                 ActiveTab = activeTab,

@@ -54,6 +54,40 @@ namespace CrashDumpAnalyzer.Tests
         }
 
         [TestMethod]
+        public async Task RegisterUpload_IgnoresPreviouslyRegisteredChecksum()
+        {
+            await using var fixture = await Fixture.Create();
+            var files = fixture.Get<DumpFileService>();
+            var checksum = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes("same dump")));
+
+            Assert.IsTrue(await files.RegisterUpload("first.dmp", 9, "", "", "", "", checksum));
+            Assert.IsFalse(await files.RegisterUpload("duplicate.dmp", 9, "", "", "", "", checksum));
+
+            Assert.AreEqual(1, await fixture.Db.Set<DumpFileInfo>().CountAsync());
+            Assert.AreEqual("first.dmp", (await fixture.Db.Set<DumpFileInfo>().SingleAsync()).FilePath);
+        }
+
+        [TestMethod]
+        public async Task RegisterUpload_DetectsDuplicateOfLegacyDumpFile()
+        {
+            await using var fixture = await Fixture.Create();
+            const string content = "legacy dump";
+            await File.WriteAllTextAsync(fixture.FilePath("legacy.dmp"), content);
+            var files = fixture.Get<DumpFileService>();
+            await files.RegisterUpload("legacy.dmp", Encoding.UTF8.GetByteCount(content), "", "", "", "");
+            var checksum = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(content)));
+
+            Assert.IsFalse(await files.RegisterUpload("duplicate.dmp", Encoding.UTF8.GetByteCount(content), "192.0.2.2", "", "", "", checksum));
+
+            var stored = await fixture.Db.Set<DumpFileInfo>().SingleAsync();
+            Assert.AreEqual("legacy.dmp", stored.FilePath);
+            Assert.AreEqual(checksum, stored.Checksum);
+            var duplicate = await fixture.Db.Set<DuplicateDumpUpload>().SingleAsync();
+            Assert.AreEqual(stored.DumpFileInfoId, duplicate.DumpFileInfoId);
+            Assert.AreEqual("192.0.2.2", duplicate.UploadedFromIp);
+        }
+
+        [TestMethod]
         public async Task OpenDownload_EncodesLogLinesAndRetainsLineAnchors()
         {
             await using var fixture = await Fixture.Create();
@@ -526,6 +560,59 @@ namespace CrashDumpAnalyzer.Tests
             Assert.AreEqual("example log", await File.ReadAllTextAsync(fixture.FilePath(file.FilePath)));
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             Assert.IsNotNull(await fixture.Get<IBackgroundTaskQueue>().DequeueAsync(timeout.Token));
+        }
+
+        [TestMethod]
+        public async Task DuplicateUploads_AppearInRecentUploadsAndFollowTheOriginalCallstack()
+        {
+            await using var fixture = await Fixture.Create();
+            var content = Encoding.UTF8.GetBytes("same dump content");
+
+            async Task<IActionResult> Upload()
+            {
+                using var form = new MultipartFormDataContent();
+                form.Add(new ByteArrayContent(content), "files", "uploaded.dmp");
+                var http = new DefaultHttpContext();
+                http.Request.ContentType = form.Headers.ContentType!.ToString();
+                http.Request.Body = await form.ReadAsStreamAsync();
+                var api = fixture.CreateApi();
+                api.ControllerContext = new ControllerContext { HttpContext = http };
+                return await api.UploadFiles();
+            }
+
+            Assert.IsInstanceOfType<CreatedResult>(await Upload());
+            using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+                Assert.IsNotNull(await fixture.Get<IBackgroundTaskQueue>().DequeueAsync(timeout.Token));
+
+            var stored = await fixture.Db.Set<DumpFileInfo>().SingleAsync();
+            var unassignedId = stored.DumpCallstackId;
+            stored.UploadDate = DateTime.Now.AddDays(-3);
+            await fixture.Db.SaveChangesAsync();
+            Assert.IsInstanceOfType<CreatedResult>(await Upload());
+            Assert.IsInstanceOfType<CreatedResult>(await Upload());
+
+            Assert.AreEqual(1, Directory.GetFiles(fixture.DirectoryPath).Length);
+            using var noDuplicateWork = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                fixture.Get<IBackgroundTaskQueue>().DequeueAsync(noDuplicateWork.Token).AsTask());
+
+            await fixture.Get<AnalysisResultService>().UpdateDumpDataInDatabase(stored.FilePath, null, new DumpData
+            {
+                processName = "App", version = "1.0.0.0", callstackString = "App!Crash",
+                cleanCallstackString = "App!Crash", exceptionCode = "c0000005"
+            }, null, CancellationToken.None);
+
+            var pages = fixture.Get<HomePageService>();
+            var index = await pages.GetIndex(null, "", 0);
+            var uploads = index.UploadedDumps.ToArray();
+            CollectionAssert.AreEqual(new[] { true, true, false }, uploads.Select(upload => upload.IsDuplicate).ToArray());
+            Assert.IsTrue(uploads[1].UploadDate > uploads[2].UploadDate);
+            var callstackId = uploads[0].DumpCallstackId;
+            Assert.AreNotEqual(unassignedId, callstackId);
+            Assert.IsTrue(uploads.All(upload => upload.DumpCallstackId == callstackId));
+            var details = await pages.GetDump(callstackId);
+            Assert.IsNotNull(details);
+            Assert.AreEqual(stored.DumpFileInfoId, details.Callstack.DumpInfos.Single().DumpFileInfoId);
         }
 
         [TestMethod]

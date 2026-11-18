@@ -3,6 +3,7 @@ using Microsoft.Net.Http.Headers;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Net;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using CrashDumpAnalyzer.Services;
 using CrashDumpAnalyzer.Utilities;
 
@@ -133,10 +134,26 @@ namespace CrashDumpAnalyzer.Controllers
                                 fileNameForDisplay, _dumpPath,
                                 fileNameForFileStorage);
                         }
-                        await _files.RegisterUpload(fileNameForFileStorage, fileSize, uploadedFromIp,
+                        string? checksum = null;
+                        if (string.Equals(ext, ".dmp", StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(ext, ".dump", StringComparison.OrdinalIgnoreCase))
+                        {
+                            await using var fileStream = System.IO.File.OpenRead(Path.Combine(_dumpPath, fileNameForFileStorage));
+                            checksum = Convert.ToHexString(await SHA256.HashDataAsync(fileStream));
+                        }
+
+                        var registered = await _files.RegisterUpload(fileNameForFileStorage, fileSize, uploadedFromIp,
                             fileComment, User.FindFirstValue(ClaimTypes.Name) ?? string.Empty,
-                            User.FindFirstValue(ClaimTypes.Email) ?? string.Empty);
-                        await _analysis.QueueUpload(fileNameForFileStorage, uploadedFromIp);
+                            User.FindFirstValue(ClaimTypes.Email) ?? string.Empty, checksum);
+                        if (registered)
+                        {
+                            await _analysis.QueueUpload(fileNameForFileStorage, uploadedFromIp);
+                        }
+                        else
+                        {
+                            System.IO.File.Delete(Path.Combine(_dumpPath, fileNameForFileStorage));
+                            _logger.LogInformation("Recorded duplicate dump upload '{FileNameForDisplay}' without keeping another copy", fileNameForDisplay);
+                        }
                     }
                 }
                 // Drain any remaining section body that hasn't been consumed and
