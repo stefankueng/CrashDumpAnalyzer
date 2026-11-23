@@ -31,7 +31,8 @@ namespace CrashDumpAnalyzer.Services
                 return;
             var callstacks = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
                 .Include(dumpCallstack => dumpCallstack.LogFileDatas)
-                            .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                    .ThenInclude(logFileLine => logFileLine.DumpFileInfo)
+                .AsSplitQuery()
                 .Where(cs => !string.IsNullOrEmpty(cs.FixedVersion) || cs.Deleted).ToListAsync(token);
 
             SortedSet<int> logFilesToDelete = [];
@@ -159,6 +160,18 @@ namespace CrashDumpAnalyzer.Services
                 }
             }
 
+            var linkedCallstackIds = allDumpFileInfos
+                .Select(dumpFileInfo => dumpFileInfo.DumpCallstack)
+                .Where(callstack => callstack != null && callstack.LinkedToDumpCallstackId != 0)
+                .Select(callstack => callstack!.LinkedToDumpCallstackId)
+                .Distinct()
+                .ToList();
+            var linkedCallstacks = linkedCallstackIds.Count == 0
+                ? new Dictionary<int, DumpCallstack>()
+                : await _dbContext.DumpCallstacks.AsNoTracking()
+                    .Where(callstack => linkedCallstackIds.Contains(callstack.DumpCallstackId))
+                    .ToDictionaryAsync(callstack => callstack.DumpCallstackId, token);
+
             var filesToDeleteCompletely = new List<DumpFileInfo>();
             var filesToDeleteOnlyPhysical = new List<DumpFileInfo>();
 
@@ -166,9 +179,7 @@ namespace CrashDumpAnalyzer.Services
             {
                 var dcs = dumpFileInfo.DumpCallstack;
                 if (dcs != null && dcs.LinkedToDumpCallstackId != 0)
-                {
-                    dcs = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.DumpCallstackId == dcs.LinkedToDumpCallstackId, token);
-                }
+                    linkedCallstacks.TryGetValue(dcs.LinkedToDumpCallstackId, out dcs);
                 bool isReferencedByLogFiles = referencedByLogFiles.Contains(dumpFileInfo.DumpFileInfoId);
                 bool isReferencedByActiveCallstack = dcs != null && !dcs.Deleted;
                 bool isReferencedByDeletedCallstack = dcs != null && dcs.Deleted;
@@ -250,12 +261,13 @@ namespace CrashDumpAnalyzer.Services
             var dumpFilesInDirectory = Directory.GetFiles(_dumpPath);
             if (_dbContext.DumpFileInfos == null)
                 return;
-            var dumpFilesInDatabase = await _dbContext.DumpFileInfos.ToListAsync(token);
+            var dumpFilesInDatabase = await _dbContext.DumpFileInfos.AsNoTracking()
+                .Select(file => file.FilePath)
+                .ToHashSetAsync(token);
             foreach (var dumpFile in dumpFilesInDirectory)
             {
                 var fileName = Path.GetFileName(dumpFile);
-                var found = dumpFilesInDatabase.FirstOrDefault(x => x.FilePath == fileName);
-                if (found == null)
+                if (!dumpFilesInDatabase.Contains(fileName))
                 {
                     try
                     {

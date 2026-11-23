@@ -164,25 +164,20 @@ namespace CrashDumpAnalyzer.Services
             {
                 var dateLimit = DateTime.UtcNow.AddDays(-7 * weeksBack);
 
-                // Get unlinked callstacks with recent dumps
-                var unlinkedCallstacks = await _dbContext.DumpCallstacks
+                // Get callstacks with recent dumps in one query; only recent uploads are used below.
+                var recentCallstacks = await _dbContext.DumpCallstacks
                     .AsNoTracking()
-                    .Include(c => c.DumpInfos)
+                    .Include(callstack => callstack.DumpInfos.Where(dumpInfo => dumpInfo.UploadDate >= dateLimit))
                     .Where(callstack => (!string.IsNullOrEmpty(callstack.Ticket) || !string.IsNullOrEmpty(callstack.Comment)) &&
-                                       callstack.LinkedToDumpCallstackId == 0 &&
-                                       callstack.ApplicationName != Constants.UnassignedDumpNames &&
-                                       callstack.DumpInfos.Any(dumpInfo => dumpInfo.DumpTime >= dateLimit))
+                                        callstack.ApplicationName != Constants.UnassignedDumpNames &&
+                                        callstack.DumpInfos.Any(dumpInfo => dumpInfo.DumpTime >= dateLimit))
                     .ToListAsync();
-
-                // Get linked callstacks with recent dumps
-                var linkedCallstacks = await _dbContext.DumpCallstacks
-                    .AsNoTracking()
-                    .Include(c => c.DumpInfos)
-                    .Where(callstack => (!string.IsNullOrEmpty(callstack.Ticket) || !string.IsNullOrEmpty(callstack.Comment)) &&
-                                       callstack.LinkedToDumpCallstackId != 0 &&
-                                       callstack.ApplicationName != Constants.UnassignedDumpNames &&
-                                       callstack.DumpInfos.Any(dumpInfo => dumpInfo.DumpTime >= dateLimit))
-                    .ToListAsync();
+                var unlinkedCallstacks = recentCallstacks
+                    .Where(callstack => callstack.LinkedToDumpCallstackId == 0)
+                    .ToList();
+                var linkedCallstacks = recentCallstacks
+                    .Where(callstack => callstack.LinkedToDumpCallstackId != 0)
+                    .ToList();
 
                 // Get parent callstacks of linked callstacks (even if their dumps are older than dateLimit)
                 var parentCallstackIds = linkedCallstacks
@@ -195,8 +190,8 @@ namespace CrashDumpAnalyzer.Services
                 {
                     parentCallstacks = await _dbContext.DumpCallstacks
                         .AsNoTracking()
-                        .Include(c => c.DumpInfos)
-                        .Where(cs => parentCallstackIds.Contains(cs.DumpCallstackId))
+                        .Include(callstack => callstack.DumpInfos.Where(dumpInfo => dumpInfo.UploadDate >= dateLimit))
+                        .Where(callstack => parentCallstackIds.Contains(callstack.DumpCallstackId))
                         .ToListAsync();
                 }
 

@@ -67,21 +67,21 @@ namespace CrashDumpAnalyzer.Services
         {
             if (_dbContext.DumpCallstacks == null)
                 return false;
-            var dumpCallstack = await _dbContext.DumpCallstacks.FirstAsync(cs => cs.LinkedToDumpCallstackId == id);
-            do
+            try
             {
-                try
-                {
-                    dumpCallstack.LinkedToDumpCallstackId = 0;
-                    await _dbContext.SaveChangesAsync();
-                    dumpCallstack = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(cs => cs.LinkedToDumpCallstackId == id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error unlinking");
-                    throw;
-                }
-            } while (dumpCallstack != null);
+                var linkedCallstacks = await _dbContext.DumpCallstacks
+                    .Where(cs => cs.LinkedToDumpCallstackId == id)
+                    .ToListAsync();
+                _ = linkedCallstacks.First();
+                foreach (var linkedCallstack in linkedCallstacks)
+                    linkedCallstack.LinkedToDumpCallstackId = 0;
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error unlinking");
+                throw;
+            }
 
             return true;
         }
@@ -219,19 +219,16 @@ namespace CrashDumpAnalyzer.Services
                 entry.LinkedToDumpCallstackId = toId;
                 await _dbContext.SaveChangesAsync();
 
-                do
+                var linkedCallstacks = await _dbContext.DumpCallstacks
+                    .Where(callstack => callstack.LinkedToDumpCallstackId == id)
+                    .ToListAsync();
+                foreach (var linkedCallstack in linkedCallstacks)
                 {
-                    entry = await _dbContext.DumpCallstacks.FirstOrDefaultAsync(x => x.LinkedToDumpCallstackId == id);
-                    if (entry != null)
-                    {
-                        entry.LinkedToDumpCallstackId = toId;
-                        if (resetDeleted)
-                            entry.Deleted = false;
-                        await _dbContext.SaveChangesAsync();
-                    }
-                } while (entry != null);
-
-
+                    linkedCallstack.LinkedToDumpCallstackId = toId;
+                    if (resetDeleted)
+                        linkedCallstack.Deleted = false;
+                }
+                await _dbContext.SaveChangesAsync();
             }
             return true;
         }
