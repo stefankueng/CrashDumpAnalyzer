@@ -86,14 +86,14 @@ namespace CrashDumpAnalyzer.Services
             return true;
         }
 
-        public async Task<bool> DeleteDumpFile(int dumpId)
+        public async Task<bool> DeleteDumpFile(int dumpId, string? expectedFilePath = null)
         {
             if (_dbContext.DumpFileInfos == null)
                 return false;
             try
             {
                 var dumpToRemove = await _dbContext.DumpFileInfos.FirstOrDefaultAsync(x => x.DumpFileInfoId == dumpId);
-                if (dumpToRemove == null)
+                if (dumpToRemove == null || (expectedFilePath != null && dumpToRemove.FilePath != expectedFilePath))
                     return false;
                 try
                 {

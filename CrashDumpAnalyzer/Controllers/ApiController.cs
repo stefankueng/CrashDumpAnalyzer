@@ -269,15 +269,26 @@ namespace CrashDumpAnalyzer.Controllers
             return await _callstacks.LinkCallstack(id, toId) ? NoContent() : BadRequest();
         }
 
-        [EndpointSummary("Analyze the first dump file of callstack 'callstackId' again'")]
+        [EndpointSummary("Analyze all dump and log files of callstack 'callstackId' again")]
         [HttpPost]
         public async Task<IActionResult> ReAnalyzeDumpFile(int callstackId)
         {
-            var dump = await _files.FindDumpToReanalyze(callstackId);
-            if (dump == null)
+            var callstacks = await _files.FindDumpsToReanalyze(callstackId);
+            if (!callstacks.Any(cs => cs.DumpCallstackId == callstackId))
                 return NotFound();
-            if (dump.DumpInfos.FirstOrDefault(x => !string.IsNullOrEmpty(x.FilePath)) is { } file)
-                await _analysis.QueueReanalysis(file.FilePath, dump.ApplicationName == Constants.UnassignedDumpNames ? null : callstackId);
+
+            var queuedIds = new HashSet<int>();
+            foreach (var callstack in callstacks)
+            {
+                var files = callstack.DumpInfos.Concat(callstack.LogFileDatas
+                    .Where(log => log.DumpFileInfo != null).Select(log => log.DumpFileInfo!));
+                foreach (var file in files.Where(file => !string.IsNullOrEmpty(file.FilePath)))
+                {
+                    if (queuedIds.Add(file.DumpFileInfoId))
+                        await _analysis.QueueReanalysis(file.FilePath, file.DumpFileInfoId,
+                            callstack.ApplicationName == Constants.UnassignedDumpNames ? null : file.DumpCallstackId);
+                }
+            }
             return NoContent();
         }
     }

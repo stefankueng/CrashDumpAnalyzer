@@ -201,10 +201,18 @@ namespace CrashDumpAnalyzer.Services
             }
         }
 
-        public Task<DumpCallstack?> FindDumpToReanalyze(int callstackId)
+        public Task<List<DumpCallstack>> FindDumpsToReanalyze(int callstackId)
         {
-            return _dbContext.Set<DumpCallstack>().Include(cs => cs.DumpInfos)
-                .FirstOrDefaultAsync(cs => cs.DumpCallstackId == callstackId || cs.LinkedToDumpCallstackId == callstackId);
+            return _dbContext.Set<DumpCallstack>().AsNoTracking()
+                .Include(cs => cs.DumpInfos)
+                .Include(cs => cs.LogFileDatas).ThenInclude(log => log.DumpFileInfo)
+                .Where(cs => cs.DumpCallstackId == callstackId || cs.LinkedToDumpCallstackId == callstackId)
+                .ToListAsync();
+        }
+
+        public Task<bool> HasFilePath(int fileId, string fileName, CancellationToken token)
+        {
+            return _dbContext.Set<DumpFileInfo>().AnyAsync(file => file.DumpFileInfoId == fileId && file.FilePath == fileName, token);
         }
     }
 }

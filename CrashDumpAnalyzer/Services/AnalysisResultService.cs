@@ -29,7 +29,7 @@ namespace CrashDumpAnalyzer.Services
                 _maxCacheSize = 30_000_000_000;
         }
 
-        public async Task UpdateLogDataInDatabase(string dumpFilePath, string uploadedFromHostname, Dictionary<LogIssue, List<(DateTime date, long lineNumber)>> logData, CancellationToken token)
+        public async Task UpdateLogDataInDatabase(string dumpFilePath, string uploadedFromHostname, Dictionary<LogIssue, List<(DateTime date, long lineNumber)>> logData, CancellationToken token, bool reanalysis = false)
         {
             // find the highest version of all the entries in the log file
             var highestVersion = new SemanticVersion(0, 0, 0, 0, -1);
@@ -49,6 +49,13 @@ namespace CrashDumpAnalyzer.Services
 
             if (entry != null)
             {
+                if (reanalysis)
+                {
+                    var previousLines = await _dbContext.Set<LogFileData>()
+                        .Where(line => line.DumpFileInfo != null && line.DumpFileInfo.DumpFileInfoId == entry.DumpFileInfoId)
+                        .ToListAsync(token);
+                    _dbContext.RemoveRange(previousLines);
+                }
                 entry.ApplicationVersion = highestVersion.ToVersionString();
                 entry.DumpTime = latestDate;
                 entry.LogSummary = $"Log contains {logData.Count} issues";
@@ -296,7 +303,11 @@ namespace CrashDumpAnalyzer.Services
                             // no existing callstack found for this dump, use the original one and update that
                             var origCallstack = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos).FirstOrDefaultAsync(
                                                                                            x => x.DumpCallstackId == callstackId, token);
-                            if (origCallstack != null)
+                            if (origCallstack != null && origCallstack.DumpInfos.Count > 1)
+                            {
+                                origCallstack.DumpInfos.Remove(entry);
+                            }
+                            else if (origCallstack != null)
                             {
                                 callstack = origCallstack;
                                 callstack.Deleted = false;

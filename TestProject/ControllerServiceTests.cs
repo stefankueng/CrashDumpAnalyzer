@@ -364,6 +364,31 @@ namespace CrashDumpAnalyzer.Tests
         }
 
         [TestMethod]
+        public async Task Reanalysis_SeparatesFilesWhoseNewCallstacksDiffer()
+        {
+            await using var fixture = await Fixture.Create();
+            var original = fixture.Callstack("App", "1.0.0.0", "first.dmp");
+            original.CleanCallstack = "old";
+            original.DumpInfos.Add(new DumpFileInfo { FilePath = "second.dmp" });
+            fixture.Db.Add(original);
+            await fixture.Db.SaveChangesAsync();
+            var results = fixture.Get<AnalysisResultService>();
+
+            await results.UpdateDumpDataInDatabase("first.dmp", null,
+                new DumpData { processName = "App", version = "1.0.0.0", cleanCallstackString = "first stack" },
+                original.DumpCallstackId, CancellationToken.None);
+            await results.UpdateDumpDataInDatabase("second.dmp", null,
+                new DumpData { processName = "App", version = "1.0.0.0", cleanCallstackString = "second stack" },
+                original.DumpCallstackId, CancellationToken.None);
+
+            fixture.Db.ChangeTracker.Clear();
+            var files = await fixture.Db.Set<DumpFileInfo>().Include(file => file.DumpCallstack).ToListAsync();
+            Assert.AreEqual("first stack", files.Single(file => file.FilePath == "first.dmp").DumpCallstack?.CleanCallstack);
+            Assert.AreEqual("second stack", files.Single(file => file.FilePath == "second.dmp").DumpCallstack?.CleanCallstack);
+            Assert.AreNotEqual(files[0].DumpCallstackId, files[1].DumpCallstackId);
+        }
+
+        [TestMethod]
         public async Task MinimumVersions_DeleteOldResultsAndRemoveOnlyTheAutomaticCommentOnRecovery()
         {
             await using var fixture = await Fixture.Create();
@@ -650,16 +675,123 @@ namespace CrashDumpAnalyzer.Tests
         {
             await using var fixture = await Fixture.Create();
             var queue = fixture.Get<DumpAnalysisQueue>();
-            await queue.QueueReanalysis("first.dmp", 1);
-            await queue.QueueReanalysis("second.dmp", 2);
+            await queue.QueueReanalysis("first.dmp", 1, 1);
+            await queue.QueueReanalysis("second.dmp", 2, 2);
 
-            var pending = queue.QueueReanalysis("third.dmp", 3);
+            var pending = queue.QueueReanalysis("third.dmp", 3, 3);
 
             Assert.IsFalse(pending.IsCompleted);
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             await fixture.Get<IBackgroundTaskQueue>().DequeueAsync(timeout.Token);
             await pending.AsTask().WaitAsync(timeout.Token);
             Assert.AreEqual(1, fixture.Lifetime.Created);
+        }
+
+        [TestMethod]
+        public async Task Reanalysis_ProcessesEveryUnassignedFileAndDeletesOnlyTheFailedFile()
+        {
+            await using var fixture = await Fixture.Create();
+            var files = fixture.Get<DumpFileService>();
+            fixture.Configuration["CdbExe"] = fixture.FilePath("missing-cdb.exe");
+            await files.RegisterUpload("invalid.dmp", 100, "", "", "", "");
+            await files.RegisterUpload("valid.log", 100, "", "", "", "");
+            await File.WriteAllTextAsync(fixture.FilePath("invalid.dmp"), "invalid dump");
+            await File.WriteAllTextAsync(fixture.FilePath("valid.log"), "Application: App\nVersion: 1.0.0.0\n2026/11/04 14:50:00 ASSERT: failure");
+            var unassigned = await fixture.Db.Set<DumpCallstack>().SingleAsync();
+
+            Assert.IsInstanceOfType<NoContentResult>(await fixture.CreateApi().ReAnalyzeDumpFile(unassigned.DumpCallstackId));
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var queue = fixture.Get<IBackgroundTaskQueue>();
+            var first = await queue.DequeueAsync(timeout.Token);
+            var second = await queue.DequeueAsync(timeout.Token);
+            await first(timeout.Token);
+            await second(timeout.Token);
+
+            fixture.Db.ChangeTracker.Clear();
+            var entries = await fixture.Db.Set<DumpFileInfo>().OrderBy(f => f.DumpFileInfoId).ToListAsync();
+            Assert.AreEqual(string.Empty, entries[0].FilePath);
+            Assert.IsFalse(File.Exists(fixture.FilePath("invalid.dmp")));
+            Assert.AreEqual("valid.log", entries[1].FilePath);
+            Assert.AreEqual("Log contains 1 issues", entries[1].LogSummary);
+            Assert.IsTrue(File.Exists(fixture.FilePath("valid.log")));
+            Assert.AreNotEqual(unassigned.DumpCallstackId, entries[1].DumpCallstackId);
+            Assert.AreEqual(1, await fixture.Db.Set<LogFileData>().CountAsync());
+        }
+
+        [TestMethod]
+        public async Task Reanalysis_QueuesMoreFilesThanQueueCapacity()
+        {
+            await using var fixture = await Fixture.Create();
+            var files = fixture.Get<DumpFileService>();
+            for (var i = 0; i < 4; i++)
+            {
+                var name = $"batch-{i}.log";
+                await files.RegisterUpload(name, 100, "", "", "", "");
+                await File.WriteAllTextAsync(fixture.FilePath(name), "Application: App\nVersion: 1.0.0.0\n2026/11/04 14:50:00 ASSERT: failure");
+            }
+            var unassigned = await fixture.Db.Set<DumpCallstack>().SingleAsync();
+            var response = fixture.CreateApi().ReAnalyzeDumpFile(unassigned.DumpCallstackId);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var queue = fixture.Get<IBackgroundTaskQueue>();
+            for (var i = 0; i < 4; i++)
+            {
+                var work = await queue.DequeueAsync(timeout.Token);
+                await work(timeout.Token);
+            }
+
+            Assert.IsInstanceOfType<NoContentResult>(await response.WaitAsync(timeout.Token));
+            fixture.Db.ChangeTracker.Clear();
+            Assert.AreEqual(4, await fixture.Db.Set<DumpFileInfo>().CountAsync(file => file.LogSummary == "Log contains 1 issues"));
+            Assert.AreEqual(4, await fixture.Db.Set<LogFileData>().CountAsync());
+        }
+
+        [TestMethod]
+        public async Task Reanalysis_ProcessesLinkedLogOnceAndReplacesPreviousIssues()
+        {
+            await using var fixture = await Fixture.Create();
+            await fixture.Get<DumpFileService>().RegisterUpload("linked.log", 100, "", "", "", "");
+            await File.WriteAllTextAsync(fixture.FilePath("linked.log"), "Application: App\nVersion: 1.0.0.0\n2026/11/04 14:50:00 ASSERT: failure");
+            var log = new LogAnalyzer(fixture.Get<ILogger<ControllerServiceTests>>(), fixture.Configuration);
+            var data = await log.Analyze(fixture.FilePath("linked.log"), CancellationToken.None);
+            await fixture.Get<AnalysisResultService>().UpdateLogDataInDatabase("linked.log", "", data, CancellationToken.None);
+            var child = await fixture.Db.Set<DumpCallstack>().SingleAsync(cs => cs.ApplicationName == "App");
+            var parent = fixture.Callstack("Parent", "1.0.0.0");
+            fixture.Db.Add(parent);
+            await fixture.Db.SaveChangesAsync();
+            child.LinkedToDumpCallstackId = parent.DumpCallstackId;
+            await fixture.Db.SaveChangesAsync();
+
+            Assert.IsInstanceOfType<NoContentResult>(await fixture.CreateApi().ReAnalyzeDumpFile(parent.DumpCallstackId));
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var queue = fixture.Get<IBackgroundTaskQueue>();
+            var work = await queue.DequeueAsync(timeout.Token);
+            await work(timeout.Token);
+            using var noDuplicate = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+            await Assert.ThrowsAsync<OperationCanceledException>(() => queue.DequeueAsync(noDuplicate.Token).AsTask());
+
+            fixture.Db.ChangeTracker.Clear();
+            var lines = await fixture.Db.Set<LogFileData>().Include(line => line.DumpFileInfo).ToListAsync();
+            Assert.AreEqual(1, lines.Count);
+            Assert.AreEqual("linked.log", lines[0].DumpFileInfo?.FilePath);
+            Assert.AreEqual("3", lines[0].LineNumberString);
+        }
+
+        [TestMethod]
+        public async Task Reanalysis_CancellationDoesNotDeleteFile()
+        {
+            await using var fixture = await Fixture.Create();
+            await fixture.Get<DumpFileService>().RegisterUpload("cancel.log", 100, "", "", "", "");
+            await File.WriteAllTextAsync(fixture.FilePath("cancel.log"), "content");
+            var file = await fixture.Db.Set<DumpFileInfo>().SingleAsync();
+            await fixture.Get<DumpAnalysisQueue>().QueueReanalysis(file.FilePath, file.DumpFileInfoId, null);
+            var work = await fixture.Get<IBackgroundTaskQueue>().DequeueAsync(CancellationToken.None);
+            using var cancelled = new CancellationTokenSource();
+            cancelled.Cancel();
+
+            await Assert.ThrowsAsync<OperationCanceledException>(() => work(cancelled.Token).AsTask());
+            fixture.Db.ChangeTracker.Clear();
+            Assert.AreEqual("cancel.log", (await fixture.Db.Set<DumpFileInfo>().SingleAsync()).FilePath);
+            Assert.IsTrue(File.Exists(fixture.FilePath("cancel.log")));
         }
 
         [TestMethod]
