@@ -15,7 +15,7 @@ namespace CrashDumpAnalyzer.Utilities
         public string IssueTextClean { get; set; } = string.Empty;
         public override int GetHashCode()
         {
-            return (ApplicationName + ApplicationVersion + BuildType + IssueType + IssueText + IssueTextClean).GetHashCode();
+            return HashCode.Combine(ApplicationName, ApplicationVersion, BuildType, IssueType, IssueText, IssueTextClean);
         }
         public override bool Equals(object? obj)
         {

@@ -63,15 +63,15 @@ namespace CrashDumpAnalyzer.Services
                 if (!string.IsNullOrEmpty(uploadedFromHostname))
                     entry.UploadedFromHostname = uploadedFromHostname;
 
-                if (_dbContext.DumpCallstacks != null)
-                {
-                    var unassigned = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.DumpInfos)
-                        .FirstOrDefaultAsync(
-                            x => x.ApplicationName == Constants.UnassignedDumpNames, token);
-                    unassigned?.DumpInfos.Remove(entry);
-                }
                 if (logData.Count == 0)
                 {
+                    if (_dbContext.DumpCallstacks != null)
+                    {
+                        var unassigned = await _dbContext.DumpCallstacks
+                            .Include(dumpCallstack => dumpCallstack.DumpInfos.Where(info => info.DumpFileInfoId == entry.DumpFileInfoId))
+                            .FirstOrDefaultAsync(x => x.ApplicationName == Constants.UnassignedDumpNames, token);
+                        unassigned?.DumpInfos.Remove(entry);
+                    }
                     entry.LogSummary = $"Log contains no issues, log file deleted";
                     // log file contains nothing important: delete the file
                     try
@@ -88,127 +88,91 @@ namespace CrashDumpAnalyzer.Services
                     await _dbContext.SaveChangesAsync(token);
                 }
             }
+            var callstacksByText = new Dictionary<string, DumpCallstack>(StringComparer.Ordinal);
             foreach (var logIssue in logData)
             {
-                var callstack = new DumpCallstack
+                token.ThrowIfCancellationRequested();
+                if (!callstacksByText.TryGetValue(logIssue.Key.IssueTextClean, out var callstack))
                 {
-                    Callstack = logIssue.Key.IssueText,
-                    CleanCallstack = logIssue.Key.IssueTextClean,
-                    ExceptionType = logIssue.Key.IssueType,
-                    ApplicationName = logIssue.Key.ApplicationName,
-                    ApplicationVersion = logIssue.Key.ApplicationVersion,
-                    BuildType = logIssue.Key.BuildType,
-                    LogFileDatas = []
-                };
+                    callstack = _dbContext.DumpCallstacks == null ? null : await _dbContext.DumpCallstacks
+                        .FirstOrDefaultAsync(cs => cs.CleanCallstack == logIssue.Key.IssueTextClean, token);
+                    if (callstack == null)
+                    {
+                        callstack = new DumpCallstack
+                        {
+                            Callstack = logIssue.Key.IssueText,
+                            CleanCallstack = logIssue.Key.IssueTextClean,
+                            ExceptionType = logIssue.Key.IssueType,
+                            ApplicationName = logIssue.Key.ApplicationName,
+                            ApplicationVersion = logIssue.Key.ApplicationVersion,
+                            BuildType = logIssue.Key.BuildType
+                        };
+                        _dbContext.Add(callstack);
+                    }
+                    else
+                    {
+                        callstack.Deleted = false;
+                        if (callstack.LinkedToDumpCallstackId != 0 && _dbContext.DumpCallstacks != null)
+                        {
+                            var linked = await _dbContext.DumpCallstacks
+                                .FirstOrDefaultAsync(cs => cs.DumpCallstackId == callstack.LinkedToDumpCallstackId, token);
+                            if (linked != null)
+                                linked.Deleted = false;
+                        }
+                    }
+                    callstacksByText.Add(logIssue.Key.IssueTextClean, callstack);
+                }
+
+                var issueVersion = new SemanticVersion(logIssue.Key.ApplicationVersion, logIssue.Key.BuildType);
+                var callstackVersion = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
+                if (issueVersion >= callstackVersion)
+                {
+                    callstack.ApplicationVersion = logIssue.Key.ApplicationVersion;
+                    callstack.BuildType = logIssue.Key.BuildType;
+                }
+
                 if (logIssue.Value.Count > 0)
                 {
-                    var logFileLine = new LogFileData
+                    var lineNumbers = logIssue.Value.Select(item => item.lineNumber).ToList();
+                    callstack.LogFileDatas.Add(new LogFileData
                     {
                         DumpFileInfo = entry,
-                        LatestTime = DateTime.MinValue,
-                        LineNumberString = string.Empty,
-                        LineNumbers = []
-                    };
-                    callstack.LogFileDatas.Add(logFileLine);
-
-                    foreach (var (date, lineNumber) in logIssue.Value)
-                    {
-                        logFileLine.LineNumbers.Add(lineNumber);
-                        logFileLine.LatestTime = logFileLine.LatestTime < date ? date : logFileLine.LatestTime;
-                    }
-                    logFileLine.LineNumberString = string.Join(",", logFileLine.LineNumbers);
-                }
-                bool doUpdate = false;
-                if (_dbContext.DumpCallstacks != null)
-                {
-                    try
-                    {
-                        var cs = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
-                            .FirstOrDefaultAsync(
-                            x => x.CleanCallstack == logIssue.Key.IssueTextClean, token);
-
-                        if (cs != null)
-                        {
-                            callstack = cs;
-                            callstack.Deleted = false;
-                            var v1 = new SemanticVersion(logIssue.Key.ApplicationVersion, logIssue.Key.BuildType);
-                            var v2 = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
-                            if (v1 >= v2)
-                            {
-                                callstack.ApplicationVersion = logIssue.Key.ApplicationVersion;
-                                callstack.BuildType = logIssue.Key.BuildType;
-                            }
-
-                            if (logIssue.Value.Count > 0)
-                            {
-                                var logFileLine = new LogFileData
-                                {
-                                    DumpFileInfo = entry,
-                                    LatestTime = DateTime.MinValue,
-                                    LineNumberString = string.Empty,
-                                    LineNumbers = []
-                                };
-                                callstack.LogFileDatas.Add(logFileLine);
-
-                                foreach (var (date, lineNumber) in logIssue.Value)
-                                {
-                                    logFileLine.LineNumbers.Add(lineNumber);
-                                    logFileLine.LatestTime = logFileLine.LatestTime < date ? date : logFileLine.LatestTime;
-                                }
-                                logFileLine.LineNumberString = string.Join(",", logFileLine.LineNumbers);
-                            }
-
-                            doUpdate = true;
-
-                            // if this dump is linked to another callstack, we need to ensure the linked callstack is not deleted
-                            if (cs.LinkedToDumpCallstackId != 0)
-                            {
-                                var linked = await _dbContext.DumpCallstacks.Include(dumpCallstack => dumpCallstack.LogFileDatas).ThenInclude(logFileLine => logFileLine.DumpFileInfo)
-                                    .FirstOrDefaultAsync(x => x.DumpCallstackId == cs.LinkedToDumpCallstackId, token);
-                                if (linked != null)
-                                {
-                                    linked.Deleted = false;
-                                    _dbContext.Update(linked);
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error parsing logfile");
-                        throw;
-                    }
+                        LatestTime = logIssue.Value.Max(item => item.date),
+                        LineNumbers = lineNumbers,
+                        LineNumberString = string.Join(",", lineNumbers)
+                    });
                 }
                 if (entry != null)
-                    callstack.DumpInfos.Add(entry);
+                    entry.DumpCallstack = callstack;
+            }
 
-                if (doUpdate)
-                    _dbContext.Update(callstack);
-                else
-                    _dbContext.Add(callstack);
-
-                await _dbContext.SaveChangesAsync(token);
-                if (callstack.ApplicationVersion != null)
+            var outdated = new List<DumpCallstack>();
+            foreach (var callstack in callstacksByText.Values)
+            {
+                var version = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
+                if (!version.isValid() || string.IsNullOrEmpty(callstack.ApplicationName))
+                    continue;
+                if (MinVersions.IsVersionSupported(callstack.ApplicationName, version))
                 {
-                    var version = new SemanticVersion(callstack.ApplicationVersion, callstack.BuildType);
-                    if (version.isValid() && !string.IsNullOrEmpty(callstack.ApplicationName))
+                    if (callstack.Comment.Contains(CallstackComments.VersionTooOld, StringComparison.InvariantCultureIgnoreCase))
                     {
-                        if (MinVersions.IsVersionSupported(callstack.ApplicationName, version))
-                        {
-                            if (callstack.Comment.Contains(CallstackComments.VersionTooOld, StringComparison.InvariantCultureIgnoreCase))
-                            {
-                                CallstackComments.Remove(callstack, CallstackComments.VersionTooOld);
-                                callstack.Deleted = false;
-                                await _dbContext.SaveChangesAsync(token);
-                            }
-                        }
-                        else
-                        {
-                            _logger.LogInformation("deleting callstack because it's too old. {ApplicationName} - {Version}", callstack.ApplicationName, version.ToVersionString());
-                            await _callstacks.DeleteDumpCallstack(callstack.DumpCallstackId, CallstackComments.VersionTooOld, false);
-                        }
+                        CallstackComments.Remove(callstack, CallstackComments.VersionTooOld);
+                        callstack.Deleted = false;
                     }
                 }
+                else
+                {
+                    _logger.LogInformation("deleting callstack because it's too old. {ApplicationName} - {Version}", callstack.ApplicationName, version.ToVersionString());
+                    outdated.Add(callstack);
+                }
+            }
+
+            if (logData.Count > 0)
+                await _dbContext.SaveChangesAsync(token);
+            foreach (var callstack in outdated)
+            {
+                token.ThrowIfCancellationRequested();
+                await _callstacks.DeleteDumpCallstack(callstack.DumpCallstackId, CallstackComments.VersionTooOld, false);
             }
         }
 

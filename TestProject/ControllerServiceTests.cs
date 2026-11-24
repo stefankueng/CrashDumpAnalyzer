@@ -9,11 +9,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using System.Data.Common;
 using System.Net;
 using System.Security.Claims;
 using System.Text;
@@ -434,6 +436,25 @@ namespace CrashDumpAnalyzer.Tests
         }
 
         [TestMethod]
+        public async Task LogAnalyzer_GroupsRepeatedAssertionsAndKeepsAllLineNumbers()
+        {
+            await using var fixture = await Fixture.Create();
+            fixture.Configuration["LogFileAnalyzer:LogIssueTypes:Assertion:Regex"] = @"ASSERT: (failure (\d+))";
+            var lines = new[] { "Application: App", "Version: 1.0.0.0" }
+                .Concat(Enumerable.Range(0, 1000).Select(i => $"ASSERT: failure {i % 5}"));
+            await File.WriteAllLinesAsync(fixture.FilePath("repeated.log"), lines);
+
+            var analyzer = new LogAnalyzer(fixture.Get<ILogger<ControllerServiceTests>>(), fixture.Configuration);
+            var issues = await analyzer.Analyze(fixture.FilePath("repeated.log"), CancellationToken.None);
+
+            Assert.AreEqual(5, issues.Count);
+            Assert.IsTrue(issues.Keys.All(issue => issue.IssueTextClean == "failure "));
+            Assert.IsTrue(issues.Values.All(occurrences => occurrences.Count == 200));
+            CollectionAssert.AreEquivalent(Enumerable.Range(3, 1000).Select(i => (long)i).ToArray(),
+                issues.Values.SelectMany(occurrences => occurrences.Select(occurrence => occurrence.lineNumber)).ToArray());
+        }
+
+        [TestMethod]
         public async Task LogResults_StoreLineNumbersAndKeepTheScopeContextUsable()
         {
             await using var fixture = await Fixture.Create();
@@ -452,6 +473,122 @@ namespace CrashDumpAnalyzer.Tests
             var file = await fixture.Db.Set<DumpFileInfo>().SingleAsync();
             Assert.AreEqual("host", file.UploadedFromHostname);
             Assert.AreEqual("Log contains 1 issues", file.LogSummary);
+        }
+
+        [TestMethod]
+        public async Task LogResults_ReusesNormalizedCallstacksWithoutLoadingHistoricalLines()
+        {
+            await using var fixture = await Fixture.Create();
+            var parent = fixture.Callstack("Parent", "1.0.0.0");
+            parent.Deleted = true;
+            var existing = fixture.Callstack("App", "1.0.0.0");
+            existing.CleanCallstack = "normalized";
+            existing.Deleted = true;
+            fixture.Db.AddRange(parent, existing);
+            await fixture.Db.SaveChangesAsync();
+            existing.LinkedToDumpCallstackId = parent.DumpCallstackId;
+            for (var i = 0; i < 100; i++)
+                existing.LogFileDatas.Add(new LogFileData { DumpFileInfo = new DumpFileInfo { FilePath = $"history-{i}.log", DumpCallstack = existing }, LineNumberString = "1", LatestTime = new DateTime(2026, 1, 1) });
+            await fixture.Db.SaveChangesAsync();
+            var existingId = existing.DumpCallstackId;
+            var parentId = parent.DumpCallstackId;
+            await fixture.Get<DumpFileService>().RegisterUpload("many.log", 100, "", "", "", "");
+            fixture.Db.ChangeTracker.Clear();
+            fixture.Recorder.Enabled = true;
+            fixture.Recorder.Commands.Clear();
+
+            var data = new Dictionary<LogIssue, List<(DateTime date, long lineNumber)>>();
+            var date = new DateTime(2026, 11, 1);
+            for (var i = 0; i < 50; i++)
+            {
+                var issue = new LogIssue { ApplicationName = "App", ApplicationVersion = i == 49 ? "2.0.0.0" : "1.0.0.0", IssueType = "Assertion", IssueText = $"failure {i}", IssueTextClean = "normalized" };
+                data.Add(issue, [(date.AddMinutes(i), i + 1), (date.AddMinutes(i + 1), i + 101)]);
+            }
+            data.Add(new LogIssue { ApplicationName = "App", ApplicationVersion = "1.0.0.0", IssueType = "Assertion", IssueText = "other", IssueTextClean = "other" }, [(date, 500)]);
+
+            await fixture.Get<AnalysisResultService>().UpdateLogDataInDatabase("many.log", "", data, CancellationToken.None);
+
+            Assert.AreEqual(2, fixture.Recorder.Commands.Count(sql => sql.Contains("\"CleanCallstack\" =", StringComparison.Ordinal)));
+            fixture.Recorder.Enabled = false;
+            Assert.AreEqual(51, fixture.Db.ChangeTracker.Entries<LogFileData>().Count());
+            fixture.Db.ChangeTracker.Clear();
+            var stored = await fixture.Db.Set<DumpCallstack>().Include(cs => cs.LogFileDatas).SingleAsync(cs => cs.DumpCallstackId == existingId);
+            Assert.IsFalse(stored.Deleted);
+            Assert.AreEqual("2.0.0.0", stored.ApplicationVersion);
+            Assert.IsFalse((await fixture.Db.Set<DumpCallstack>().SingleAsync(cs => cs.DumpCallstackId == parentId)).Deleted);
+            Assert.AreEqual(150, stored.LogFileDatas.Count);
+            Assert.IsTrue(stored.LogFileDatas.Any(line => line.LineNumberString == "50,150" && line.LatestTime == date.AddMinutes(50)));
+            Assert.AreEqual(1, await fixture.Db.Set<DumpCallstack>().CountAsync(cs => cs.CleanCallstack == "other"));
+            var file = await fixture.Db.Set<DumpFileInfo>().SingleAsync(info => info.FilePath == "many.log");
+            Assert.AreEqual("Log contains 51 issues", file.LogSummary);
+            Assert.AreEqual("2.0.0.0", file.ApplicationVersion);
+            Assert.AreEqual(51, await fixture.Db.Set<LogFileData>().CountAsync(line => line.DumpFileInfo == file));
+
+            await fixture.Get<AnalysisResultService>().UpdateLogDataInDatabase("many.log", "", data, CancellationToken.None, reanalysis: true);
+            fixture.Db.ChangeTracker.Clear();
+            Assert.AreEqual(51, await fixture.Db.Set<LogFileData>().CountAsync(line => line.DumpFileInfo != null && line.DumpFileInfo.FilePath == "many.log"));
+            Assert.AreEqual(150, await fixture.Db.Set<LogFileData>().CountAsync(line => EF.Property<int>(line, "DumpCallstackId") == existingId));
+        }
+
+        [TestMethod]
+        public async Task LogResults_ReusesNewCallstackAcrossInterleavedIssues()
+        {
+            await using var fixture = await Fixture.Create();
+            await fixture.Get<DumpFileService>().RegisterUpload("new.log", 100, "", "", "", "");
+            fixture.Db.ChangeTracker.Clear();
+            var date = new DateTime(2026, 11, 1);
+            var data = new Dictionary<LogIssue, List<(DateTime date, long lineNumber)>>
+            {
+                [new LogIssue { ApplicationName = "App", ApplicationVersion = "1.0.0.0", IssueText = "first", IssueTextClean = "same" }] = [(date, 1)],
+                [new LogIssue { ApplicationName = "App", ApplicationVersion = "1.0.0.0", IssueText = "other", IssueTextClean = "other" }] = [(date, 2)],
+                [new LogIssue { ApplicationName = "App", ApplicationVersion = "2.0.0.0", IssueText = "second", IssueTextClean = "same" }] = [(date, 3)]
+            };
+
+            await fixture.Get<AnalysisResultService>().UpdateLogDataInDatabase("new.log", "", data, CancellationToken.None);
+
+            fixture.Db.ChangeTracker.Clear();
+            var same = await fixture.Db.Set<DumpCallstack>().Include(cs => cs.LogFileDatas).SingleAsync(cs => cs.CleanCallstack == "same");
+            Assert.AreEqual("2.0.0.0", same.ApplicationVersion);
+            CollectionAssert.AreEquivalent(new[] { "1", "3" }, same.LogFileDatas.Select(line => line.LineNumberString).ToArray());
+            var file = await fixture.Db.Set<DumpFileInfo>().SingleAsync(info => info.FilePath == "new.log");
+            Assert.AreEqual(same.DumpCallstackId, file.DumpCallstackId);
+            Assert.AreEqual(3, await fixture.Db.Set<LogFileData>().CountAsync(line => line.DumpFileInfo == file));
+        }
+
+        [TestMethod]
+        public async Task LogResults_ApplyMinimumVersionAfterAllMatchingIssues()
+        {
+            await using var fixture = await Fixture.Create();
+            fixture.Configuration["MinVersions:^App$:2"] = "2.5.0.0";
+            MinVersions.Initialize(fixture.Get<ILogger<ControllerServiceTests>>(), fixture.Configuration);
+            var recovered = fixture.Callstack("App", "2.0.0.0");
+            recovered.CleanCallstack = "recovered";
+            recovered.Deleted = true;
+            recovered.Comment = "keep this comment\nVersion is too old, it won't be analyzed anymore.";
+            fixture.Db.Add(recovered);
+            await fixture.Db.SaveChangesAsync();
+            await fixture.Get<DumpFileService>().RegisterUpload("versions.log", 100, "", "", "", "");
+            fixture.Db.ChangeTracker.Clear();
+            var date = DateTime.Now;
+            var data = new Dictionary<LogIssue, List<(DateTime date, long lineNumber)>>
+            {
+                [new LogIssue { ApplicationName = "App", ApplicationVersion = "2.0.0.0", IssueText = "first", IssueTextClean = "recovered" }] = [(date, 1)],
+                [new LogIssue { ApplicationName = "App", ApplicationVersion = "2.6.0.0", IssueText = "second", IssueTextClean = "recovered" }] = [(date, 2)],
+                [new LogIssue { ApplicationName = "App", ApplicationVersion = "2.0.0.0", IssueText = "old", IssueTextClean = "old" }] = [(date, 3)]
+            };
+
+            await fixture.Get<AnalysisResultService>().UpdateLogDataInDatabase("versions.log", "", data, CancellationToken.None);
+
+            fixture.Db.ChangeTracker.Clear();
+            var stored = await fixture.Db.Set<DumpCallstack>().Where(cs => cs.ApplicationName == "App").ToListAsync();
+            var active = stored.Single(cs => cs.CleanCallstack == "recovered");
+            Assert.IsFalse(active.Deleted);
+            Assert.AreEqual("2.6.0.0", active.ApplicationVersion);
+            Assert.AreEqual("keep this comment", active.Comment);
+            var old = stored.Single(cs => cs.CleanCallstack == "old");
+            Assert.IsTrue(old.Deleted);
+            StringAssert.Contains(old.Comment, "Version is too old");
+            Assert.AreEqual(3, await fixture.Db.Set<LogFileData>().CountAsync(line => line.DumpFileInfo != null && line.DumpFileInfo.FilePath == "versions.log"));
         }
 
         [TestMethod]
@@ -911,6 +1048,20 @@ namespace CrashDumpAnalyzer.Tests
             public int Disposed { get; set; }
         }
 
+        private sealed class CommandRecorder : DbCommandInterceptor
+        {
+            public bool Enabled { get; set; }
+            public List<string> Commands { get; } = [];
+
+            public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+                DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+            {
+                if (Enabled)
+                    Commands.Add(command.CommandText);
+                return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+            }
+        }
+
         private sealed class TrackingContext : ApplicationDbContext
         {
             private readonly ContextLifetime _lifetime;
@@ -935,6 +1086,7 @@ namespace CrashDumpAnalyzer.Tests
             private readonly AsyncServiceScope _scope;
             public IConfiguration Configuration { get; }
             public ContextLifetime Lifetime { get; } = new();
+            public CommandRecorder Recorder { get; } = new();
             public string DirectoryPath { get; } = Path.Combine(Path.GetTempPath(), "CrashDumpAnalyzer-tests-" + Guid.NewGuid().ToString("N"));
             public ApplicationDbContext Db => Get<ApplicationDbContext>();
 
@@ -953,7 +1105,7 @@ namespace CrashDumpAnalyzer.Tests
                 }).Build();
                 BuildTypes.Initialize(Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, Configuration);
                 MinVersions.Initialize(Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, Configuration);
-                var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlite(connection).Options;
+                var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlite(connection).AddInterceptors(Recorder).Options;
                 var services = new ServiceCollection();
                 services.AddLogging();
                 services.AddHttpClient();
